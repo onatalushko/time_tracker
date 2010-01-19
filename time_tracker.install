@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function time_tracker_schema() {
+  $schema = array();
+
+  $schema['time_tracker_entry'] = array(
+    'fields' => array(
+      'teid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'duration' => array(
+        'type' => 'float',
+        'not null' => TRUE,
+        'unsigned' => FALSE,
+      ),
+      'activity' => array(
+        'type' => 'varchar',
+        'length' => 100,
+      ),
+      'billable' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'cid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'note' => array(
+        'type' => 'text',
+      ),
+    ),
+    'primary key' => array('teid'),
+  );
+  return $schema;
+}
+
+function time_tracker_install() {
+  drupal_install_schema('time_tracker');
+}
+
+function time_tracker_uninstall() {
+  drupal_uninstall_schema('time_tracker');
+}

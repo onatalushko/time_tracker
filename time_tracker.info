@@ -1,0 +1,4 @@
+name = Time Tracker
+description = Provides time tracking functionality to any nodes comments.
+package = General
+core = 6.x
