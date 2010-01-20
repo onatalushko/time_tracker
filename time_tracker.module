@@ -15,22 +15,6 @@ function time_tracker_menu() {
 	);
 }
 
-/**
- * Implementation of hook_node_type().
- */
-function time_node_type($op, $info) {
-  $settings = array(
-    'time',
-  );
-  switch ($op) {
-    case 'delete':
-      foreach ($settings as $setting) {
-        variable_del($setting .'_'. $info->type);
-      }
-      break;
-  }
-}
-
 /*
  * Implementation of hook_form()
  * 
@@ -55,58 +39,51 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     $node = node_load($form['nid']['#value']);
     
     if (variable_get('time_tracker_'. $node->type, 0)) {
-      $form = array_merge($form, time_tracker_form($form_state, NULL, $node));
+      global $user;
+  
+      $form['time_tracker']['teid'] = array( '#type' => 'value', '#value' => NULL );
+      $form['time_tracker']['nid'] = array();
+      $form['time_tracker']['cid'] = array();
+      $form['time_tracker']['uid'] = array(
+        '#title' => t('User'),
+        '#access' => user_access('administer time entries'),
+        '#size' => '10',
+        '#type' => 'textfield',
+        '#default_value' => $user->name,
+        '#autocomplete_path' => 'user/autocomplete',
+      );
+      $form['time_tracker']['timestamp'] = array(
+        '#title' => t('Date'),
+        '#type' => 'textfield',
+        '#size' => '20',
+        '#default_value' => format_date(time(), 'small'),
+      );
+      $form['time_tracker']['note'] = array(
+        '#title' => t('Note'),
+        '#type' => 'textfield',
+        '#size' => '50',
+        '#default_value' => NULL,
+      );
+      $form['time_tracker']['duration'] = array(
+        '#title' => t('Hours'),
+        '#type' => 'textfield',
+        '#size' => '10',
+        '#default_value' => 0,
+        '#required' => TRUE,
+      );
+      $form['time_tracker']['activity'] = array(
+        '#title' => t('Activity'),
+        '#type' => 'select',
+        '#default_value' => NULL,
+        '#options' => array('1', '2'),
+      );
+  
+      $form['#validate'][] = 'time_tracker_form_validate';
+      $form['#submit'][] = 'time_tracker_form_submit';
+  
+      return $form;
     }
   }  
-}
-
-/**
- * Time tracking form.
- */
-function time_tracker_form($form_state, $time_entry = NULL, $node = NULL) {
-	global $user;
-	
-  $form['time_tracker']['teid'] = array( '#type' => 'value', '#value' => NULL );
-  $form['time_tracker']['nid'] = array();
-  $form['time_tracker']['cid'] = array();
-  $form['time_tracker']['uid'] = array(
-    '#title' => t('User'),
-    '#access' => user_access('administer time entries'),
-    '#size' => '10',
-    '#type' => 'textfield',
-    '#default_value' => $user->name,
-    '#autocomplete_path' => 'user/autocomplete',
-  );
-  $form['time_tracker']['timestamp'] = array(
-    '#title' => t('Date'),
-    '#type' => 'textfield',
-    '#size' => '20',
-    '#default_value' => format_date(time(), 'small'),
-  );
-  $form['time_tracker']['note'] = array(
-    '#title' => t('Note'),
-    '#type' => 'textfield',
-    '#size' => '50',
-    '#default_value' => NULL,
-  );
-  $form['time_tracker']['duration'] = array(
-    '#title' => t('Hours'),
-    '#type' => 'textfield',
-    '#size' => '10',
-    '#default_value' => 0,
-    '#required' => TRUE,
-  );
-  $form['time_tracker']['activity'] = array(
-    '#title' => t('Activity'),
-    '#type' => 'select',
-    '#default_value' => NULL,
-    '#options' => array('1', '2'),
-  );
-  
-  $form['#validate'][] = 'time_tracker_form_validate';
-  $form['#submit'][] = 'time_tracker_form_submit';
-  
-  return $form;
 }
 
 /**
