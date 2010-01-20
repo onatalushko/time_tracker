@@ -15,6 +15,22 @@ function time_tracker_menu() {
 	);
 }
 
+/**
+ * Implementation of hook_node_type().
+ */
+function time_node_type($op, $info) {
+  $settings = array(
+    'time',
+  );
+  switch ($op) {
+    case 'delete':
+      foreach ($settings as $setting) {
+        variable_del($setting .'_'. $info->type);
+      }
+      break;
+  }
+}
+
 /*
  * Implementation of hook_form()
  * 
@@ -77,10 +93,10 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#default_value' => NULL,
         '#options' => array('1', '2'),
       );
-  
+
       $form['#validate'][] = 'time_tracker_form_validate';
       $form['#submit'][] = 'time_tracker_form_submit';
-  
+
       return $form;
     }
   }  
@@ -108,11 +124,53 @@ function time_tracker_form_submit($form, &$form_state) {
 }
 
 /**
+ * Implementation of hook_comment().
+ */
+function time_tracker_comment(&$comment, $op) {
+	switch ($op) {
+		case 'view':
+      // If this is a preview we won't have a cid yet.
+      if (empty($comment->cid)) {
+        $time_tracker_data = (object)$comment->time_tracker;
+        $node = node_load($comment->nid);
+      }
+      else {
+        $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
+        while ($result = db_fetch_object($results)) {
+          $time_tracker_data = $result;
+        }
+      }
+      $comment->comment = theme('time_tracker_comment_changes', $time_tracker_data) . $comment->comment;        
+      break;
+	}
+}
+
+/**
+ * Implementation of hook_theme
+ */
+function time_tracker_theme() {
+  return array(
+    'time_tracker_comment_changes' => array(),
+  );
+}
+
+/**
+ * Theme function for time entries on comments.
+ */
+function theme_time_tracker_comment_changes($time_tracker_data) {
+  $rows = array();
+
+  $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
+
+  return theme('table', NULL, $rows, array('class' => 'time_tracker'));	
+}
+
+/**
  * Implementation of hook_views_api().
  */
 function time_views_api() {
   return array(
     'api' => 2,
-    'path' => drupal_get_path('module', 'time') .'/includes/views',
+    'path' => drupal_get_path('module', 'time_tracker') .'/includes/views',
   );
 }
