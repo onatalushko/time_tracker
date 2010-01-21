@@ -1,4 +1,15 @@
 <?php
+/**
+ * @file
+ * Enables time tracking on nodes and comments.
+ */
+
+/**
+ * Implementation of hook_perm().
+ */
+function time_tracker_perm() {
+  return array('administer time tracker');
+}
 
 /*
  * Implementation of hook_menu()
@@ -6,21 +17,50 @@
  */
 function time_tracker_menu() {
 	$items = array();
-	$items['admin/settings/time'] = array(
+	$items['admin/settings/time_tracker'] = array(
     'title' => 'Time Tracker',
     'description' => 'Adjust time tracker settings.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_theme_settings'),
     'access arguments' => array('administer time tracker'),
 	);
+	
+	return $items;
+}
+
+/**
+ * Form builder function for module settings.
+ */
+function time_tracker_theme_settings() {
+	$activities = array();
+	
+  $results = db_query("SELECT * FROM {time_tracker_activity}");
+  
+  while ($result = db_fetch_object($results)) {
+    $activities[] = $result;
+  }
+  
+  $form['time_tracker_activities_table'] = array(
+    '#type' => 'markup',
+  );
+  
+  $form['time_tracker_activities'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Activities'),
+    '#size' => 30,
+    '#description' => t('Add activites that time can be tracked for'),
+  );
+
+  return $form;
 }
 
 /**
  * Implementation of hook_node_type().
+ * TODO: What is thie even for?
  */
 function time_node_type($op, $info) {
   $settings = array(
-    'time',
+    'time_entry',
   );
   switch ($op) {
     case 'delete':
@@ -43,18 +83,24 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
-    $form['time_tracker']['time_tracker'] = array(
+    $form['time_tracker']['time_tracker_nodes'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Track time this content types comments'),
-      '#default_value' => variable_get('time_tracker_'. $form['#node_type']->type, 0),
+      '#title' => t('Track time on this content types nodes'),
+      '#default_value' => variable_get('time_tracker_nodes_'. $form['#node_type']->type, 0),
+      '#description' => t('Track time on this content types nodes.'),
+    );     
+    $form['time_tracker']['time_tracker_comments'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Track time on this content types comments'),
+      '#default_value' => variable_get('time_tracker_comments_'. $form['#node_type']->type, 0),
       '#description' => t('Track time on this content types comments.'),
-    );
+    );   
   }
   
   if ($form_id == 'comment_form') {
     $node = node_load($form['nid']['#value']);
     
-    if (variable_get('time_tracker_'. $node->type, 0)) {
+    if (variable_get('time_tracker_comments_'. $node->type, 0)) {
       global $user;
   
       $form['time_tracker']['teid'] = array( '#type' => 'value', '#value' => NULL );
@@ -85,6 +131,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#type' => 'textfield',
         '#size' => '10',
         '#default_value' => 0,
+        '#description' => t('eg. 2.5 for two and a half hours'),
         '#required' => TRUE,
       );
       $form['time_tracker']['activity'] = array(
@@ -126,9 +173,9 @@ function time_tracker_form_submit($form, &$form_state) {
 /**
  * Implementation of hook_comment().
  */
-function time_tracker_comment(&$comment, $op) {
+function time_tracker_comment(&$comment, $op) {	
 	switch ($op) {
-		case 'view':
+	  case 'view':
       // If this is a preview we won't have a cid yet.
       if (empty($comment->cid)) {
         $time_tracker_data = (object)$comment->time_tracker;
@@ -138,6 +185,7 @@ function time_tracker_comment(&$comment, $op) {
         $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
         while ($result = db_fetch_object($results)) {
           $time_tracker_data = $result;
+          print_r($time_tracker_data);
         }
       }
       $comment->comment = theme('time_tracker_comment_changes', $time_tracker_data) . $comment->comment;        
