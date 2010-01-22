@@ -32,25 +32,37 @@ function time_tracker_menu() {
  * Form builder function for module settings.
  */
 function time_tracker_theme_settings() {
-	$activities = array();
-	
   $results = db_query("SELECT * FROM {time_tracker_activity}");
   
+  drupal_add_tabledrag('activities-table', 'order', 'sibling', 'drag');
+
+  $header = array(t('Activity Name'));
+
   while ($result = db_fetch_object($results)) {
-    $activities[] = $result;
+    print_r($result);
+    $row[] = array($result->name);
   }
   
+  print_r($row);
+
+  $rows[] = array(
+  	'data' => $row,
+    'class' => 'draggable',
+  );
+
   $form['time_tracker_activities_table'] = array(
     '#type' => 'markup',
+  	'#value' => theme('table', $header, $rows, array('id' => 'activities-table')),
+  	'#weight' => - 100,
   );
-  
+
   $form['time_tracker_activities'] = array(
     '#type' => 'textfield',
     '#title' => t('Activities'),
     '#size' => 30,
     '#description' => t('Add activites that time can be tracked for'),
-  );
-
+  );  
+  
   return $form;
 }
 
