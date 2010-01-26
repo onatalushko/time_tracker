@@ -228,6 +228,6 @@ function theme_time_tracker_comment_changes($time_tracker_data) {
 function time_views_api() {
   return array(
     'api' => 2,
-    'path' => drupal_get_path('module', 'time_tracker') .'/includes/views',
+    'path' => drupal_get_path('module', 'time_tracker') .'/views',
   );
 }
