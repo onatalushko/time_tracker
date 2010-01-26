@@ -10,6 +10,12 @@
  */
 function time_tracker_views_data() {
   $data['time_tracker_entry']['table']['group'] = t('Time Tracker');
+  $data['time_tracker_entry']['table']['base'] = array(
+    'field' => 'teid',
+    'title' => t('Time Tracker'),
+    'help' => t('Content generated from time tracker entries.'),
+  );
+
   $data['time_tracker_entry']['timestamp'] = array(
     'title' => t('Timestamp'),
     'help' => t('Timestamp of the entry'),
@@ -120,23 +126,6 @@ function time_tracker_views_data() {
       'label' => t('Node'),
     ),
   );
-  $data['time_tracker_entry']['note'] = array(
-    'title' => t('Node'),
-    'help' => t('TODO'),
-    'field' => array(
-      'handler' => 'views_handler_field_markup',
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_string',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_string',
-    ),
-  );
 
   return $data;
 }
-
