@@ -186,16 +186,15 @@ function time_tracker_comment(&$comment, $op) {
     break;
 
     case 'insert':
-      if (isset($comment['teid'])) {
-        return drupal_write_record('time_tracker_entry', $comment, 'teid');
-      }
-      else {
+      if (isset($comment['duration']) && $comment['duration'] > 0) {
         return drupal_write_record('time_tracker_entry', $comment);
       }
     break;
 
     case 'update':
-      return drupal_write_record('time_tracker_entry', $comment, 'teid');
+      if (isset($comment['teid'])) {
+        return drupal_write_record('time_tracker_entry', $comment, 'teid');
+      }
     break;
 
     case 'delete':
@@ -217,9 +216,10 @@ function time_tracker_theme() {
  * Theme function for time entries on comments.
  */
 function theme_time_tracker_comment_changes($time_tracker_data) {
-  $rows = array();
-
-  $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
+  if (is_object($time_tracker_data)) {
+    $rows = array();
+    $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
+  }
 
   return theme('table', NULL, $rows, array('class' => 'time_tracker'));
 }
@@ -227,7 +227,7 @@ function theme_time_tracker_comment_changes($time_tracker_data) {
 /**
  * Implementation of hook_views_api().
  */
-function time_views_api() {
+function time_tracker_views_api() {
   return array(
     'api' => 2,
     'path' => drupal_get_path('module', 'time_tracker') .'/views',
