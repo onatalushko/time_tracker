@@ -8,7 +8,7 @@
  * Implementation of hook_perm().
  */
 function time_tracker_perm() {
-  return array('administer time tracker');
+  return array('administer time tracker', 'view time tracker entries');
 }
 
 /*
@@ -216,7 +216,7 @@ function time_tracker_theme() {
  * Theme function for time entries on comments.
  */
 function theme_time_tracker_comment_changes($time_tracker_data) {
-  if (is_object($time_tracker_data)) {
+  if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
     $rows = array();
     $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
   }
