@@ -2,3 +2,5 @@ name = Time Tracker
 description = Provides time tracking functionality to any node type and node type's comments.
 package = General
 core = 6.x
+dependencies[] = views
+dependencies[] = views_calc
