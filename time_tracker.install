@@ -23,8 +23,9 @@ function time_tracker_schema() {
         'unsigned' => FALSE,
       ),
       'activity' => array(
-        'type' => 'varchar',
-        'length' => 100,
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
       ),
       'billable' => array(
         'type' => 'int',
@@ -49,7 +50,7 @@ function time_tracker_schema() {
     ),
     'primary key' => array('teid'),
   );
-  
+
   $schema['time_tracker_activity'] = array(
     'fields' => array(
       'taid' => array(
@@ -59,7 +60,7 @@ function time_tracker_schema() {
       ),
       'name' => array(
         'type' => 'varchar',
-        'size' => 100,
+        'length' => 100,
       ),
       'weight' => array(
         'type' => 'int',
@@ -68,37 +69,12 @@ function time_tracker_schema() {
     ),
     'primary key' => array('taid'),
   );
-   
+
   return $schema;
 }
 
 function time_tracker_install() {
   drupal_install_schema('time_tracker');
-}
-
-function time_tracker_update_6100() {
-  $schema['time_tracker_activity'] = array(
-    'fields' => array(
-      'taid' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
-      'name' => array(
-        'type' => 'varchar',
-        'size' => 100,
-      ),
-      'weight' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array('taid'),
-  );
-  
-  $ret = array();
-  db_create_table($ret, 'time_tracker_activity', $schema['time_tracker_activity']);  
-  return $ret;
 }
 
 function time_tracker_uninstall() {
