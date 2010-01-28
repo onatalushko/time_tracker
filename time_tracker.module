@@ -32,44 +32,42 @@ function time_tracker_menu() {
  * Form builder function for module settings.
  */
 function time_tracker_settings_form() {
-  $results = db_query("SELECT * FROM {time_tracker_activity}");
-
-  //drupal_add_tabledrag('activities-table', 'order', 'sibling', 'drag');
-
   $header = array(t('Activity Name'));
 
+  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
   while ($result = db_fetch_object($results)) {
     $row[] = array($result->name);
   }
-/*
-  $rows[] = array('data' => $row, 'class' => 'draggable',);
- */
-  $form['time_tracker_activities_table'] = array(
+
+  $form['time_tracker_activity']['taid'] = array('#type' => 'value', '#value' => NULL);
+
+  $form['time_tracker_activity'] = array(
     '#type' => 'markup',
     '#value' => theme('table', $header, $row, array('id' => 'activities-table')),
     '#weight' => -100,
   );
 
-  $form['time_tracker_activities']['taid'] = array( '#type' => 'value', '#value' => NULL );
-
-  $form['time_tracker_activities'] = array(
+  $form['time_tracker_activity']['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Activities'),
     '#size' => 30,
-    '#description' => t('Add activites that time can be tracked for'),
+    '#description' => t('Add activites that time can be tracked for.'),
   );
 
-  $form['#submit'][] = time_tracker_settings_form_submit;
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Save',
+  );
 
   return $form;
 }
 
 function time_tracker_settings_form_submit($form, &$form_state) {
   if (isset($form_state['values']['taid'])) {
-    return drupal_write_record('time_tracker_entry', $form_state['values'], $form_state['values']['teid']);
+    return drupal_write_record('time_tracker_activity', $form_state['values'], $form_state['values']['taid']);
   }
   else{
-    return drupal_write_record('time_tracker_entry', $form_state['values']);
+    return drupal_write_record('time_tracker_activity', $form_state['values']);
   }
 }
 
@@ -122,6 +120,12 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     if (variable_get('time_tracker_comments_'. $node->type, 0)) {
       global $user;
 
+      $activities = array();
+      $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+      while ($result = db_fetch_object($results)) {
+        $activities[$result->taid] = $result->name;
+      }
+
       if ($form['cid']['#value']) {
         $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
         while ($result = db_fetch_object($results)) {
@@ -157,7 +161,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Activity'),
         '#type' => 'select',
         '#default_value' => $time_tracker_data->activity,
-        '#options' => array('Design', 'Development'),
+        '#options' => $activities,
       );
 
       return $form;
@@ -219,9 +223,20 @@ function theme_time_tracker_comment_changes($time_tracker_data) {
   if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
     $rows = array();
     $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
+    $rows[] = array(t('Activity: '. get_activity_name($time_tracker_data->activity)));
   }
 
   return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+}
+
+/**
+ * Helper function for turning activity id into name.
+ */
+function get_activity_name($activity_id) {
+  $result = db_query("SELECT name FROM {time_tracker_activity} WHERE taid = '". $activity_id ."'");
+  $activity = db_fetch_object($result);
+  
+  return $activity->name;
 }
 
 /**
