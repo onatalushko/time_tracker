@@ -13,9 +13,20 @@ function time_tracker_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
-      'timestamp' => array(
+      'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'cid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
       ),
       'duration' => array(
         'type' => 'float',
@@ -31,21 +42,9 @@ function time_tracker_schema() {
         'type' => 'int',
         'size' => 'tiny',
       ),
-      'uid' => array(
+      'timestamp' => array(
         'type' => 'int',
         'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
-      'nid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'cid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'note' => array(
-        'type' => 'text',
       ),
     ),
     'primary key' => array('teid'),

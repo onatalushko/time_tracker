@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function time_estimate_schema() {
+  $schema = array();
+
+  $schema['time_estimate_entry'] = array(
+    'fields' => array(
+      'eid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'estimate' => array(
+        'type' => 'float',
+        'not null' => TRUE,
+        'unsigned' => FALSE,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('eid'),
+  );
+
+  return $schema;
+}
+
+function time_estimate_install() {
+  drupal_install_schema('time_estimate');
+}
+
+function time_estimate_uninstall() {
+  drupal_uninstall_schema('time_estimate');
+}

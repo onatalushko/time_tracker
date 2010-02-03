@@ -10,13 +10,11 @@
  */
 function time_tracker_views_data() {
   $data['time_tracker_entry']['table']['group'] = t('Time Tracker');
-
   $data['time_tracker_entry']['table']['base'] = array(
     'field' => 'teid',
     'title' => t('Time Tracker'),
     'help' => t('Content generated from time tracker entries.'),
   );
-
   $data['time_tracker_entry']['teid'] = array(
     'title' => t('ID'),
     'help' => t('Time Entry ID.'),
@@ -33,7 +31,6 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
-
   $data['time_tracker_entry']['timestamp'] = array(
     'title' => t('Timestamp'),
     'help' => t('Timestamp of the Entry.'),
@@ -50,7 +47,6 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument_date',
     ),
   );
-
   $data['time_tracker_entry']['duration'] = array(
     'title' => t('Duration'),
     'help' => t('Time Entry Duration.'),
@@ -67,24 +63,22 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
-
   $data['time_tracker_entry']['activity'] = array(
     'title' => t('Activity'),
     'help' => t('Time Entry Activity.'),
     'field' => array(
-      'handler' => 'views_handler_field_markup',
+      'handler' => 'views_handler_field_numeric',
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_string',
+      'handler' => 'views_handler_filter_numeric',
     ),
     'argument' => array(
-      'handler' => 'views_handler_argument_string',
+      'handler' => 'views_handler_argument_numeric',
     ),
   );
-
   $data['time_tracker_entry']['billable'] = array(
     'title' => t('Billable'),
     'help' => t('Is the Entry Billable?'),
@@ -101,7 +95,6 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
-
   $data['time_tracker_entry']['uid'] = array(
     'title' => t('Author'),
     'help' => t('Relate an entry to the user who created it.'),
@@ -112,7 +105,6 @@ function time_tracker_views_data() {
       'label' => t('User'),
     ),
   );
-
   $data['time_tracker_entry']['nid'] = array(
     'title' => t('Node'),
     'help' => t('Relate an entry to a comments node.'),
@@ -123,7 +115,6 @@ function time_tracker_views_data() {
       'label' => t('Node'),
     ),
   );
-
   $data['time_tracker_entry']['cid'] = array(
     'title' => t('Comment'),
     'help' => t('Relate an entry to a comment.'),

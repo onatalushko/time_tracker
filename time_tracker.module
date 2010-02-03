@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Enables time tracking on nodes and comments.
+ * Enables time tracking on comments.
  */
 
 /**
@@ -24,6 +24,10 @@ function time_tracker_menu() {
     'page arguments' => array('time_tracker_settings_form'),
     'access arguments' => array('administer time tracker'),
   );
+  $items['admin/settings/time_tracker/edit/%'] = array(
+  );
+  $items['admin/settings/time_tracker/delete/%'] = array(
+  );
 
   return $items;
 }
@@ -31,12 +35,15 @@ function time_tracker_menu() {
 /**
  * Form builder function for module settings.
  */
-function time_tracker_settings_form() {
-  $header = array(t('Activity Name'));
+function time_tracker_settings_form(&$form_state) {
+  $header = array(t('Activity Name'), t('Operations'));
 
   $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
   while ($result = db_fetch_object($results)) {
-    $row[] = array($result->name);
+    $row[] = array(
+      $result->name,
+      l('edit', 'admin/settings/time_tracker/activity/edit'),
+    );
   }
 
   $form['time_tracker_activity']['taid'] = array('#type' => 'value', '#value' => NULL);
@@ -49,9 +56,9 @@ function time_tracker_settings_form() {
 
   $form['time_tracker_activity']['name'] = array(
     '#type' => 'textfield',
-    '#title' => t('Activities'),
+    '#title' => t('Activity'),
     '#size' => 30,
-    '#description' => t('Add activites that time can be tracked for.'),
+    '#description' => t('Add an activity that time can be tracked for.'),
   );
 
   $form['submit'] = array(
@@ -96,15 +103,9 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
   if ($form_id == 'node_type_form' && isset($form['identity']['type'])) {
     $form['time_tracker'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Time Tracking settings'),
+      '#title' => t('Time Tracker settings'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
-    );
-    $form['time_tracker']['time_tracker_nodes'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Track time on this content types nodes'),
-      '#default_value' => variable_get('time_tracker_nodes_'. $form['#node_type']->type, 0),
-      '#description' => t('Track time on this content types nodes.'),
     );
     $form['time_tracker']['time_tracker_comments'] = array(
       '#type' => 'checkbox',
@@ -120,6 +121,8 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     if (variable_get('time_tracker_comments_'. $node->type, 0)) {
       global $user;
 
+      $results = db_query("SELECT * FROM time_tracker_activity");
+
       $activities = array();
       $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
       while ($result = db_fetch_object($results)) {
@@ -133,9 +136,9 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         }
       }
 
-      $form['time_tracker']['teid'] = array( '#type' => 'value', '#value' => $time_tracker_data->teid );
       $form['time_tracker']['nid'] = array();
       $form['time_tracker']['cid'] = array();
+      $form['time_tracker']['teid'] = array('#type' => 'value', '#value' => $time_tracker_data->teid);
       $form['time_tracker']['uid'] = array(
         '#title' => t('User'),
         '#access' => user_access('administer time entries'),
@@ -190,7 +193,7 @@ function time_tracker_comment(&$comment, $op) {
     break;
 
     case 'insert':
-      if (isset($comment['duration']) && $comment['duration'] > 0) {
+      if (isset($comment->duration) && $comment->duration > 0) {
         return drupal_write_record('time_tracker_entry', $comment);
       }
     break;
@@ -198,13 +201,15 @@ function time_tracker_comment(&$comment, $op) {
     case 'update':
       if (isset($comment['teid'])) {
         return drupal_write_record('time_tracker_entry', $comment, 'teid');
+      } else {
+        return drupal_write_record('time_tracker_entry', $comment);
       }
     break;
 
     case 'delete':
       db_query("DELETE FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
     break;
-    }
+  }
 }
 
 /**
