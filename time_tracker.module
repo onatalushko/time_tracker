@@ -193,7 +193,7 @@ function time_tracker_comment(&$comment, $op) {
     break;
 
     case 'insert':
-      if (isset($comment->duration) && $comment->duration > 0) {
+      if (isset($comment['duration']) && $comment['duration'] > 0) {
         return drupal_write_record('time_tracker_entry', $comment);
       }
     break;
@@ -227,11 +227,21 @@ function time_tracker_theme() {
 function theme_time_tracker_comment_changes($time_tracker_data) {
   if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
     $rows = array();
-    $rows[] = array(t('Duration: '. $time_tracker_data->duration .' hours'));
-    $rows[] = array(t('Activity: '. get_activity_name($time_tracker_data->activity)));
+    $rows[] = array(t('Time: '. $time_tracker_data->duration .' hours (' . get_activity_name($time_tracker_data->activity) . ')'));
+    
+    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }
+}
 
-  return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+/**
+ * Implementation of hook_nodeapi().
+ */
+function time_tracker_nodeapi(&$node, $op) {
+  switch ($op) {
+    case 'view':
+      
+    break;
+  }
 }
 
 /**

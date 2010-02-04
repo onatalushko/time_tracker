@@ -2,3 +2,5 @@ name = Time Estimate
 description = Provides time estimate functionality on a node.
 package = General
 core = 6.x
+dependencies[] = case_tracker
+dependencies[] = time_tracker
