@@ -93,44 +93,60 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
  * Implementation of hook_node().
  */
 function time_estimate_nodeapi(&$node, $op) {
-  if (variable_get('time_estimate_nodes_'. $node->type, 0)) {
-    switch ($op) {
-      case 'view':
-        print_r($node);
+  switch ($op) {
+    case 'view':
+      if (casetracker_is_project($node->type)) {
+        $project_results = db_query("SELECT * FROM {node} WHERE type = %d", $node->type);
+
+        while ($project = db_fetch_object($project_results)) {
+          $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $project->nid);
+          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $project->nid);
+
+          while ($case_estimate = db_fetch_object($case_estimate_results)) {
+            $total_time_estimate = $total_time_estimate + $case_estimate->estimate;
+          }
+
+          while ($case = db_fetch_object($case_results)) {
+            $total_time = $total_time + $case->duration;
+          }
+        }
+
+        $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
+      }
+      else if (casetracker_is_case($node->type)) {
         $results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
-        
+
         while ($result = db_fetch_object($results)) {
           $time_estimate = $result;
         }
-        
+
         $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-        
+
         while ($result = db_fetch_object($results)) {
           $time_tracker = $time_tracker + $result->duration;
         }
-        
-        $project = node_load($node->castracker['pid']);
+
         $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_estimate_case_summary', $time_tracker, $time_estimate);
-      break;
+      }
+    break;
 
-      case 'insert':
-        if (isset($node->estimate) && $node->estimate > 0) {
-          return drupal_write_record('time_estimate_entry', $node);
-        }
-      break;
+    case 'insert':
+      if (isset($node->estimate) && $node->estimate > 0) {
+        return drupal_write_record('time_estimate_entry', $node);
+      }
+    break;
 
-      case 'update':
-        if (isset($node->eid)) {
-          return drupal_write_record('time_estimate_entry', $node, 'eid');
-        } else {
-          return drupal_write_record('time_estimate_entry', $node);
-        }
-      break;
+    case 'update':
+      if (isset($node->eid)) {
+        return drupal_write_record('time_estimate_entry', $node, 'eid');
+      } else {
+        return drupal_write_record('time_estimate_entry', $node);
+      }
+    break;
 
-      case 'delete':
-        db_query("DELETE FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
-      break;
-    }
+    case 'delete':
+      db_query("DELETE FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
+    break;
   }
 }
 
@@ -139,16 +155,31 @@ function time_estimate_nodeapi(&$node, $op) {
  */
 function time_estimate_theme() {
   return array(
+    'time_estimate_project_summary' => array(),
     'time_estimate_case_summary' => array(),
   );
+}
+
+function theme_time_estimate_project_summary($time_tracker, $time_estimate) {
+  if (user_access('view time estimate entries')) {
+    $rows = array();
+
+    if ($time_estimate > 0) {
+      $rows[] = array(t('Estimated Hours: ') . $time_estimate . ' (Remaining: ' . ($time_estimate - $time_tracker) . ')');
+    }
+
+    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+  }
 }
 
 function theme_time_estimate_case_summary($time_tracker, $time_estimate) {
   if (user_access('view time estimate entries')) {
     $rows = array();
-    $rows[] = array(t('Time: ') . $time_tracker . ' hours logged');
-    $rows[] = array(t('Estimated Hours: ') . $time_estimate->estimate . ' (Remaining: ' . ($time_estimate->estimate - $time_tracker) . ')');
-  
+
+    if ($time_estimate->estimate > 0) {
+      $rows[] = array(t('Estimated Hours: ') . $time_estimate->estimate . ' (Remaining: ' . ($time_estimate->estimate - $time_tracker) . ')');
+    }
+
     return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }
 }

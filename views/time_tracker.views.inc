@@ -78,6 +78,12 @@ function time_tracker_views_data() {
     'argument' => array(
       'handler' => 'views_handler_argument_numeric',
     ),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'time_tracker_activity',
+      'base field' => 'taid',
+      'label' => t('Time Tracker Activity'),
+    ),
   );
   $data['time_tracker_entry']['billable'] = array(
     'title' => t('Billable'),
@@ -125,6 +131,64 @@ function time_tracker_views_data() {
       'label' => t('Comment'),
     ),
   );
-
+  
+  
+  
+  
+  
+  $data['time_tracker_activity']['table']['group'] = t('Time Tracker Activity');
+  $data['time_tracker_activity']['table']['base'] = array(
+    'field' => 'taid',
+    'title' => t('Time Tracker Activity'),
+    'help' => t('Time tracker activity entries.'),
+  );
+  $data['time_tracker_activity']['taid'] = array(
+    'title' => t('ID'),
+    'help' => t('Time Activity ID.'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_numeric',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
+  $data['time_tracker_activity']['name'] = array(
+    'title' => t('Name'),
+    'help' => t('Time Activity Name.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
+  $data['time_tracker_activity']['weight'] = array(
+    'title' => t('Weight'),
+    'help' => t('Time Activity Weight.'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
   return $data;
 }

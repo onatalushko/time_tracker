@@ -1,6 +1,7 @@
 name = Time Tracker
-description = Provides time tracking functionality to any node type and node type's comments.
+description = Provides time tracking functionality to any casetrackers comments.
 package = General
 core = 6.x
+dependencies[] = casetracker
 dependencies[] = views
 dependencies[] = views_calc

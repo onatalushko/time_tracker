@@ -32,43 +32,6 @@ function time_tracker_menu() {
   return $items;
 }
 
-/**
- * Form builder function for module settings.
- */
-function time_tracker_settings_form(&$form_state) {
-  $header = array(t('Activity Name'), t('Operations'));
-
-  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-  while ($result = db_fetch_object($results)) {
-    $row[] = array(
-      $result->name,
-      l('edit', 'admin/settings/time_tracker/activity/edit'),
-    );
-  }
-
-  $form['time_tracker_activity']['taid'] = array('#type' => 'value', '#value' => NULL);
-
-  $form['time_tracker_activity'] = array(
-    '#type' => 'markup',
-    '#value' => theme('table', $header, $row, array('id' => 'activities-table')),
-    '#weight' => -100,
-  );
-
-  $form['time_tracker_activity']['name'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Activity'),
-    '#size' => 30,
-    '#description' => t('Add an activity that time can be tracked for.'),
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => 'Save',
-  );
-
-  return $form;
-}
-
 function time_tracker_settings_form_submit($form, &$form_state) {
   if (isset($form_state['values']['taid'])) {
     return drupal_write_record('time_tracker_activity', $form_state['values'], $form_state['values']['taid']);
@@ -78,102 +41,100 @@ function time_tracker_settings_form_submit($form, &$form_state) {
   }
 }
 
-/**
- * Implementation of hook_node_type().
- * TODO: What is thie even for?
- */
-function time_node_type($op, $info) {
-  $settings = array(
-    'time_entry',
-  );
-  switch ($op) {
-    case 'delete':
-      foreach ($settings as $setting) {
-        variable_del($setting .'_'. $info->type);
-      }
-      break;
-  }
-}
-
 /*
  * Implementation of hook_form().
  *
  */
 function time_tracker_form_alter(&$form, $form_state, $form_id) {
-  if ($form_id == 'node_type_form' && isset($form['identity']['type'])) {
-    $form['time_tracker'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Time Tracker settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-    );
-    $form['time_tracker']['time_tracker_comments'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Track time on this content types comments'),
-      '#default_value' => variable_get('time_tracker_comments_'. $form['#node_type']->type, 0),
-      '#description' => t('Track time on this content types comments.'),
-    );
-  }
-
   if ($form_id == 'comment_form') {
     $node = node_load($form['nid']['#value']);
 
-    if (variable_get('time_tracker_comments_'. $node->type, 0)) {
-      global $user;
+    global $user;
 
-      $results = db_query("SELECT * FROM time_tracker_activity");
+    $results = db_query("SELECT * FROM time_tracker_activity");
 
-      $activities = array();
-      $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-      while ($result = db_fetch_object($results)) {
-        $activities[$result->taid] = $result->name;
-      }
-
-      if ($form['cid']['#value']) {
-        $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
-        while ($result = db_fetch_object($results)) {
-          $time_tracker_data = $result;
-        }
-      }
-
-      $form['time_tracker']['nid'] = array();
-      $form['time_tracker']['cid'] = array();
-      $form['time_tracker']['teid'] = array('#type' => 'value', '#value' => $time_tracker_data->teid);
-      $form['time_tracker']['uid'] = array(
-        '#title' => t('User'),
-        '#access' => user_access('administer time entries'),
-        '#size' => '10',
-        '#type' => 'textfield',
-        '#default_value' => $time_tracker_data->uid,
-        '#autocomplete_path' => 'user/autocomplete',
-      );
-      $form['time_tracker']['timestamp'] = array(
-        '#title' => t('Date'),
-        '#type' => 'textfield',
-        '#size' => '20',
-        '#default_value' => isset($time_tracker_data->timestamp) ? format_date($time_tracker_data->timestamp, 'small') : format_date(time(), 'small'),
-      );
-      $form['time_tracker']['duration'] = array(
-        '#title' => t('Hours'),
-        '#type' => 'textfield',
-        '#size' => '10',
-        '#default_value' => $time_tracker_data->duration,
-        '#description' => t('eg. 2.5 for two and a half hours'),
-      );
-      $form['time_tracker']['activity'] = array(
-        '#title' => t('Activity'),
-        '#type' => 'select',
-        '#default_value' => $time_tracker_data->activity,
-        '#options' => $activities,
-      );
-
-      return $form;
+    $activities = array();
+    $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+    while ($result = db_fetch_object($results)) {
+      $activities[$result->taid] = $result->name;
     }
+
+    if ($form['cid']['#value']) {
+      $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
+      while ($result = db_fetch_object($results)) {
+        $time_tracker_data = $result;
+      }
+    }
+
+    $form['time_tracker']['nid'] = array();
+    $form['time_tracker']['cid'] = array();
+    $form['time_tracker']['teid'] = array('#type' => 'value', '#value' => $time_tracker_data->teid);
+    $form['time_tracker']['uid'] = array(
+      '#title' => t('User'),
+      '#access' => user_access('administer time entries'),
+      '#size' => '10',
+      '#type' => 'textfield',
+      '#default_value' => $time_tracker_data->uid,
+      '#autocomplete_path' => 'user/autocomplete',
+    );
+    $form['time_tracker']['timestamp'] = array(
+      '#title' => t('Date'),
+      '#type' => 'textfield',
+      '#size' => '20',
+      '#default_value' => isset($time_tracker_data->timestamp) ? format_date($time_tracker_data->timestamp, 'small') : format_date(time(), 'small'),
+    );
+    $form['time_tracker']['duration'] = array(
+      '#title' => t('Hours'),
+      '#type' => 'textfield',
+      '#size' => '10',
+      '#default_value' => $time_tracker_data->duration,
+      '#description' => t('eg. 2.5 for two and a half hours'),
+    );
+    $form['time_tracker']['activity'] = array(
+      '#title' => t('Activity'),
+      '#type' => 'select',
+      '#default_value' => $time_tracker_data->activity,
+      '#options' => $activities,
+    );
+    return $form;
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function time_tracker_nodeapi(&$node, $op) {
+  switch ($op) {
+    case 'view':
+      if (casetracker_is_project($node->type)) {
+        $project_results = db_query("SELECT * FROM {node} WHERE type = %d", $node->type);
+
+        while ($project = db_fetch_object($project_results)) {
+          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $project->nid);
+
+          while ($case = db_fetch_object($case_results)) {
+            $total_time = $total_time + $case->duration;
+          }
+        }
+
+        $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_tracker_project_summary', $total_time);
+      }
+      else if (casetracker_is_case($node->type)) {
+        $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+
+        while ($case = db_fetch_object($case_results)) {
+          $total_time = $total_time + $case->duration;
+        }
+
+        $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_case_summary', $total_time);
+      }
+    break;
   }
 }
 
 /**
  * Implementation of hook_comment().
+ * TODO: previews aren't showing any time_tracker data.
  */
 function time_tracker_comment(&$comment, $op) {
   switch ($op) {
@@ -218,6 +179,8 @@ function time_tracker_comment(&$comment, $op) {
 function time_tracker_theme() {
   return array(
     'time_tracker_comment_changes' => array(),
+    'time_tracker_project_summary' => array(),
+    'time_tracker_case_summary' => array(),
   );
 }
 
@@ -227,20 +190,40 @@ function time_tracker_theme() {
 function theme_time_tracker_comment_changes($time_tracker_data) {
   if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
     $rows = array();
-    $rows[] = array(t('Time: '. $time_tracker_data->duration .' hours (' . get_activity_name($time_tracker_data->activity) . ')'));
-    
+
+    $rows[] = array(t('Time: '. format_plural($time_tracker_data->duration, '1 hour', '@count hours') .' (' . get_activity_name($time_tracker_data->activity) . ')'));
+
     return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }
 }
 
 /**
- * Implementation of hook_nodeapi().
+ * Theme function for case_tracker projects.
  */
-function time_tracker_nodeapi(&$node, $op) {
-  switch ($op) {
-    case 'view':
-      
-    break;
+function theme_time_tracker_project_summary($time_tracker) {
+  if (user_access('view time tracker entries')) {
+    $rows = array();
+
+    if ($time_tracker > 0) {
+      $rows[] = array(t('Time: ') . format_plural($time_tracker, '1 hour', '@count hours') . ' logged');
+    }
+
+    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+  }
+}
+
+/**
+ * Theme function for case_tracker cases.
+ */
+function theme_time_tracker_case_summary($time_tracker) {
+  if (user_access('view time tracker entries')) {
+    $rows = array();
+
+    if ($time_tracker > 0) {
+      $rows[] = array(t('Time: ') . format_plural($time_tracker, '1 hour','@count hours') . ' logged');
+    }
+
+    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }
 }
 
