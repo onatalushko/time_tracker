@@ -1,0 +1,7 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Enables time sheet entry for users.
+ */

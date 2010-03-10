@@ -1,3 +1,4 @@
+; $Id$
 name = Time Tracker
 description = Provides time tracking functionality to any casetrackers comments.
 package = General

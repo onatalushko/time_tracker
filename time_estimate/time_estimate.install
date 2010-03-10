@@ -1,6 +1,8 @@
 <?php
+// $Id$
 
 /**
+ * @file
  * Implementation of hook_install().
  */
 function time_estimate_schema() {
