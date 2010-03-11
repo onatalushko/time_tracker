@@ -45,7 +45,7 @@ function time_estimate_settings_form_submit($form, &$form_state) {
  *
  */
 function time_estimate_form_alter(&$form, $form_state, $form_id) {
-  if (drupal_substr($form_id, -9) == 'node_form') {
+	if (casetracker_is_case($form['type']['#value'])) {
     $node = node_load($form['nid']['#value']);
 
     global $user;
