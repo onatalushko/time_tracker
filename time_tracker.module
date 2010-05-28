@@ -279,7 +279,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Date'),
         '#type' => 'textfield',
         '#size' => '20',
-        '#default_value' => date("F d, Y", time()) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
+        '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
       );
       $form['time_tracker']['duration'] = array(
         '#title' => t('Hours'),
@@ -396,7 +396,7 @@ function theme_time_tracker_comment_changes($time_tracker_data) {
   if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
     $rows = array();
 
-    $rows[] = array(t('Time: '. format_plural($time_tracker_data->duration, '1 hour', '@count hours') .' (' . get_activity_name($time_tracker_data->activity) . ')'));
+    $rows[] = array(t('Time: '. format_plural($time_tracker_data->duration, '1 hour', '@count hours') .' (' . get_activity_name($time_tracker_data->activity) . ') on ' . date("F d, Y", $time_tracker_data->timestamp)));
 
     return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }

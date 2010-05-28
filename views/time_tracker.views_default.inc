@@ -280,8 +280,8 @@ function _view_time_tracker_reporting() {
 	    'value' => array(
 	      'type' => 'date',
 	      'value' => '',
-	      'min' => '',
-	      'max' => '',
+	      'min' => date('F 1, Y'),
+	      'max' => date('F d, Y',strtotime('-1 second',strtotime('+1 month',strtotime(date('m').'/01/'.date('Y').' 00:00:00')))),
 	    ),
 	    'group' => '0',
 	    'exposed' => TRUE,

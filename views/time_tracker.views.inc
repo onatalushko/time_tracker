@@ -136,7 +136,9 @@ function time_tracker_views_data() {
 }
 
 function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
-  if($form['#id'] == 'views-exposed-form-time-tracker-reports-page-1') {
+  if($form['#id'] == 'views-exposed-form-time-tracker-reports-page-1' ||
+     $form['#id'] == 'views-exposed-form-time-tracker-user-page-1') {
+
     if(module_exists('jquery_ui')) {
       jquery_ui_add(array('ui.datepicker'));
       drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');

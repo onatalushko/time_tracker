@@ -1,5 +1,5 @@
 $(function() {
-  $("#edit-timestamp").datepicker({});
-  $("#edit-timestamp-min").datepicker({});
-  $("#edit-timestamp-max").datepicker({});
+  $("#edit-time").datepicker({dateFormat: 'MM d, yy'});
+  $("#edit-timestamp-min").datepicker({dateFormat: 'MM d, yy'});
+  $("#edit-timestamp-max").datepicker({dateFormat: 'MM d, yy'});
 });
