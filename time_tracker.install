@@ -30,6 +30,11 @@ function time_tracker_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
+      'pid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
       'duration' => array(
         'type' => 'float',
         'not null' => TRUE,
@@ -72,6 +77,12 @@ function time_tracker_schema() {
   );
 
   return $schema;
+}
+
+function time_tracker_update_6100() {
+  $return = array();
+  db_add_field($return, 'time_tracker_entry', 'pid', array('type' => 'int', 'not null' => TRUE, 'unsigned' => TRUE));
+  return $return;
 }
 
 function time_tracker_install() {

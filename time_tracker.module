@@ -360,18 +360,22 @@ function time_tracker_comment(&$comment, $op) {
     case 'insert':
     case 'update':
       if (strlen($comment['duration'])) {
-        $dur = _time_tracker_parse_duration($comment['duration']);
-        if ($dur > 0) {
-          $comment['duration'] = $dur;
-        $comment['timestamp'] = strtotime($comment['time']);
-        unset($comment['time']);
+        $duration = _time_tracker_parse_duration($comment['duration']);
+        if ($duration > 0) {
+          $comment['duration'] = $duration;
+          $comment['timestamp'] = strtotime($comment['time']);
+          unset($comment['time']);
+
+          if (isset($comment['casetracker'])) {
+            $comment['pid'] = $comment['casetracker']['pid'];
+          }
 
           return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
         } elseif ($comment['teid']) {
           // No duration, but there WAS duration information -- someone wants
           // to remove the time entry!
           db_query("DELETE FROM {time_tracker_entry} WHERE teid = %d", $comment['teid']);
-      }
+        }
       }
     break;
 
