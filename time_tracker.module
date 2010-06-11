@@ -315,7 +315,8 @@ function time_tracker_nodeapi(&$node, $op) {
           }
         }
 
-        $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_tracker_project_summary', $total_time);
+        $el = module_exists('atrium_casetracker') ? 'time_tracker_summary' : 'casetracker_project_summary';
+        $node->content[$el]['#value'] = $node->content[$el]['#value'] . theme('time_tracker_project_summary', $total_time);
       }
       elseif (casetracker_is_case($node->type)) {
         $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
