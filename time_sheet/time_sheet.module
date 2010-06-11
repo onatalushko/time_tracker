@@ -6,6 +6,10 @@
  * Enables time sheet entry for users.
  */
 
+function time_sheet_init() {
+  drupal_add_css(drupal_get_path('module', 'time_sheet') .'/css/time_sheet.css');
+}
+
 /**
  * Implementation of hook_perm().
  */
@@ -84,23 +88,24 @@ function time_sheet_user_page($user) {
     $total_duration = 0;
     while ($time_entry_result = db_fetch_object($time_entry_results)) {
       $time_entry = node_load(array('nid' => $time_entry_result->nid));
+      $project = node_load(array('nid' => $time_entry->casetracker->pid));
 
       $row = array();
-      $row[] = $time_entry->title;
+      $row[] = theme('seed_crayon_swatch', $project->nid, acronymize($project->title), $project->title, "node/{$project->nid}") . l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-case')));
       $row[] = array('data' => format_plural($time_entry_result->duration, '1 hour', '@count hours'), 'align' => 'right');
       $total_duration = $total_duration + $time_entry_result->duration;
-      $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
+      $rows[] = array('data' => $row);
     }
 
     if(count($row) > 1) {
       $row = array();
       $row[] = '<strong>' . t("Total hours for") . " " . date("l", $stamp) . '</strong>';
       $row[] = array('data' => '<strong>' . format_plural($total_duration, '1 hour', '@count hours') . '</strong>', 'align' => 'right');
-      $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
+      $rows[] = array('data' => $row);
     } else {
       $row = array();
       $row[] = array('data' => t("No time entered."), 'colspan' => 2);
-      $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
+      $rows[] = array('data' => $row);
     }
 
     $row = array();
@@ -131,7 +136,7 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
     '#type' => 'hidden',
     '#value' => $stamp,
   );
-  
+
   $options = _time_sheet_case_list_options($user);
 
   $form['time_sheet'][$day]['case_list'] = array(
@@ -168,6 +173,8 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
  * TODO: Display the total amount of hours and estimated time.
  */
 function time_sheet_add_time() {
+  global $user;
+
   $form_state = array('storage' => NULL, 'submitted' => FALSE);
   $form_build_id = $_POST['form_build_id'];
   $form = form_get_cache($form_build_id, $form_state);
@@ -179,19 +186,27 @@ function time_sheet_add_time() {
 
   $form = array();
   $case = node_load(array('nid' => $form_state['post']['case_list']));
-
   $project = node_load(array('nid' => $case->casetracker->pid));
 
+  // grab total time and estimate time for this ticket and user
+  $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
+  $total_time = 0;
+  while ($result_case = db_fetch_object($case_results)) {
+    $total_time = $total_time + $result_case->duration;
+  }
+
+  $total_estimate = 0;
+  $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
+  while ($estimate_result = db_fetch_object($estimate_results)) {
+    $total_estimate = $estimate_result;
+  }
+
   // add some case details so we know what we're dealing with
-  $form['time_sheet']['case_project'] = array(
+  $form['time_sheet']['case_details'] = array(
     '#type' => 'markup',
-    '#value' => $project->title,
-    '#prefix' => '<h3>',
-    '#suffix' => '</h3>',
-  );
-  $form['time_sheet']['case_teaser'] = array(
-    '#type' => 'markup',
-    '#value' => $case->teaser,
+    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
+    '#prefix' => '<div class="case-details">',
+    '#suffix' => '</div>',
   );
 
   $case_status_options = casetracker_realm_load('status');
@@ -292,7 +307,9 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   $comment['comment'] = $form_state['clicked_button']['#post']['comment'];
   //$comment->timestamp = time();
 
-  casetracker_comment($comment, 'insert');
+  //print_r($comment);
+
+  //casetracker_comment($comment, 'insert');
 
   $comment_id = comment_save($comment);
 
@@ -339,10 +356,69 @@ function _time_sheet_case_list_options($user) {
   $case_options = array('' => t('Select a case...'));
   while ($case_result = db_fetch_object($case_results)) {
     $case = node_load(array('nid' => $case_result->nid));
-    //$project = node_load(array('nid' => $case_result->casetracker['pid']));
+    $project = node_load(array('nid' => $case->casetracker->pid));
 
-    $case_options[$case->nid] = $case->title;
+    $case_options[$project->title][$case->nid] = $case->title;
+
   }
 
   return $case_options;
 }
+
+  /**
+   * Acronymizer function. Attempts to generate a reasonable acronym from a given string.
+   */
+  function acronymize($string, $reset = FALSE) {
+    static $cache = array();
+
+    if (!isset($cache[$string]) || $reset) {
+      $split = preg_split('/[ .-]+/', $string, -1, PREG_SPLIT_NO_EMPTY);
+      $acro = '';
+
+      // Capital-letter based acronyms
+      if (preg_match('/[0-9A-Z]+/', $string)) {
+
+        // Eliminate small words
+        foreach ($split as $k => $chunk) {
+          // No caps or numbers, trash it
+          if (!preg_match('/[0-9A-Z]+/', $chunk)) {
+            unset($split[$k]);
+          }
+        }
+        reset($split);
+
+        // Multiword titles -- form acronym from key characters.
+        if (count($split) > 1) {
+          foreach ($split as $chunk) {
+            $char = array();
+            preg_match_all('/[0-9A-Z]/', $chunk, $char);
+            $acro .= implode('', $char[0]);
+          }
+        }
+        // 1 word titles
+        else {
+          $split = array_shift($split);
+          $char = array();
+          preg_match_all('/[0-9A-Z]/', $split, $char);
+          // Use caps as the acronym, but if there's only 1 cap use the whole string.
+          $acro = count($char[0]) > 1 ? implode('', $char[0]) : $split;
+        }
+      }
+      // Lower case title, bail and use first word
+      else {
+        // Multi-word -- use first letter of each
+        if (count($split) > 1) {
+          foreach ($split as $chunk) {
+            $acro .= drupal_substr($chunk, 0, 1);
+          }
+        }
+        // Bail, use first word
+        else {
+          $acro = current($split);
+        }
+      }
+      $cache[$string] = $acro;
+    }
+
+    return $cache[$string];
+  }
