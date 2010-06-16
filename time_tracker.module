@@ -41,7 +41,7 @@ function time_tracker_menu() {
   );
   $items['admin/settings/time_tracker/activity/edit/%'] = array(
     'title' => 'Edit Activity',
-    'page callback' => 'drupal_get_form',  
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_activity_form', 5),
     'access arguments' => array('administer time tracker'),
   );
@@ -195,7 +195,7 @@ function time_tracker_activity_delete($form, &$form_state) {
 
 /**
  * Implementation of something_something_form().
- * 
+ *
  * Apply time tracker to a node or a nodes comments.
  */
 // TODO: this function
@@ -441,6 +441,52 @@ function theme_time_tracker_case_summary($time_tracker) {
 
     return theme('table', NULL, $rows, array('class' => 'time_tracker'));
   }
+}
+
+function time_tracker_timer() {
+  return theme('time_tracker_timer', drupal_get_form('time_tracker_timer_form'));
+}
+
+function time_tracker_preprocess_page(&$vars) {
+  $vars['links'] = NULL;
+}
+
+function time_tracker_timer_form($form) {
+  // TODO: somehow use drupal_get_form
+  $activities = array('' => 'Select an activity');
+  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+  while ($result = db_fetch_object($results)) {
+    $activities[$result->taid] = $result->name;
+  }
+
+  $form['time_tracker']['duration'] = array(
+    '#title' => t('Hours'),
+    '#type' => 'textfield',
+    '#size' => '10',
+    '#default_value' => $time_tracker_data->duration,
+    '#description' => t('eg. 2.5 for two and a half hours'),
+  );
+  $form['time_tracker']['activity'] = array(
+    '#title' => t('Activity'),
+    '#type' => 'select',
+    '#default_value' => $time_tracker_data->activity,
+    '#options' => $activities,
+  );
+
+  $form['time_tracker']['comment'] = array(
+    '#title' => 'Comment',
+    '#type' => 'textarea',
+    '#required' => TRUE,
+    '#weight' => 98,
+  );
+
+  $form['time_tracker']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#weight' => 99,
+  );
+
+  return $form;
 }
 
 /**
