@@ -53,6 +53,13 @@ function time_tracker_menu() {
     'access arguments' => array('view time tracker entries'),
     'type' => MENU_LOCAL_TASK,
   );
+  $items['time_tracker/timer'] = array(
+    'title' => 'Timer',
+    'description' => 'Timer',
+    'page callback' => 'time_tracker_timer',
+    'access arguments' => array('view time tracker entries'),
+    'type' => MENU_LOCAL_TASK,
+  );
   return $items;
 }
 
@@ -287,6 +294,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#size' => '10',
         '#default_value' => $time_tracker_data->duration,
         '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
+        '#suffix' => l('Timer', 'time_tracker/timer'),
       );
       $form['time_tracker']['activity'] = array(
         '#title' => t('Activity'),
