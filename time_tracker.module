@@ -103,6 +103,7 @@ function theme_time_tracker_activity_table($form) {
   return $output;
 }
 
+
 function time_tracker_activity_table_form() {
   $results = db_query('SELECT * FROM {time_tracker_activity} ORDER BY weight ASC');
   while ($result = db_fetch_object($results)) {
@@ -130,6 +131,12 @@ function time_tracker_activity_table_form() {
   return $form;
 }
 
+/**
+ * Time tracker settings form submit handler.
+ *
+ * @param $form
+ * @param $form_state
+ */
 function time_tracker_settings_form_submit($form, &$form_state) {
   foreach ($form_state['values'] as $taid => $activity) {
     if (is_numeric($taid) && $form[$taid]['#activity']['weight'] != $form_state['values'][$taid]['weight']) {
@@ -179,6 +186,12 @@ function time_tracker_activity_form(&$form_state, $taid = NULL) {
   return $form;
 }
 
+/**
+ * Time tracker activity form submit handler.
+ *
+ * @param $form
+ * @param $form_state
+ */
 function time_tracker_activity_form_submit($form, &$form_state) {
   if (isset($form_state['values']['taid'])) {
     drupal_set_message('Activity Updated');
@@ -282,6 +295,9 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
       }
 
+      drupal_add_js(drupal_get_path('module', 'time_tracker') . '/js/jquery.popupwindow.js');
+      drupal_add_js(drupal_get_path('module', 'time_tracker') . '/js/popupwindow.settings.js');
+
       $form['time_tracker']['time'] = array(
         '#title' => t('Date'),
         '#type' => 'textfield',
@@ -294,7 +310,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#size' => '10',
         '#default_value' => $time_tracker_data->duration,
         '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
-        '#suffix' => l('Timer', 'time_tracker/timer'),
+        '#suffix' => l(t('Timer'), 'time_tracker/timer', array('attributes' => array('class' => 'timer'))),
       );
       $form['time_tracker']['activity'] = array(
         '#title' => t('Activity'),
@@ -405,6 +421,9 @@ function time_tracker_theme() {
     'time_tracker_activity_table' => array(
       'arguments' => array('form' => array()),
     ),
+    'time_tracker_timer' => array(
+      'arguments' => array('form' => array()),
+    ),
   );
 }
 
@@ -455,10 +474,6 @@ function time_tracker_timer() {
   return theme('time_tracker_timer', drupal_get_form('time_tracker_timer_form'));
 }
 
-function time_tracker_preprocess_page(&$vars) {
-  $vars['links'] = NULL;
-}
-
 function time_tracker_timer_form($form) {
   // TODO: somehow use drupal_get_form
   $activities = array('' => 'Select an activity');
@@ -467,13 +482,16 @@ function time_tracker_timer_form($form) {
     $activities[$result->taid] = $result->name;
   }
 
-  $form['time_tracker']['duration'] = array(
-    '#title' => t('Hours'),
-    '#type' => 'textfield',
-    '#size' => '10',
-    '#default_value' => $time_tracker_data->duration,
-    '#description' => t('eg. 2.5 for two and a half hours'),
+  /**
+   * Timer code.
+   */
+  drupal_add_js(drupal_get_path('module', 'time_tracker') . '/js/jquery.countdown.pack.js');
+
+  $form['time_tracker']['timer'] = array(
+    '#type' => 'markup',
+    '#value' => '<div id="timer"></div>',
   );
+
   $form['time_tracker']['activity'] = array(
     '#title' => t('Activity'),
     '#type' => 'select',
