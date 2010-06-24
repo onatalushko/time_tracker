@@ -329,13 +329,13 @@ function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
       if (casetracker_is_project($node->type)) {
-        $project_results = db_query("SELECT * FROM {node} WHERE type = %d", $node->type);
+        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
 
-        while ($project = db_fetch_object($project_results)) {
-          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $project->nid);
+        while ($case = db_fetch_object($case_results)) {
+          $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
-          while ($case = db_fetch_object($case_results)) {
-            $total_time = $total_time + $case->duration;
+          while ($time = db_fetch_object($time_results)) {
+            $total_time = $total_time + $time->duration;
           }
         }
 
