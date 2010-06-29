@@ -115,14 +115,14 @@ function time_tracker_activity_table_form() {
     '#theme' => 'time_tracker_activity_table'
   );
 
-  foreach ($activities as $activity) {
-    $form[$activity->taid]['#activity'] = (array)$activity;
-    $form[$activity->taid]['name'] = array('#value' => check_plain($activity->name));
-    $form[$activity->taid]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $activity->weight);
-    $form[$activity->taid]['edit'] = array('#value' => l(t('edit'), "admin/settings/time_tracker/activity/edit/$activity->taid"));
-  }
-
   if (count($activities) > 1) {
+    foreach ($activities as $activity) {
+      $form[$activity->taid]['#activity'] = (array)$activity;
+      $form[$activity->taid]['name'] = array('#value' => check_plain($activity->name));
+      $form[$activity->taid]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $activity->weight);
+      $form[$activity->taid]['edit'] = array('#value' => l(t('edit'), "admin/settings/time_tracker/activity/edit/$activity->taid"));
+    }
+
     $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
   }
   elseif (isset($activity)) {
