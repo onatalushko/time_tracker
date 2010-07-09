@@ -305,13 +305,10 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   $comment['nid'] = $form_state['clicked_button']['#post']['case_list'];
   $comment['uid'] = $user->uid;
   $comment['comment'] = $form_state['clicked_button']['#post']['comment'];
-  //$comment->timestamp = time();
+  $comment['casetracker']['case_status_id'] = $form_state['clicked_button']['#post']['case_status_id'];
+  $comment['cid'] = comment_save($comment);
 
-  //print_r($comment);
-
-  //casetracker_comment($comment, 'insert');
-
-  $comment_id = comment_save($comment);
+  casetracker_comment($comment, 'update');
 
   $time['timestamp'] = $form_state['clicked_button']['#post']['timestamp'];
   $time['duration'] = $form_state['clicked_button']['#post']['duration'];
