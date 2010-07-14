@@ -306,8 +306,8 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   $comment['uid'] = $user->uid;
   $comment['comment'] = $form_state['clicked_button']['#post']['comment'];
   $comment['casetracker']['case_status_id'] = $form_state['clicked_button']['#post']['case_status_id'];
-  $comment['cid'] = comment_save($comment);
 
+  $comment['cid'] = comment_save($comment);
   casetracker_comment($comment, 'update');
 
   $time['timestamp'] = $form_state['clicked_button']['#post']['timestamp'];
@@ -315,7 +315,7 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   $time['activity'] = $form_state['clicked_button']['#post']['activity'];
   $time['uid'] = $user->uid;
   $time['nid'] = $form_state['clicked_button']['#post']['case_list'];
-  $time['cid'] = $comment_id;
+  $time['cid'] = $comment['cid'];
   drupal_write_record('time_tracker_entry', $time);
 
   // TODO: Ajax this up.
