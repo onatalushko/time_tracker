@@ -1,0 +1,45 @@
+<?php
+/**
+ * @file
+ * Enables time tracking on comments.
+ */
+
+/**
+ * Implementation of hook_perm().
+ */
+function time_tracker_timer_perm() {
+  //return array('');
+}
+
+/**
+ * Implementation of hook_menu().
+ *
+ */
+function time_tracker_timer_menu() {
+  $items = array();
+  $items['admin/settings/time_tracker_timer'] = array(
+    'title' => 'Time Tracker',
+    'description' => 'Adjust time tracker settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('time_tracker_settings_form'),
+    'access arguments' => array('administer time tracker'),
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function time_tracker_timer_nodeapi(&$node, $op) {
+  switch ($op) {
+    case 'view':
+      $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+
+      while ($case = db_fetch_object($case_results)) {
+        $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
+      }
+
+      $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_timer');
+    break;
+  }
+}

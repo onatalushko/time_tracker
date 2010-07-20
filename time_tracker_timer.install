@@ -1,0 +1,59 @@
+<?php
+/**
+ * @file
+ * Implementation of hook_install().
+ */
+function time_tracker_timer_schema() {
+  $schema = array();
+
+  $schema['time_tracker_timer'] = array(
+    'fields' => array(
+      'ttid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'cid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'pid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'start' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => FALSE,
+      ),
+      'stop' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+    ),
+    'primary key' => array('ttid'),
+  );
+
+  return $schema;
+}
+
+function time_tracker_timer_install() {
+  drupal_install_schema('time_tracker_timer');
+}
+
+function time_tracker_timer_uninstall() {
+  drupal_uninstall_schema('time_tracker_timer');
+}
