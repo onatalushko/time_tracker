@@ -1,1 +1,0 @@
-$('#timer').countdown({since: startYear, compact: true, format: 'HMS', description: ''});
