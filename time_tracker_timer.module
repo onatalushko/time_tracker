@@ -17,13 +17,7 @@ function time_tracker_timer_perm() {
  */
 function time_tracker_timer_menu() {
   $items = array();
-  $items['admin/settings/time_tracker_timer'] = array(
-    'title' => 'Time Tracker',
-    'description' => 'Adjust time tracker settings.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('time_tracker_settings_form'),
-    'access arguments' => array('administer time tracker'),
-  );
+
   return $items;
 }
 
@@ -33,13 +27,36 @@ function time_tracker_timer_menu() {
 function time_tracker_timer_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+      if (casetracker_is_case($node->type)) {
+        global $user;
 
-      while ($case = db_fetch_object($case_results)) {
-        $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
+        $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
+        $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_timer_case_summary', $timer_results);
       }
-
-      $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_timer');
     break;
+  }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function time_tracker_timer_theme() {
+  return array(
+    'time_tracker_timer_case_summary' => array(),
+  );
+}
+
+/**
+ * Theme function for case_tracker cases.
+ */
+function theme_time_tracker_timer_case_summary($timer_results) {
+  if (user_access('view time tracker entries')) {
+    $rows = array();
+
+    while ($timers = db_fetch_object($timer_results)) {
+      $rows[] = array(t('Timer started on ' . date("Y m d", $timers->start)));
+    }
+
+    return theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
   }
 }
