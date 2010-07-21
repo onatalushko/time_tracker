@@ -8,7 +8,6 @@
 function time_tracker_views_default_views() {
   $list = array(
     'time_tracker_reporting',
-    'time_tracker_user',
   );
   $views = array();
   foreach ($list as $view_name) {
