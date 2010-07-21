@@ -18,11 +18,6 @@ function time_tracker_timer_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
-      'cid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
