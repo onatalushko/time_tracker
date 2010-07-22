@@ -102,7 +102,9 @@ function time_estimate_nodeapi(&$node, $op) {
           }
         }
 
-        $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
+        if($total_time_estimate > 0) {
+          $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
+        }
       }
       elseif (casetracker_is_case($node->type)) {
         $results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
@@ -117,7 +119,9 @@ function time_estimate_nodeapi(&$node, $op) {
           $time_tracker = $time_tracker + $result->duration;
         }
 
-        $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_estimate_case_summary', $time_tracker, $time_estimate);
+        if($time_estimate > 0) {
+          $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_estimate_case_summary', $time_tracker, $time_estimate);
+        }
       }
     break;
 
