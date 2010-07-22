@@ -336,7 +336,7 @@ function time_tracker_nodeapi(&$node, $op) {
       elseif (casetracker_is_case($node->type)) {
         $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
 
-        while ($case = db_fetch_array($case_results)) {
+        while ($case = db_fetch_object($case_results)) {
           $total_time = $total_time + $case->duration;
         }
 
