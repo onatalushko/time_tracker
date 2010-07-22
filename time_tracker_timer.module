@@ -8,7 +8,7 @@
  * Implementation of hook_perm().
  */
 function time_tracker_timer_perm() {
-  //return array('');
+  return array('view all timers');
 }
 
 /**
@@ -28,9 +28,14 @@ function time_tracker_timer_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
       if (casetracker_is_case($node->type)) {
-        global $user;
+        if (user_access('view all timers')) {
+          $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d", $node->nid);
+        } else {
+          global $user;
+          $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
+        }
 
-        $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
+        if($node->content)
         $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_timer_case_summary', $timer_results);
       }
     break;
@@ -50,13 +55,31 @@ function time_tracker_timer_theme() {
  * Theme function for case_tracker cases.
  */
 function theme_time_tracker_timer_case_summary($timer_results) {
-  if (user_access('view time tracker entries')) {
-    $rows = array();
+  $rows = array();
 
-    while ($timers = db_fetch_object($timer_results)) {
-      $rows[] = array(t('Timer started on ' . date("Y m d", $timers->start)));
-    }
-
-    return theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
+  while ($timer = db_fetch_object($timer_results)) {
+    $rows[] = array(t('Timer started on ' . date("F jS", $timer->start) . ' (' . (time()-$timer->start) . ')'));
   }
+
+  return theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
