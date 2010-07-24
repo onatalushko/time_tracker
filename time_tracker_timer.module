@@ -58,7 +58,7 @@ function theme_time_tracker_timer_case_summary($timer_results) {
   $rows = array();
 
   while ($timer = db_fetch_object($timer_results)) {
-    $rows[] = array(t('Timer started on ' . date("F jS", $timer->start) . ' (' . (time()-$timer->start) . ')'));
+    $rows[] = array(t('Timer started ' . format_interval(time()-$timer->start) . ' ago (' . (format_interval(time()-$timer->start, '1')) . ')'));
   }
 
   return theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
