@@ -35,7 +35,6 @@ function time_tracker_timer_nodeapi(&$node, $op) {
           $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
         }
 
-        if($node->content)
         $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_timer_case_summary', $timer_results);
       }
     break;
@@ -58,10 +57,60 @@ function theme_time_tracker_timer_case_summary($timer_results) {
   $rows = array();
 
   while ($timer = db_fetch_object($timer_results)) {
-    $rows[] = array(t('Timer started ' . format_interval(time()-$timer->start) . ' ago (' . (format_interval(time()-$timer->start, '1')) . ')'));
+      $rows[] = array(t('Timer started ' . format_interval(time()-$timer->start) . ' ago (' . (format_interval(time()-$timer->start, '1')) . ')'));
   }
 
-  return theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
+  if(sizeof($rows) > 0) {
+    $output = theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
+    $output .= drupal_get_form('time_tracker_timer_form', 'stop');
+  } else {
+    $output .= drupal_get_form('time_tracker_timer_form', 'start');
+  }
+
+  return $output;
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function time_tracker_timer_form(&$form, $timer_state) {
+  // We need to pass the case details here.
+  $form['timer']['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => 102,
+  );
+
+  $form['timer']['pid'] = array(
+    '#type' => 'hidden',
+    '#value' => 102,
+  );
+
+  if($timer_state == 'start') {
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Start timer')
+    );
+  } else {
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Stop timer')
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * 
+ * Implementation of hook_form_submit().
+ */
+function time_tracker_timer_form_submit($form, &$form_state) {
+  global $user;
+
+  $form['timer']['uid'] = $user->uid;
+  $form['timer']['start'] = time();
+
+  drupal_write_record('time_tracker_timer', $form['timer']);
 }
 
 
