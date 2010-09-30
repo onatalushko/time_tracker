@@ -146,8 +146,8 @@ function time_tracker_settings_form_submit($form, &$form_state) {
 function time_tracker_activity_form(&$form_state, $taid = NULL) {
   $form['#redirect'] = 'admin/settings/time_tracker/list';
 
-  if($taid) {
-    $activity = db_fetch_object(db_query("SELECT * FROM {time_tracker_activity} WHERE taid = ".$taid));
+  if ($taid) {
+    $activity = db_fetch_object(db_query("SELECT * FROM {time_tracker_activity} WHERE taid = " . $taid));
 
     $form['time_tracker_activity']['taid'] = array(
       '#type' => 'value',
@@ -168,7 +168,7 @@ function time_tracker_activity_form(&$form_state, $taid = NULL) {
     '#value' => t('Save'),
   );
 
-  if($taid) {
+  if ($taid) {
     $form['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete'),
@@ -200,8 +200,8 @@ function time_tracker_activity_form_submit($form, &$form_state) {
  * Function for deleting time tracker activity entries.
  */
 function time_tracker_activity_delete($form, &$form_state) {
-  db_query('DELETE FROM {time_tracker_activity} WHERE taid = '.$form_state['values']['taid']);
-  drupal_set_message(t('Activity <em>'. $form_state['values']['name'] .'</em> Deleted'));
+  db_query('DELETE FROM {time_tracker_activity} WHERE taid = ' . $form_state['values']['taid']);
+  drupal_set_message(t('Activity <em>' . $form_state['values']['name'] . '</em> Deleted'));
 
   drupal_goto('admin/settings/time_tracker');
 }
@@ -214,7 +214,7 @@ function time_tracker_activity_delete($form, &$form_state) {
 // TODO: this function
 
 /**
- * Implementation of hook_form().
+ * Implementation of hook_form_alter().
  *
  */
 function time_tracker_form_alter(&$form, $form_state, $form_id) {
@@ -266,6 +266,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#collapsed' => FALSE,
         '#weight' => -9,
       );
+
       $form['time_tracker']['nid'] = array();
       $form['time_tracker']['cid'] = array();
       $form['time_tracker']['teid'] = array(
@@ -282,7 +283,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#autocomplete_path' => 'user/autocomplete',
       );
 
-      if(module_exists('jquery_ui')) {
+      if (module_exists('jquery_ui')) {
         jquery_ui_add(array('ui.datepicker'));
         drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
         drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
@@ -294,6 +295,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#size' => '20',
         '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
       );
+
       $form['time_tracker']['duration'] = array(
         '#title' => t('Hours'),
         '#type' => 'textfield',
@@ -301,6 +303,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#default_value' => $time_tracker_data->duration,
         '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
       );
+
       $form['time_tracker']['activity'] = array(
         '#title' => t('Activity'),
         '#type' => 'select',
@@ -340,7 +343,7 @@ function time_tracker_nodeapi(&$node, $op) {
           $total_time = $total_time + $case->duration;
         }
 
-        if($total_time > 0) {
+        if ($total_time > 0) {
           $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_case_summary', $total_time);
         }
       }
@@ -366,6 +369,7 @@ function time_tracker_comment(&$comment, $op) {
           $time_tracker_data = $result;
         }
       }
+
       $comment->comment = theme('time_tracker_comment_changes', $time_tracker_data) . $comment->comment;
     break;
 

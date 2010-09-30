@@ -19,13 +19,6 @@ function time_estimate_perm() {
  */
 function time_estimate_menu() {
   $items = array();
-  $items['admin/settings/time_estimate'] = array(
-    'title' => 'Time Estimate',
-    'description' => 'Adjust time estimate settings.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('time_estimate_settings_form'),
-    'access arguments' => array('administer time estimate'),
-  );
 
   return $items;
 }
@@ -45,7 +38,7 @@ function time_estimate_settings_form_submit($form, &$form_state) {
  *
  */
 function time_estimate_form_alter(&$form, $form_state, $form_id) {
-	if (casetracker_is_case($form['type']['#value'])) {
+  if (casetracker_is_case($form['type']['#value'])) {
     $node = node_load($form['nid']['#value']);
 
     global $user;
@@ -102,7 +95,7 @@ function time_estimate_nodeapi(&$node, $op) {
           }
         }
 
-        if($total_time_estimate > 0) {
+        if ($total_time_estimate > 0) {
           $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
         }
       }
@@ -119,7 +112,7 @@ function time_estimate_nodeapi(&$node, $op) {
           $time_tracker = $time_tracker + $result->duration;
         }
 
-        if($time_estimate > 0) {
+        if ($time_estimate > 0) {
           $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_estimate_case_summary', $time_tracker, $time_estimate);
         }
       }

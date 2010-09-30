@@ -15,6 +15,30 @@ function time_tracker_views_data() {
     'title' => t('Time Tracker'),
     'help' => t('Content generated from time tracker entries.'),
   );
+  $data['time_tracker_activity']['table']['join']['time_tracker_entry'] = array(
+    'left_field' => 'activity',
+    'field' => 'taid',
+  );
+  
+  $data['time_tracker_activity']['table']['group'] = t('Time Tracker');
+  $data['time_tracker_activity']['name'] = array(
+    'title' => t('Activity Name'),
+    'help' => t('Activity Name.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+
   $data['time_tracker_entry']['teid'] = array(
     'title' => t('ID'),
     'help' => t('Time Entry ID.'),
@@ -63,7 +87,7 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
-  $data['time_tracker_entry']['activity'] = array(
+  $data['time_tracker_entry']['taid'] = array(
     'title' => t('Activity'),
     'help' => t('Time Entry Activity.'),
     'field' => array(

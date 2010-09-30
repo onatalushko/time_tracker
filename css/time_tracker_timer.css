@@ -1,0 +1,20 @@
+table.time_tracker_timer tr.active_timer_msg {
+  background-color: #cceec4;
+}
+
+table.time_tracker_timer tr.unsaved_timer_msg {
+  background-color: #fdcbcb;
+}
+
+table.time_tracker_timer tr.stopped_timer_msg {
+  background-color: #fdcbcb;
+}
+
+table.time_tracker_timer tr.user_active_timer_msg {
+  background-color: #fef4cb;
+}
+
+table.time_tracker_timer tr.user_unsaved_timer_msg {
+  background-color: #fef4cb;
+}
+

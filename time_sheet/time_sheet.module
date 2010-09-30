@@ -56,7 +56,7 @@ function time_sheet_menu() {
  */
 function time_sheet_user_page($user) {
   // Get a start timestamp from the url parameters or set a default.
-  if(!isset($_GET['start'])) {
+  if (!isset($_GET['start'])) {
     $start = time();
   } else {
     $start = $_GET['start'];
@@ -74,10 +74,15 @@ function time_sheet_user_page($user) {
   $prev_week = strtotime('- 1 week', $days['monday']);
 
   // Output the week switcher.
-  $output .= l(t('last week'), $_GET['q'], array('query' => array('start' => $prev_week))) . " - " . l(t('next week'), $_GET['q'], array('query' => array('start' => $next_week)));
+  $output .= '<span class="time-sheet-header">';
+  $output .= l(t('&laquo;'), $_GET['q'], array('query' => array('start' => $prev_week), 'html' => 'TRUE'));
+  $output .= ' ' . date("l, M jS", $days['monday']) . ' - ' . date("l, M jS", $days['friday']) . ' ';
+  $output .= l(t('&raquo;'), $_GET['q'], array('query' => array('start' => $next_week), 'html' => 'TRUE'));
+  $output .= '</span>';
+
 
   // Loop through days of the week pulling time entries and generating a table.
-  foreach($days as $day => $stamp) {
+  foreach ($days as $day => $stamp) {
     $header = array(array('data' => date("l, M jS Y", $stamp), 'colspan' => 2));
 
     $rows = array();
@@ -91,13 +96,13 @@ function time_sheet_user_page($user) {
       $project = node_load(array('nid' => $time_entry->casetracker->pid));
 
       $row = array();
-      $row[] = theme('seed_crayon_swatch', $project->nid, acronymize($project->title), $project->title, "node/{$project->nid}") . l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-case')));
+      $row[] = theme('crayon_swatch', $project->nid, crayon_generate_acronym($project->title), $project->title, "node/{$project->nid}") . l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-case')));
       $row[] = array('data' => format_plural($time_entry_result->duration, '1 hour', '@count hours'), 'align' => 'right');
       $total_duration = $total_duration + $time_entry_result->duration;
       $rows[] = array('data' => $row);
     }
 
-    if(count($row) > 1) {
+    if (count($row) > 1) {
       $row = array();
       $row[] = '<strong>' . t("Total hours for") . " " . date("l", $stamp) . '</strong>';
       $row[] = array('data' => '<strong>' . format_plural($total_duration, '1 hour', '@count hours') . '</strong>', 'align' => 'right');
@@ -178,90 +183,96 @@ function time_sheet_add_time() {
   $form_state = array('storage' => NULL, 'submitted' => FALSE);
   $form_build_id = $_POST['form_build_id'];
   $form = form_get_cache($form_build_id, $form_state);
+  
+  //Debugging:
+  //$output = '<pre>form: ' . print_r($form, TRUE) . '  ||  ID: ' . $_POST['form_build_id'] . '</pre>';
+  //drupal_json(array('status' => TRUE, 'data' => $output));
+  //END Debugging
 
   $args = $form['#parameters'];
-  $form_id = array_shift($args);
-  $form_state['post'] = $form['#post'] = $_POST;
-  $form['#programmed'] = $form['#redirect'] = FALSE;
+    $form_id = array_shift($args);
+    $form_state['post'] = $form['#post'] = $_POST;
+    $form['#programmed'] = $form['#redirect'] = FALSE;
 
-  $form = array();
-  $case = node_load(array('nid' => $form_state['post']['case_list']));
-  $project = node_load(array('nid' => $case->casetracker->pid));
+    $form = array();
+    $case = node_load(array('nid' => $form_state['post']['case_list']));
+    $project = node_load(array('nid' => $case->casetracker->pid));
 
-  // grab total time and estimate time for this ticket and user
-  $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
-  $total_time = 0;
-  while ($result_case = db_fetch_object($case_results)) {
-    $total_time = $total_time + $result_case->duration;
-  }
+    // grab total time and estimate time for this ticket and user
+    $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
+    $total_time = 0;
+    while ($result_case = db_fetch_object($case_results)) {
+      $total_time = $total_time + $result_case->duration;
+    }
 
-  $total_estimate = 0;
-  $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
-  while ($estimate_result = db_fetch_object($estimate_results)) {
-    $total_estimate = $estimate_result;
-  }
+    $total_estimate = 0;
+    $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
+    while ($estimate_result = db_fetch_object($estimate_results)) {
+      $total_estimate = $estimate_result;
+    }
 
-  // add some case details so we know what we're dealing with
-  $form['time_sheet']['case_details'] = array(
-    '#type' => 'markup',
-    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
-    '#prefix' => '<div class="case-details">',
-    '#suffix' => '</div>',
-  );
+    // add some case details so we know what we're dealing with
+    $form['time_sheet']['case_details'] = array(
+      '#type' => 'markup',
+      '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
+      '#prefix' => '<div class="case-details">',
+      '#suffix' => '</div>',
+    );
 
-  $case_status_options = casetracker_realm_load('status');
-  $default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
+    $case_status_options = casetracker_realm_load('status');
+    $default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
 
-  $form['time_sheet']['case_status_id'] = array(
-    '#type' => 'select',
-    '#title' => t('Status'),
-    '#default_value' => $default_status,
-    '#options' => $case_status_options,
-  );
+    $form['time_sheet']['case_status_id'] = array(
+      '#type' => 'select',
+      '#title' => t('Status'),
+      '#default_value' => $default_status,
+      '#options' => $case_status_options,
+    );
 
-  $form['time_sheet']['duration'] = array(
-    '#title' => t('Hours'),
-    '#type' => 'textfield',
-    '#size' => '10',
-    '#required' => TRUE,
-    '#default_value' => $time_tracker_data->duration,
-    '#description' => t('eg. 2.5 for two and a half hours'),
-  );
+    $form['time_sheet']['duration'] = array(
+      '#title' => t('Hours'),
+      '#type' => 'textfield',
+      '#size' => '10',
+      '#required' => TRUE,
+      '#default_value' => $time_tracker_data->duration,
+      '#description' => t('eg. 2.5 for two and a half hours'),
+    );
 
-  $activities = array();
-  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+    $activities = array();
+    $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
 
-  while ($result = db_fetch_object($results)) {
-    $activities[$result->taid] = $result->name;
-  }
+    while ($result = db_fetch_object($results)) {
+      $activities[$result->taid] = $result->name;
+    }
 
-  $form['time_sheet']['activity'] = array(
-    '#title' => t('Activity'),
-    '#type' => 'select',
-    '#default_value' => $time_tracker_data->activity,
-    '#options' => $activities,
-  );
+    $form['time_sheet']['activity'] = array(
+      '#title' => t('Activity'),
+      '#type' => 'select',
+      '#default_value' => $time_tracker_data->activity,
+      '#options' => $activities,
+    );
 
-  $form['time_sheet']['comment'] = array(
-    '#title' => 'Comment',
-    '#type' => 'textarea',
-    '#required' => TRUE,
-    '#weight' => 98,
-  );
+    $form['time_sheet']['comment'] = array(
+      '#title' => 'Comment',
+      '#type' => 'textarea',
+      '#required' => TRUE,
+      '#weight' => 98,
+    );
 
-  $form['time_sheet']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save'),
-    '#weight' => 99,
-  );
+    $form['time_sheet']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+      '#weight' => 99,
+    );
 
-  drupal_process_form($form_id, $form, $form_state);
-  //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
+    drupal_process_form($form_id, $form, $form_state);
+    //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
 
-  drupal_json(array(
-    'status'   => TRUE,
-    'data'     => drupal_render($form),
-  ));
+    drupal_json(array(
+      'status'   => TRUE,
+      'data'     => drupal_render($form),
+    ));
+  
 }
 
 /**

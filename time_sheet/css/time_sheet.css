@@ -1,3 +1,5 @@
+/* $Id$ */
+
 .show-case { display:none; }
 
 #case-details-monday,
@@ -9,3 +11,4 @@
 .crayon-swatch { float:left; }
 .time-sheet-case { margin-left:5px; }
 .case-details { margin:10px 0 5px 0; padding:10px; border:1px solid #ccc; background-color:#eee; }
+.time-sheet-header { font-size:20px; color:#ccc; line-height:30px; }
