@@ -15,29 +15,6 @@ function time_tracker_views_data() {
     'title' => t('Time Tracker'),
     'help' => t('Content generated from time tracker entries.'),
   );
-  $data['time_tracker_activity']['table']['join']['time_tracker_entry'] = array(
-    'left_field' => 'activity',
-    'field' => 'taid',
-  );
-  
-  $data['time_tracker_activity']['table']['group'] = t('Time Tracker');
-  $data['time_tracker_activity']['name'] = array(
-    'title' => t('Activity Name'),
-    'help' => t('Activity Name.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_string',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_string',
-    ),
-  );
-  
 
   $data['time_tracker_entry']['teid'] = array(
     'title' => t('ID'),
@@ -153,6 +130,52 @@ function time_tracker_views_data() {
       'base' => 'comments',
       'base field' => 'cid',
       'label' => t('Comment'),
+    ),
+  );
+
+  $data['time_tracker_activity']['table']['join']['time_tracker_entry'] = array(
+    'left_field' => 'activity',
+    'field' => 'taid',
+  );
+  $data['time_tracker_activity']['table']['group'] = t('Time Tracker');
+
+  $data['time_tracker_activity']['name'] = array(
+    'title' => t('Activity Name'),
+    'help' => t('Activity Name.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  $data['time_estimate_entry']['table']['join']['time_tracker_entry'] = array(
+    'left_field' => 'nid',
+    'field' => 'nid',
+  );
+  $data['time_estimate_entry']['table']['group'] = t('Time Tracker');
+
+  $data['time_estimate_entry']['estimate'] = array(
+    'title' => t('Time Estimate'),
+    'help' => t('Time Estimate.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
     ),
   );
 

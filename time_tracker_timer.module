@@ -13,7 +13,7 @@ function time_tracker_timer_init() {
  * Implementation of hook_perm().
  */
 function time_tracker_timer_perm() {
-  return array('view all timers');
+  return array('view all timers', 'manually enter time', 'administer time tracker timer');
 }
 
 /**
@@ -31,7 +31,35 @@ function time_tracker_timer_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $items['admin/settings/time_tracker/timer'] = array(
+    'title' => 'Time tracker timer settings',
+    'description' => 'Configuration settings for the time tracker timer.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('time_tracker_timer_settings_form'),
+    'access arguments' => array('administer time tracker timer'),
+    'parent' => 'admin/settings/time_tracker',
+  );
+
   return $items;
+}
+
+function time_tracker_timer_settings_form() {
+    $form = array();
+
+    $form['time_tracker_timer_settings']['time_tracker_timer_allow_multiple'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Allow users to have multiple active timers at one time'),
+      '#default_value' => variable_get('time_tracker_timer_allow_multiple', FALSE),
+      '#description' => t('Allow multiple timers per user.'),
+    );
+
+    return system_settings_form($form);
+}
+
+function time_tracker_timer_settings_form_submit($form, &$form_state) {
+  foreach ($form_state['values'] as $taid => $activity) {
+    drupal_write_record('time_tracker_activity', $form[$taid]['#activity'], array('taid'));
+  }
 }
 
 /**
@@ -69,7 +97,7 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
   $rows =        array(); // Rows for current user timer messages
   $user_rows =   array(); // Rows for timer messages about other user timers
   $output =      '';
-  $start_time =  0;
+  $start_time = 0;
   $timer_state = 'start';
 
   // Loop through the results. Should only be ONE if user doesn't have 'view all' priveleges
@@ -85,6 +113,7 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
         );
         //Change the timer state to be in "stop" mode
         $timer_state = 'stop';
+        $start_time = $timer->start;
       //If the timer has a stop value, then it has been stopped
       //BUT not saved since it still exists (should be deleted when stopped and saved)
       } else {
@@ -191,24 +220,34 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
  */
 function time_tracker_timer_startstop_form_submit($form, &$form_state) {
   global $user;
-  
+
   if($form_state['values']['timer_state'] == 'start') {
-    //Create an onject to use for durpal_write_record
-    //Object must match Schema
-    $timerObj        = new stdClass();
-    $timerObj->nid   = $form_state['values']['nid'];
-    $timerObj->pid   = $form_state['values']['pid'];
-    $timerObj->uid   = $user->uid;
-    $timerObj->start = time();
-    //Write the new record
-    $success = drupal_write_record('time_tracker_timer', $timerObj);
-    //Let the user know if the write was successful (Timer was started)
-    if($success) {
-      drupal_set_message('Timer started', 'message');
+    if(!variable_get('time_tracker_timer_allow_multiple', FALSE)) {
+      $current_timers = db_query("SELECT * FROM {time_tracker_timer} WHERE uid = '" . $user->uid . "'");
+      $current_timer = db_fetch_object($current_timers);
+    }
+
+    if($current_timer) {
+      drupal_set_message('You already have an active timer. ' . l('Click here to view it.', 'node/' . $current_timer->nid), 'error');
     } else {
-      drupal_set_message('Could not start timer', 'error');
+      //Create an onject to use for durpal_write_record
+      //Object must match Schema
+      $timerObj        = new stdClass();
+      $timerObj->nid   = $form_state['values']['nid'];
+      $timerObj->pid   = $form_state['values']['pid'];
+      $timerObj->uid   = $user->uid;
+      $timerObj->start = time();
+      //Write the new record
+      $success = drupal_write_record('time_tracker_timer', $timerObj);
+      //Let the user know if the write was successful (Timer was started)
+      if($success) {
+        drupal_set_message('Timer started', 'message');
+      } else {
+        drupal_set_message('Could not start timer', 'error');
+      }
     }
   } elseif($form_state['values']['timer_state'] == 'stop') {
+
     $time_spent = format_interval(time() - $form_state['values']['start_time'], "1");
     //db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d', $form_state['values']['nid']);
     $success = db_query("UPDATE {time_tracker_timer} SET stop = %d WHERE nid = %d AND uid = %d", time(), $form_state['values']['nid'], $user->uid);
@@ -241,10 +280,22 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
   if ($form_id == 'comment_form' && user_access('add time tracker entries')) {
     global $user;
     $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form['nid']['#value'], $user->uid);
+
     while($timer = db_fetch_object($timer_results)) {
-      if($timer->stop != 0 && $timer->start != 0) {
-        $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
-        $form['#submit'][] = 'time_tracker_timer_cleartimer_submit'; //add a new submit function
+      if(user_access('manually enter time')) {
+        if($timer->stop != 0 && $timer->start != 0) {
+          $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
+          $form['#submit'][] = 'time_tracker_timer_cleartimer_submit'; //add a new submit function
+        }
+      } else {
+        if($timer->stop != 0 && $timer->start != 0) {
+          $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
+          $form['time_tracker']['duration']['#type'] = 'hidden';
+
+          $form['time_tracker']['duration_display']['#weight'] = 1;
+          $form['time_tracker']['duration_display']['#value'] = '<p>Time: ' . convert_phptime_to_duration($timer->start, $timer->stop) . '</p>';
+          $form['#submit'][] = 'time_tracker_timer_cleartimer_submit'; //add a new submit function
+        }
       }
     }
   }
@@ -255,7 +306,7 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
  * if it exists
  */
 function time_tracker_timer_cleartimer_submit($form, &$form_state) {
-  // $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form['nid']['#value'], $user->uid);
+  //$timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form['nid']['#value'], $user->uid);
   //while($timer = db_fetch_object($timer_results)){
     global $user;
     $success = db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d AND uid = %d', $form['nid']['#value'], $user->uid);

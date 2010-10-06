@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Enables time tracking on comments.
+ * Enables time tracking on nodes and comments.
  */
 
 /**
@@ -19,6 +19,7 @@ function time_tracker_perm() {
  */
 function time_tracker_menu() {
   $items = array();
+
   $items['admin/settings/time_tracker'] = array(
     'title' => 'Time Tracker',
     'description' => 'Adjust time tracker settings.',
@@ -53,6 +54,7 @@ function time_tracker_menu() {
     'access arguments' => array('view time tracker entries'),
     'type' => MENU_LOCAL_TASK,
   );
+
   return $items;
 }
 
@@ -96,7 +98,6 @@ function theme_time_tracker_activity_table($form) {
   return $output;
 }
 
-
 function time_tracker_activity_table_form() {
   $results = db_query('SELECT * FROM {time_tracker_activity} ORDER BY weight ASC');
   while ($result = db_fetch_object($results)) {
@@ -108,7 +109,7 @@ function time_tracker_activity_table_form() {
     '#theme' => 'time_tracker_activity_table'
   );
 
-  if (count($activities) > 1) {
+  if (count($activities) > 0) {
     foreach ($activities as $activity) {
       $form[$activity->taid]['#activity'] = (array)$activity;
       $form[$activity->taid]['name'] = array('#value' => check_plain($activity->name));
@@ -144,6 +145,7 @@ function time_tracker_settings_form_submit($form, &$form_state) {
  * Form builder function for module time tracker activities.
  */
 function time_tracker_activity_form(&$form_state, $taid = NULL) {
+
   $form['#redirect'] = 'admin/settings/time_tracker/list';
 
   if ($taid) {
@@ -226,6 +228,12 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
+    $form['time_tracker']['time_tracker_nodes'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Track time on this content types nodes'),
+      '#default_value' => variable_get('time_tracker_nodes_'. $form['#node_type']->type, 0),
+      '#description' => t('Track time on this content types nodes.'),
+    );
     $form['time_tracker']['time_tracker_comments'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track time on this content types comments'),
@@ -293,6 +301,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Date'),
         '#type' => 'textfield',
         '#size' => '20',
+        '#weight' => 0,
         '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
       );
 
@@ -300,6 +309,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Hours'),
         '#type' => 'textfield',
         '#size' => '10',
+        '#weight' => 1,
         '#default_value' => $time_tracker_data->duration,
         '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
       );
@@ -307,6 +317,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
       $form['time_tracker']['activity'] = array(
         '#title' => t('Activity'),
         '#type' => 'select',
+        '#weight' => 2,
         '#default_value' => $time_tracker_data->activity,
         '#options' => $activities,
       );
@@ -320,32 +331,36 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
 function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      if (casetracker_is_project($node->type)) {
-        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-
-        while ($case = db_fetch_object($case_results)) {
-          $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
-
-          while ($time = db_fetch_object($time_results)) {
-            $total_time = $total_time + $time->duration;
+      if (module_exists('casetracker')) {
+        if (casetracker_is_project($node->type)) {
+          $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+  
+          while ($case = db_fetch_object($case_results)) {
+            $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
+  
+            while ($time = db_fetch_object($time_results)) {
+              $total_time = $total_time + $time->duration;
+            }
+          }
+  
+          if($total_time > 0) {
+            $el = module_exists('atrium_casetracker') ? 'time_tracker_summary' : 'casetracker_project_summary';
+            $node->content[$el]['#value'] = $node->content[$el]['#value'] . theme('time_tracker_project_summary', $total_time);
           }
         }
-
-        if($total_time > 0) {
-          $el = module_exists('atrium_casetracker') ? 'time_tracker_summary' : 'casetracker_project_summary';
-          $node->content[$el]['#value'] = $node->content[$el]['#value'] . theme('time_tracker_project_summary', $total_time);
+        elseif (casetracker_is_case($node->type)) {
+          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+  
+          while ($case = db_fetch_object($case_results)) {
+            $total_time = $total_time + $case->duration;
+          }
+  
+          if ($total_time > 0) {
+            $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_case_summary', $total_time);
+          }
         }
-      }
-      elseif (casetracker_is_case($node->type)) {
-        $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-
-        while ($case = db_fetch_object($case_results)) {
-          $total_time = $total_time + $case->duration;
-        }
-
-        if ($total_time > 0) {
-          $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_case_summary', $total_time);
-        }
+      } else {
+        // TODO: display normal node time entry here.
       }
     break;
   }
@@ -483,6 +498,7 @@ function time_tracker_views_api() {
     'path' => drupal_get_path('module', 'time_tracker') .'/views',
   );
 }
+
 /**
  * Utility function that parses a duration string and converts it to fractional
  * hours.
