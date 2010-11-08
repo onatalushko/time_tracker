@@ -46,6 +46,8 @@ function time_sheet_menu() {
   return $items;
 }
 
+
+
 /**
  * The users time sheet page callback.
  * @desc This callback displays a users time_sheet defaulting to the
@@ -55,7 +57,11 @@ function time_sheet_menu() {
  * TODO: Allow configurable week start and end points in admin interface.
  */
 function time_sheet_user_page($user) {
-  // Get a start timestamp from the url parameters or set a default.
+  //Validates the user being passed in the path is a number
+  if (is_numeric($user)) {
+    $user = user_load($user);
+  }
+  //Get a start timestamp from the url parameters or set a default.
   if (!isset($_GET['start'])) {
     $start = time();
   } else {
@@ -83,25 +89,38 @@ function time_sheet_user_page($user) {
 
   // Loop through days of the week pulling time entries and generating a table.
   foreach ($days as $day => $stamp) {
+    // The header displaying the date
     $header = array(array('data' => date("l, M jS Y", $stamp), 'colspan' => 2));
-
+    // Rows Variable for later theme_table-ing
     $rows = array();
-
-    $time_entry_results = db_query("SELECT * FROM {time_tracker_entry} WHERE uid = " . $user->uid . "
-                                    AND timestamp BETWEEN " . $stamp . " AND " . (strtotime("+1 day", $stamp)-1) . " ORDER BY teid");
-
+    // Get the all the time tracker entries for the date we're on
+    $sql = "SELECT * FROM {time_tracker_entry} 
+            WHERE uid = %d 
+            AND timestamp BETWEEN %d AND %d  
+            ORDER BY teid";
+    $time_entry_results = db_query($sql, $user->uid, $stamp, (strtotime("+1 day", $stamp)-1));
     $total_duration = 0;
+    // Loop throug each
     while ($time_entry_result = db_fetch_object($time_entry_results)) {
+      // Load the time entry node object
       $time_entry = node_load(array('nid' => $time_entry_result->nid));
+      // Load the casetracker project node object
       $project = node_load(array('nid' => $time_entry->casetracker->pid));
-
+      // Container for row data to display a time entry
       $row = array();
+      // The little colorful project icon next to time entries in the time_sheet
+      // And the time_entry item name. Both linked
       $row[] = theme('crayon_swatch', $project->nid, crayon_generate_acronym($project->title), $project->title, "node/{$project->nid}") . l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-case')));
+      // The amount of time logged for this item
       $row[] = array('data' => format_plural($time_entry_result->duration, '1 hour', '@count hours'), 'align' => 'right');
+      // On going add-up of the total duration of time logged this week
       $total_duration = $total_duration + $time_entry_result->duration;
+      // Add the row to the rows
       $rows[] = array('data' => $row);
     }
-
+    
+    // As long as this day has a time entry, the row array will
+    // be populated with more than 1 item
     if (count($row) > 1) {
       $row = array();
       $row[] = '<strong>' . t("Total hours for") . " " . date("l", $stamp) . '</strong>';
@@ -112,11 +131,13 @@ function time_sheet_user_page($user) {
       $row[] = array('data' => t("No time entered."), 'colspan' => 2);
       $rows[] = array('data' => $row);
     }
-
+    
     $row = array();
+    // Put the form to add a case for this day at the bottom of the day's table
     $row[] = array('data' => drupal_get_form('time_sheet_case_list_form', $user, $day, $stamp), 'colspan' => 2);
     $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
-
+    
+    // Add this day to the table
     $output .= theme('table', $header, $rows, array('id' => 'time-sheet-' . $day));
   }
 
@@ -135,7 +156,7 @@ function time_sheet_user_page($user) {
 function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
   $form = array();
   $form['time_sheet'][$day]['#cache'] = TRUE;
-  $form['time_sheet'][$day]['#submit'] = array('time_sheet_form_submit');
+  //$form['#submit'][] = 'time_sheet_add_time_submit_handler';
 
   $form['time_sheet'][$day]['timestamp'] = array(
     '#type' => 'hidden',
@@ -154,130 +175,151 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
       'event' => 'change',
     ),
   );
-
-  // The CSS for this module hides this next button if JS is enabled.
-  $form['time_sheet'][$day]['show_case'] = array(
+  
+  //The CSS for this module hides this next button if JS is enabled.
+  // Does not work YET
+  // $form['time_sheet'][$day]['show_case'] = array(
+  //   '#type' => 'submit',
+  //   '#value' => t('Select'),
+  //   '#attributes' => array('class' => 'show-case'),
+  //   '#submit' => array('time_sheet_add_time_submit_handler'), // Probably don't want to run this here
+  // );
+  
+  // CSS hides this button.
+  // Submit handlers defined in the ahah form do not get registered
+  // This hidden button is will be passed as the 'clicked_button'
+  // When the ahah submit button is pressed
+  $form['time_sheet'][$day]['secret_submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Select'),
-    '#attributes' => array('class' => 'show-case'),
+    '#value' => t('Secret Submit'),
+    '#attributes' => array('class' => 'secret-submit'),
     '#submit' => array('time_sheet_add_time_submit_handler'),
   );
-
+  
   $form['time_sheet'][$day]['case_form_wrapper'] = array(
     '#type' => 'markup',
     '#tree' => TRUE,
     '#value' => '<div id="case-form-' . $day . '"></div>',
   );
-
+  //dpm($form);
+  //dpm($form_state);
   return $form;
 }
 
+// function time_sheet_case_list_form_submit($form, &$form_state) {
+//   drupal_set_message(t('the form has been SUBmittEd'));
+// }
+
 /**
- * Page callback.
+ * Page callback For when a user selects a case to add time to from the time sheet 
  *
  * TODO: Display the total amount of hours and estimated time.
  */
 function time_sheet_add_time() {
   global $user;
 
+  // The usual AHAH stuff that needs to be here for this to work....
   $form_state = array('storage' => NULL, 'submitted' => FALSE);
   $form_build_id = $_POST['form_build_id'];
   $form = form_get_cache($form_build_id, $form_state);
-  
-  //Debugging:
-  //$output = '<pre>form: ' . print_r($form, TRUE) . '  ||  ID: ' . $_POST['form_build_id'] . '</pre>';
-  //drupal_json(array('status' => TRUE, 'data' => $output));
-  //END Debugging
-
   $args = $form['#parameters'];
-    $form_id = array_shift($args);
-    $form_state['post'] = $form['#post'] = $_POST;
-    $form['#programmed'] = $form['#redirect'] = FALSE;
+  $form_id = array_shift($args);
+  $form_state['post'] = $form['#post'] = $_POST;
+  $form['#programmed'] = $form['#redirect'] = FALSE;
 
-    $form = array();
-    $case = node_load(array('nid' => $form_state['post']['case_list']));
-    $project = node_load(array('nid' => $case->casetracker->pid));
+  $form = array();
+  $case = node_load(array('nid' => $form_state['post']['case_list']));
+  $project = node_load(array('nid' => $case->casetracker->pid));
 
-    // grab total time and estimate time for this ticket and user
-    $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
-    $total_time = 0;
-    while ($result_case = db_fetch_object($case_results)) {
-      $total_time = $total_time + $result_case->duration;
-    }
+  // Grab the total time spent on this ticket
+  $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d AND uid = %d", $case->nid, $user->uid);
+  $total_time = 0;
+  while ($result_case = db_fetch_object($case_results)) {
+    $total_time = $total_time + $result_case->duration;
+  }
+  // Grab the total time estimate for this ticket
+  $total_estimate = 0;
+  $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
+  while ($estimate_result = db_fetch_object($estimate_results)) {
+    $total_estimate = $estimate_result;
+  }
 
-    $total_estimate = 0;
-    $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
-    while ($estimate_result = db_fetch_object($estimate_results)) {
-      $total_estimate = $estimate_result;
-    }
+  // TODO keep the start arg when submitting the form 
+  // This way we will redirect to the correct week instead of always THIS week
+  // if(arg(0)) {
+  //   $form['#redirect'] = $path . arg(0);
+  // }
+  
+  //print_r($form);
 
-    // add some case details so we know what we're dealing with
-    $form['time_sheet']['case_details'] = array(
-      '#type' => 'markup',
-      '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
-      '#prefix' => '<div class="case-details">',
-      '#suffix' => '</div>',
-    );
+  // add some case details so we know what we're dealing with
+  $form['time_sheet']['case_details'] = array(
+    '#type' => 'markup',
+    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
+    '#prefix' => '<div class="case-details">',
+    '#suffix' => '</div>',
+  );
 
-    $case_status_options = casetracker_realm_load('status');
-    $default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
+  $case_status_options = casetracker_realm_load('status');
+  $default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
 
-    $form['time_sheet']['case_status_id'] = array(
-      '#type' => 'select',
-      '#title' => t('Status'),
-      '#default_value' => $default_status,
-      '#options' => $case_status_options,
-    );
+  $form['time_sheet']['case_status_id'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#default_value' => $default_status,
+    '#options' => $case_status_options,
+  );
 
-    $form['time_sheet']['duration'] = array(
-      '#title' => t('Hours'),
-      '#type' => 'textfield',
-      '#size' => '10',
-      '#required' => TRUE,
-      '#default_value' => $time_tracker_data->duration,
-      '#description' => t('eg. 2.5 for two and a half hours'),
-    );
+  $form['time_sheet']['duration'] = array(
+    '#title' => t('Hours'),
+    '#type' => 'textfield',
+    '#size' => '10',
+    '#required' => TRUE,
+    '#default_value' => $time_tracker_data->duration,
+    '#description' => t('eg. 2.5 for two and a half hours'),
+  );
 
-    $activities = array();
-    $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+  $activities = array();
+  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
 
-    while ($result = db_fetch_object($results)) {
-      $activities[$result->taid] = $result->name;
-    }
+  while ($result = db_fetch_object($results)) {
+    $activities[$result->taid] = $result->name;
+  }
 
-    $form['time_sheet']['activity'] = array(
-      '#title' => t('Activity'),
-      '#type' => 'select',
-      '#default_value' => $time_tracker_data->activity,
-      '#options' => $activities,
-    );
+  $form['time_sheet']['activity'] = array(
+    '#title' => t('Activity'),
+    '#type' => 'select',
+    '#default_value' => $time_tracker_data->activity,
+    '#options' => $activities,
+  );
 
-    $form['time_sheet']['comment'] = array(
-      '#title' => 'Comment',
-      '#type' => 'textarea',
-      '#required' => TRUE,
-      '#weight' => 98,
-    );
+  $form['time_sheet']['comment'] = array(
+    '#title' => 'Comment',
+    '#type' => 'textarea',
+    '#required' => TRUE,
+    '#weight' => 98,
+  );
 
-    $form['time_sheet']['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save'),
-      '#weight' => 99,
-    );
+  $form['time_sheet']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#weight' => 99,
+  );
+  
 
-    drupal_process_form($form_id, $form, $form_state);
-    //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
+  drupal_process_form($form_id, $form, $form_state);
+  //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
 
-    drupal_json(array(
-      'status'   => TRUE,
-      'data'     => drupal_render($form),
-    ));
+  drupal_json(array(
+    'status'   => TRUE,
+    'data'     => drupal_render($form),
+  ));
   
 }
 
 /**
  * TODO: What does this do? Is it the submit handler for the ahah case list
- * when javascript isn't present.
+ * when javascript isn't present? Yes. But the no javascript form isn't ready yet...
  * @param $form
  * @param $form_state
  */
@@ -287,9 +329,12 @@ function time_sheet_form_submit($form, &$form_state) {
     $form_state['rebuild'] = FALSE;
     drupal_set_message(t('Form submitted'));
   }
-
+  drupal_set_message(t('Form submitted'));
   // edit-next or anything else will cause rebuild.
   $form_state['rebuild'] = TRUE;
+  
+  // Redirect to current week view
+  $form_state['redirect'] = drupal_get_destination();
 }
 
 /**
@@ -299,15 +344,16 @@ function time_sheet_form_submit($form, &$form_state) {
 function time_sheet_add_time_submit_handler($form, &$form_state) {
   // TODO: do i need to get rid of this call for user object
   global $user;
-
+  drupal_set_message('Submit Handler Initiated');
+  //dpm($form_state);
   $values = $form_state['values'];
   unset($form_state['submit_handlers']);
 
   form_execute_handlers('submit', $form, $form_state);
 
   $form_state['my_values'] = $values;
-  $form_state['rebuild'] = TRUE;
-
+  $form_state['rebuild'] = FALSE;
+  //dpm($form_state);
   $case = node_load(array('nid' => $form_state['clicked_button']['#post']['case_list']));
 
   $comment['casetracker'] = get_object_vars($case->casetracker);
@@ -331,7 +377,7 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
 
   // TODO: Ajax this up.
   drupal_set_message('Activity Recorded');
-  drupal_goto('user/' . $user->uid . '/time_sheet');
+  //drupal_goto('user/' . $user->uid . '/time_sheet');
 }
 
 function time_sheet_ahah() {

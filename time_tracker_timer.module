@@ -91,7 +91,7 @@ function time_tracker_timer_theme() {
 }
 
 /**
- * Theme function for case_tracker cases.
+ * Theme function for time_tracker_timer timers.
  */
 function theme_time_tracker_timer_case_summary($timer_results, &$node) {
   $rows =        array(); // Rows for current user timer messages
@@ -99,80 +99,149 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
   $output =      '';
   $start_time = 0;
   $timer_state = 'start';
+  drupal_add_js(drupal_get_path('module', 'time_tracker'). '/js/timer.js');
 
   // Loop through the results. Should only be ONE if user doesn't have 'view all' priveleges
   while ($timer = db_fetch_object($timer_results)) {
     global $user;
     // If the timer entry user id matches the current user then we process normally
-    if($timer->uid == $user->uid) {
+    if ($timer->uid == $user->uid) {
       // If the timer doesn't have a stop value, it's still running
       if($timer->stop == 0) {
-        $rows[] = array(
-          'data' => array(t('You have an active timer: ' . format_interval(time() - $timer->start, '1'))),
-          'class' => 'active_timer_msg',
-        );
         //Change the timer state to be in "stop" mode
         $timer_state = 'stop';
         $start_time = $timer->start;
-      //If the timer has a stop value, then it has been stopped
-      //BUT not saved since it still exists (should be deleted when stopped and saved)
-      } else {
+        // Format the rows for eventual theme_table
         $rows[] = array(
-          'data' => array(t('You have an unsaved timer entry for this ticket: ' . format_interval($timer->stop - $timer->start, '1'))),
-          'class' => 'unsaved_timer_msg'
+          'data' => array(
+            array(
+              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $start_time),
+              'class' => 'active_timer_control timer_control'
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss(time() - $timer->start),
+              'class' => 'active_timer_time timer_time'
+            ),
+            array(
+              'data' => t('Your timer is currently active.'),
+              'class' => 'active_timer_msg timer_msg'
+            ),
+          ),
         );
-        $hours_field_link = $node->path . '#edit-time-wrapper';
-        $rows[] = array(
-          'data' => array(t('Your timer entry has been inserted in the <a href="' . $hours_field_link . '">hours field </a>below.')),
-          'class' => 'stopped_timer_msg',
-        );
+      } 
+      else {
+        //If the timer has a stop value, then it has been stopped
+        //BUT not saved since it still exists (should be deleted when stopped and saved)
         // Set the timer state to 'reset' mode
         $timer_state = 'reset';
+        $hours_field_link = $node->path . '#edit-time-wrapper';
+        $rows[] = array(
+          'data' => array(
+            array(
+              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $start_time),
+              'class' => 'stopped_timer_control timer_control'
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss($timer->stop - $timer->start),//
+              'class' => 'stopped_timer_time timer_time'
+            ),
+            array(
+              'data' => t('Your time has been entered below. <a href="' . $hours_field_link . '">Please complete the form</a>'),
+              'class' => 'stopped_timer_msg timer_msg',
+            ),
+          ),
+        );
       }
+    } 
+    else {
       // If the timer entry id doesn't match the user, then we just want to add it to the
       // page to view, but not affect the how the timer button will work (i.e. start, stop, reset)
-    } else {
       // Load the user name
       $username = user_load($timer->uid)->name;
       if($timer->stop == 0) {
-        $user_rows[] = array(
-          'data' => array(t($username . ' has an active timer: ' . format_interval(time() - $timer->start, '1'))),
-          'class' => 'user_active_timer_msg',
+        $timer_state = 'stop';
+        $user_rows = array(
+          'data' => array(
+            array(
+              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $timer->start, $timer->uid),//t('BUTTON PLACEHOLDER'),
+              'class' => 'active_timer_control timer_control'
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss(time() - $timer->start),
+              'class' => 'active_timer_time timer_time'
+            ),
+            array(
+              'data' => t($username . ' has an active timer.'),
+              'class' => 'active_timer_msg timer_msg'
+            ),
+          ),
         );
-      //If the timer has a stop value, then it has been stopped
-      //BUT not saved since it still exists (should be deleted when stopped and saved)
-      } else {
+      } 
+      else {
+        //If the timer has a stop value, then it has been stopped
+        //BUT not saved since it still exists (should be deleted when stopped and saved)
+        $timer_state = 'reset';
         $user_rows[] = array(
-          'data' => array(t($username . ' has an unsaved timer entry for this ticket: ' . format_interval($timer->stop - $timer->start, '1'))),
-          'class' => 'user_unsaved_timer_msg',
+          'data' => array(
+            array(
+              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $timer->start, $timer->uid),//t("BUTTON PLACEHOLDER"),
+              'class' => 'stopped_timer_control timer_control'
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss($timer->stop - $timer->start),//
+              'class' => 'stopped_timer_time timer_time'
+            ),
+            array(
+              'data' => t($username . ' has an unsaved timer entry for this ticket'),
+              'class' => 'stopped_timer_msg timer_msg',
+            ),
+          ),
         );
-        // $hours_field_link = $node->path . '#edit-duration';
-        // $rows[] = array(t('Your timer entry has been inserted in the <a href="'.$hours_field_link.'">hours field </a>below.'));
       }
     }
   }
-
+  // If no rows were added there are no timer entries and the 'start timer' row must be displayed
+  if (sizeof($rows) == 0) {
+    $timer_state = 'start';
+    $rows[] = array(
+      'data' => array(
+        array(
+          'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state),
+          'class' => 'new_timer_control timer_control'
+        ),
+        array(
+          'data' => _time_tracker_format_secs_to_hhmmss(0),//
+          'class' => 'new_timer_time timer_time'
+        ),
+        array(
+          'data' => t('Click <em>start timer</em> to begin tracking your time'),
+          'class' => 'new_timer_msg timer_msg',
+        ),
+      ),
+    );
+  }
+  
+  // add the other user rows on to the end of the control rows
   foreach($user_rows as $row) {
     $rows[] = $row;
   }
+  
+  // Add the output to the end of the casetracker_case_summary
+  $output = '';
+  $output .= $node->content['casetracker_case_summary']['#value'];
+  $output .= theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
 
-  if(sizeof($rows) > 0) {
-    $output .= drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $start_time);
-    $output .= $node->content['casetracker_case_summary']['#value'];
-    $output .= theme('table', NULL, $rows, array('class' => 'time_tracker_timer'));
-  } else {
-    $output = drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state);
-    $output .= $node->content['casetracker_case_summary']['#value'];
-  }
-  //pre_print($node);
   return $output;
 }
 
 /**
  * Builds the form for the timer
  */
-function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_time=0) {
+function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_time=0, $uid=0) {
   global $user;
+  if ($uid == 0) {
+    $uid = $user->uid;
+  }
   $form = array();
   // We need to pass the case details here.
   $form['nid'] = array(
@@ -185,6 +254,21 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
     '#value' => $node->casetracker->pid,
   );
   
+  $form['uid'] = array(
+    '#type' => 'value',
+    '#value' => $uid,
+  );
+  
+  $form['h_uid'] = array(
+    '#type' => 'hidden',
+    '#value' => $uid,
+  );
+  
+  $form['h_timer_state'] = array(
+    '#type' => 'hidden',
+    '#value' => $timer_state,
+  );
+  
   $form['timer_state'] = array(
     '#type' => 'value',
     '#value' => $timer_state,
@@ -192,8 +276,9 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
 
   if ($timer_state == 'start') {
     $form['submit'] = array(
+      '#value' => t('Start timer'),
       '#type' => 'submit',
-      '#value' => t('Start timer')
+      '#button_type' => 'timer_control_start',
     );
   } elseif($timer_state == 'stop') {
     $form['start_time'] = array(
@@ -202,12 +287,14 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
     );
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Stop timer')
+      '#value' => t('Stop timer'),
+      '#button_type' => 'timer_control_stop',
     );
   } elseif($timer_state == 'reset') {
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Reset timer')
+      '#value' => t('Reset timer'),
+      '#button_type' => 'timer_control_reset',
     );
   }
 
@@ -220,10 +307,11 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
  */
 function time_tracker_timer_startstop_form_submit($form, &$form_state) {
   global $user;
+  dpm($form_state);
 
   if($form_state['values']['timer_state'] == 'start') {
     if(!variable_get('time_tracker_timer_allow_multiple', FALSE)) {
-      $current_timers = db_query("SELECT * FROM {time_tracker_timer} WHERE uid = '" . $user->uid . "'");
+      $current_timers = db_query("SELECT * FROM {time_tracker_timer} WHERE uid = %d", $form_state['values']['uid']);
       $current_timer = db_fetch_object($current_timers);
     }
 
@@ -235,7 +323,7 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
       $timerObj        = new stdClass();
       $timerObj->nid   = $form_state['values']['nid'];
       $timerObj->pid   = $form_state['values']['pid'];
-      $timerObj->uid   = $user->uid;
+      $timerObj->uid   = $form_state['values']['uid'];
       $timerObj->start = time();
       //Write the new record
       $success = drupal_write_record('time_tracker_timer', $timerObj);
@@ -250,7 +338,7 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
 
     $time_spent = format_interval(time() - $form_state['values']['start_time'], "1");
     //db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d', $form_state['values']['nid']);
-    $success = db_query("UPDATE {time_tracker_timer} SET stop = %d WHERE nid = %d AND uid = %d", time(), $form_state['values']['nid'], $user->uid);
+    $success = db_query("UPDATE {time_tracker_timer} SET stop = %d WHERE nid = %d AND uid = %d", time(), $form_state['values']['nid'], $form_state['values']['uid']);
     //Let the user know if the write was successful (Timer was stopped)
     if($success) {
       drupal_set_message('Timer stopped at: ' . $time_spent, 'message');
@@ -258,7 +346,7 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
       drupal_set_message('Could not stop timer', 'error');
     }
   } elseif($form_state['values']['timer_state'] == 'reset') {
-    $success = db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d AND uid = %d', $form_state['values']['nid'], $user->uid);
+    $success = db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d AND uid = %d', $form_state['values']['nid'], $form_state['values']['uid']);
     if($success) {
       drupal_set_message('Timer reset', 'message');
     } else {
@@ -351,11 +439,21 @@ function convert_phptime_to_duration($start, $stop) {
   $duration = $stop - $start;
   // floor() = Always round down
   if ($duration >= 3600) {
-    $hours = floor($duration / 3600);
-    $mins = floor(($duration % 3600) / 60);
+    $hours = sprintf('%02d', floor($duration / 3600));
+    $mins = sprintf('%02d', floor(($duration % 3600) / 60));
     return $hours . ":" . $mins;
   } else {
-    $mins = floor($duration/60);
-    return '0:' . $mins;
+    $mins = sprintf('%02d', ($duration/60));
+    return '00:' . $mins;
   }
+}
+
+/**
+ * Formats php timestamps (in seconds) into hh:mm:ss - no limit on the hours
+ */
+function _time_tracker_format_secs_to_hhmmss($seconds) {
+    $hours = sprintf('%02d', floor($seconds / 3600));
+    $mins = sprintf('%02d', floor(($seconds % 3600) / 60));
+    $secs = sprintf('%02d', (($seconds % 3600) % 60));
+    return $hours . ":" . $mins . ':' . $secs;
 }

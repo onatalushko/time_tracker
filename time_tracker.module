@@ -6,11 +6,13 @@
  * Enables time tracking on nodes and comments.
  */
 
+// TODO: Abstract the time_entry_form and make it themeable.
+
 /**
  * Implementation of hook_perm().
  */
 function time_tracker_perm() {
-  return array('administer time tracker', 'add time tracker entries', 'view time tracker entries');
+  return array('administer time tracker', 'add time tracker entries', 'view time tracker entries', 'administer time entries');
 }
 
 /**
@@ -53,6 +55,12 @@ function time_tracker_menu() {
     'page arguments' => array(1, 'user'),
     'access arguments' => array('view time tracker entries'),
     'type' => MENU_LOCAL_TASK,
+  );
+  $items['reports/js'] = array(
+    'page callback' => 'report_js',
+    'access arguments' => array('view time tracker entries'),
+    'file' => 'views/time_tracker.views.inc',
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -209,13 +217,6 @@ function time_tracker_activity_delete($form, &$form_state) {
 }
 
 /**
- * Implementation of something_something_form().
- *
- * Apply time tracker to a node or a nodes comments.
- */
-// TODO: this function
-
-/**
  * Implementation of hook_form_alter().
  *
  */
@@ -231,13 +232,13 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     $form['time_tracker']['time_tracker_nodes'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track time on this content types nodes'),
-      '#default_value' => variable_get('time_tracker_nodes_'. $form['#node_type']->type, 0),
+      '#default_value' => variable_get('time_tracker_nodes_' . $form['#node_type']->type, 0),
       '#description' => t('Track time on this content types nodes.'),
     );
     $form['time_tracker']['time_tracker_comments'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track time on this content types comments'),
-      '#default_value' => variable_get('time_tracker_comments_'. $form['#node_type']->type, 0),
+      '#default_value' => variable_get('time_tracker_comments_' . $form['#node_type']->type, 0),
       '#description' => t('Track time on this content types comments.'),
     );
   }
@@ -247,82 +248,11 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
 
     $node = node_load($form['nid']['#value']);
 
-    if (variable_get('time_tracker_comments_'. $node->type, 0)) {
-      global $user;
-
-      $results = db_query("SELECT * FROM {time_tracker_activity}");
-
-      $activities = array();
-      $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-      while ($result = db_fetch_object($results)) {
-        $activities[$result->taid] = $result->name;
-      }
-
-      if ($form['cid']['#value']) {
-        $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
-        while ($result = db_fetch_object($results)) {
-          $time_tracker_data = $result;
-        }
-      }
-
-      $user_submit = user_load($time_tracker_data->uid);
-
-      $form['time_tracker'] = array(
-        '#type' => 'fieldset',
-        '#title' => 'Time Tracker',
-        '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
-        '#weight' => -9,
-      );
-
-      $form['time_tracker']['nid'] = array();
-      $form['time_tracker']['cid'] = array();
-      $form['time_tracker']['teid'] = array(
-        '#type' => 'value',
-        '#default_value' => $time_tracker_data->teid,
-      );
-
-      $form['time_tracker']['uid'] = array(
-        '#title' => t('User'),
-        '#access' => user_access('administer time entries'),
-        '#size' => '10',
-        '#type' => 'textfield',
-        '#default_value' => $user_submit->name ? $user_submit->name : $user->name,
-        '#autocomplete_path' => 'user/autocomplete',
-      );
-
-      if (module_exists('jquery_ui')) {
-        jquery_ui_add(array('ui.datepicker'));
-        drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
-        drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
-      }
-
-      $form['time_tracker']['time'] = array(
-        '#title' => t('Date'),
-        '#type' => 'textfield',
-        '#size' => '20',
-        '#weight' => 0,
-        '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
-      );
-
-      $form['time_tracker']['duration'] = array(
-        '#title' => t('Hours'),
-        '#type' => 'textfield',
-        '#size' => '10',
-        '#weight' => 1,
-        '#default_value' => $time_tracker_data->duration,
-        '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
-      );
-
-      $form['time_tracker']['activity'] = array(
-        '#title' => t('Activity'),
-        '#type' => 'select',
-        '#weight' => 2,
-        '#default_value' => $time_tracker_data->activity,
-        '#options' => $activities,
-      );
+    if (variable_get('time_tracker_comments_' . $node->type, 0)) {
+      $form = array_merge($form, time_tracker_time_entry_form($form_state));
     }
   }
+  
 }
 
 /**
@@ -334,15 +264,15 @@ function time_tracker_nodeapi(&$node, $op) {
       if (module_exists('casetracker')) {
         if (casetracker_is_project($node->type)) {
           $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-  
+
           while ($case = db_fetch_object($case_results)) {
             $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
-  
+
             while ($time = db_fetch_object($time_results)) {
               $total_time = $total_time + $time->duration;
             }
           }
-  
+
           if($total_time > 0) {
             $el = module_exists('atrium_casetracker') ? 'time_tracker_summary' : 'casetracker_project_summary';
             $node->content[$el]['#value'] = $node->content[$el]['#value'] . theme('time_tracker_project_summary', $total_time);
@@ -350,20 +280,121 @@ function time_tracker_nodeapi(&$node, $op) {
         }
         elseif (casetracker_is_case($node->type)) {
           $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-  
+
           while ($case = db_fetch_object($case_results)) {
             $total_time = $total_time + $case->duration;
           }
-  
+
           if ($total_time > 0) {
             $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_tracker_case_summary', $total_time);
           }
         }
       } else {
-        // TODO: display normal node time entry here.
+        // if this is a node form display the time tracker
+      }
+
+      // display the time tracking form for nodes here.
+      if (variable_get('time_tracker_nodes_' . $node->type, 0)) {
+        $node->content['time_tracker']['#value'] = drupal_get_form('time_tracker_time_entry_form');
       }
     break;
+    
+    case 'delete':
+      // TODO: if a node is deleted, delete all time entries
+      // this should also be done to comment time entries as well.
+    break;
+    
+    case 'insert':
+    case 'update':
+      
+    break;
   }
+}
+
+/**
+ * Defines the time entry form
+ *
+ * NOTE: This was a first step in refactoring this form into it's own function
+ *
+ * TODO: Refine this form so that it isn't specific only to comments
+ */
+function time_tracker_time_entry_form(&$form_state) {
+  global $user;
+
+  $results = db_query("SELECT * FROM {time_tracker_activity}");
+
+  $activities = array();
+  $activities[] = '';
+  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+  while ($result = db_fetch_object($results)) {
+    $activities[$result->taid] = $result->name;
+  }
+
+  if ($form['cid']['#value']) {
+    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
+    while ($result = db_fetch_object($results)) {
+      $time_tracker_data = $result;
+    }
+  }
+
+  $user_submit = user_load($time_tracker_data->uid);
+
+  $form['time_tracker'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Time Tracker',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#weight' => -9,
+  );
+
+  $form['time_tracker']['nid'] = array();
+  $form['time_tracker']['cid'] = array();
+  $form['time_tracker']['teid'] = array(
+    '#type' => 'value',
+    '#default_value' => $time_tracker_data->teid,
+  );
+
+  $form['time_tracker']['uid'] = array(
+    '#title' => t('User'),
+    '#access' => user_access('administer time entries'),
+    '#size' => '10',
+    '#type' => 'textfield',
+    '#default_value' => $user_submit->name ? $user_submit->name : $user->name,
+    '#autocomplete_path' => 'user/autocomplete',
+  );
+
+  if (module_exists('jquery_ui')) {
+    jquery_ui_add(array('ui.datepicker'));
+    drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
+    drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
+  }
+
+  $form['time_tracker']['time'] = array(
+    '#title' => t('Date'),
+    '#type' => 'textfield',
+    '#size' => '20',
+    '#weight' => 0,
+    '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
+  );
+
+  $form['time_tracker']['duration'] = array(
+    '#title' => t('Hours'),
+    '#type' => 'textfield',
+    '#size' => '10',
+    '#weight' => 1,
+    '#default_value' => $time_tracker_data->duration,
+    '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
+  );
+
+  $form['time_tracker']['activity'] = array(
+    '#title' => t('Activity'),
+    '#type' => 'select',
+    '#weight' => 2,
+    '#default_value' => $time_tracker_data->activity,
+    '#options' => $activities,
+  );
+
+  return $form;
 }
 
 /**
@@ -534,3 +565,24 @@ function _time_tracker_parse_duration($input, $nearest = 0) {
 
   return $hours;
 }
+
+
+/**
+ * Adds default values to views filters
+ */
+// function time_tracker_form_alter(&$form, &$form_state) {
+//   $form['new_item'] = array(
+//     '#type' => 'markup',
+//     '#value' => '<p>FunFunFun/p>',
+//   );
+//   
+// }
+
+
+
+
+
+
+
+
+
