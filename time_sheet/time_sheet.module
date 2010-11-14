@@ -193,6 +193,7 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
     '#type' => 'submit',
     '#value' => t('Secret Submit'),
     '#attributes' => array('class' => 'secret-submit'),
+    '#validate' => array('time_sheet_add_time_submit_handler_validate'),
     '#submit' => array('time_sheet_add_time_submit_handler'),
   );
   
@@ -201,6 +202,11 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
     '#tree' => TRUE,
     '#value' => '<div id="case-form-' . $day . '"></div>',
   );
+  
+  // $time_tracker_time_entry_form = time_tracker_time_entry_form();
+  // $form['time_sheet'][$day]['time_entry'] = $time_tracker_time_entry_form['time_tracker']['time_entry'];
+
+  
   //dpm($form);
   //dpm($form_state);
   return $form;
@@ -249,8 +255,6 @@ function time_sheet_add_time() {
   // if(arg(0)) {
   //   $form['#redirect'] = $path . arg(0);
   // }
-  
-  //print_r($form);
 
   // add some case details so we know what we're dealing with
   $form['time_sheet']['case_details'] = array(
@@ -258,6 +262,7 @@ function time_sheet_add_time() {
     '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
     '#prefix' => '<div class="case-details">',
     '#suffix' => '</div>',
+    '#weight' => -10,
   );
 
   $case_status_options = casetracker_realm_load('status');
@@ -269,30 +274,51 @@ function time_sheet_add_time() {
     '#default_value' => $default_status,
     '#options' => $case_status_options,
   );
-
-  $form['time_sheet']['duration'] = array(
-    '#title' => t('Hours'),
-    '#type' => 'textfield',
-    '#size' => '10',
-    '#required' => TRUE,
-    '#default_value' => $time_tracker_data->duration,
-    '#description' => t('eg. 2.5 for two and a half hours'),
-  );
-
-  $activities = array();
-  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-
-  while ($result = db_fetch_object($results)) {
-    $activities[$result->taid] = $result->name;
+  
+  // Insert different form elements depending on the time_entry_method
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $form['time_sheet']['duration'] = array(
+        '#title' => t('Hours'),
+        '#type' => 'textfield',
+        '#size' => '10',
+        '#required' => TRUE,
+        '#default_value' => $time_tracker_data->duration,
+        '#description' => t('eg. 2.5 for two and a half hours'),
+      );
   }
-
-  $form['time_sheet']['activity'] = array(
-    '#title' => t('Activity'),
-    '#type' => 'select',
-    '#default_value' => $time_tracker_data->activity,
-    '#options' => $activities,
-  );
-
+  else {
+    $form['time_sheet']['start'] = array(
+      '#title' => t('Start'),
+      '#type' => 'textfield',
+      '#size' => '10',
+      '#required' => TRUE,
+      '#default_value' => $time_tracker_data->duration,
+      '#description' => t('Use the format hh:mmAM/PM e.g. 12:30PM'),
+    );
+    $form['time_sheet']['end'] = array(
+      '#title' => t('End'),
+      '#type' => 'textfield',
+      '#size' => '10',
+      '#required' => TRUE,
+      '#default_value' => $time_tracker_data->duration,
+      '#description' => t('Use the format hh:mmAM/PM e.g. 12:30PM'),
+    );
+  }
+  
+    $activities = array();
+    $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
+  
+    while ($result = db_fetch_object($results)) {
+      $activities[$result->taid] = $result->name;
+    }
+  
+    $form['time_sheet']['activity'] = array(
+      '#title' => t('Activity'),
+      '#type' => 'select',
+      '#default_value' => $time_tracker_data->activity,
+      '#options' => $activities,
+    );
+  
   $form['time_sheet']['comment'] = array(
     '#title' => 'Comment',
     '#type' => 'textarea',
@@ -306,6 +332,7 @@ function time_sheet_add_time() {
     '#weight' => 99,
   );
   
+  //dpm($form);
 
   drupal_process_form($form_id, $form, $form_state);
   //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
@@ -338,13 +365,30 @@ function time_sheet_form_submit($form, &$form_state) {
 }
 
 /**
+ * Validation for time sheet time submissions
+ */
+function time_sheet_add_time_submit_handler_validate($form, &$form_state) {
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    if ($form_state['clicked_button']['#post']['duration'] && !is_numeric($form_state['clicked_button']['#post']['duration'])) {
+      form_set_error('duration', t('Duration must be a number'));
+    }
+  }
+  else {
+    if ($form_state['clicked_button']['#post']['start'] && !preg_match('/^[0-9]{2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['start'])) {
+      form_set_error('start', t('Start time must be in the format hh:mmAM/PM e.g. 12:30PM'));
+    } elseif ($form_state['clicked_button']['#post']['end'] && !preg_match('/^[0-9]{2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['end'])) {
+      form_set_error('end', t('End time must be in the format hh:mmAM/PM e.g. 12:30PM'));
+    }
+  }
+}
+
+/**
 * Submit handler for the second drop down.
 */
 // TODO: this function needs cleaning up. leverage the comment api
 function time_sheet_add_time_submit_handler($form, &$form_state) {
   // TODO: do i need to get rid of this call for user object
   global $user;
-  drupal_set_message('Submit Handler Initiated');
   //dpm($form_state);
   $values = $form_state['values'];
   unset($form_state['submit_handlers']);
@@ -368,7 +412,14 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   casetracker_comment($comment, 'update');
 
   $time['timestamp'] = $form_state['clicked_button']['#post']['timestamp'];
-  $time['duration'] = $form_state['clicked_button']['#post']['duration'];
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $time['duration'] = $form_state['clicked_button']['#post']['duration'];
+  }
+  else {
+    $time['start'] = $form_state['clicked_button']['#post']['duration'];
+    $time['end'] = $form_state['clicked_button']['#post']['duration'];
+    $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
+  }
   $time['activity'] = $form_state['clicked_button']['#post']['activity'];
   $time['uid'] = $user->uid;
   $time['nid'] = $form_state['clicked_button']['#post']['case_list'];

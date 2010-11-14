@@ -6,6 +6,12 @@
  * Enables time tracking on nodes and comments.
  */
 
+/*
+  The default date format for displaying dates and times
+*/
+define('TIME_TRACKER_DEFAULT_DATE_FORMAT', 'Y-m-d h:i A');
+
+
 // TODO: Abstract the time_entry_form and make it themeable.
 
 /**
@@ -29,10 +35,19 @@ function time_tracker_menu() {
     'page arguments' => array('time_tracker_settings_form'),
     'access arguments' => array('administer time tracker'),
   );
-  $items['admin/settings/time_tracker/list'] = array(
-    'title' => 'List',
+  $items['admin/settings/time_tracker/settings'] = array(
+    'title' => 'Time Tracker',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
+  );
+  $items['admin/settings/time_tracker/activity/list'] = array(
+    'title' => 'Activities',
+    'description' => 'Adjust time tracker settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('time_tracker_activity_table_form'),
+    'access arguments' => array('administer time tracker'),
+    'type' => MENU_LOCAL_TASK,
+    'parent' => 'admin/settings/time_tracker',
   );
   $items['admin/settings/time_tracker/activity/add'] = array(
     'title' => 'Add Activity',
@@ -42,6 +57,14 @@ function time_tracker_menu() {
     'type' => MENU_LOCAL_TASK,
     'parent' => 'admin/settings/time_tracker',
   );
+  // $items['admin/settings/time_tracker/settings'] = array(
+  //   'title' => 'Time Tracker Settings',
+  //   'page callback' => 'drupal_get_form',
+  //   'page arguments' => array('time_tracker_activity_form'),
+  //   'access arguments' => array('administer time tracker'),
+  //   'type' => MENU_LOCAL_TASK,
+  //   'parent' => 'admin/settings/time_tracker',
+  // );
   $items['admin/settings/time_tracker/activity/edit/%'] = array(
     'title' => 'Edit Activity',
     'page callback' => 'drupal_get_form',
@@ -76,8 +99,43 @@ function time_tracker_user_page($user) {
  * Form builder function for time tracker settings.
  */
 function time_tracker_settings_form(&$form_state) {
-  return time_tracker_activity_table_form();
+  
+  // Warn the user about switching between time duration and time interval time entries
+  $msg = 'Note that any entries that have been entered using the <em>duration</em> method will not have start and end times saved in the database. Switching from <em>duration</em> to <em>interval</em> will not retroactively create start and end times for past time entires.';
+  
+  $form = array();
+  $form['time_tracker_settings']['time_entry_method'] = array(
+    '#type' => 'radios',
+    '#title' => t('Time Tracker Time Entry Method'),
+    '#default_value' => variable_get('time_entry_method', 'duration'),
+    '#options' => array(
+      'duration' => t('Duration'), 
+      'interval' => t('Time Interval (Start and End Times)')
+    ),
+  );
+  $form['time_tracker_settings']['time_entry_message'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<div class="description">',
+    '#suffix' => '</div>',
+    '#value' => $msg,
+  );
+  // ** Not just yet. Needs to have AHAH switcher based on time_entry_method
+  // $form['time_tracker_settings']['date_format'] = array(
+  //   '#type' => 'select',
+  //   '#title' => t('Date Format'),
+  //   '#default_value' => variable_get('date_format', $TIME_TRACKER_DEFAULT_DATE_FORMAT),
+  //   '#options' => array(
+  //     'Y-m-d h:i A' => 'yyyy-mm-dd hh:mm AM/PM (e.g. ' . date('Y-m-d h:i A') . ')',
+  //     'F d, Y h:i A' => 'month dd, yyyy hh:mm AM/PM (e.g. ' . date('F d, Y h:i A') . ')',
+  //   ),
+  // );
+  return system_settings_form($form);
+  
 }
+
+/*
+  BEGIN TIME TRACKER ACTIVITY CONFIG
+*/
 
 /**
  * Theme the activity table as a sortable list of activities.
@@ -216,6 +274,12 @@ function time_tracker_activity_delete($form, &$form_state) {
   drupal_goto('admin/settings/time_tracker');
 }
 
+/*
+  END TIME TRACKER ACTIVITY CONFIG
+*/
+
+
+
 /**
  * Implementation of hook_form_alter().
  *
@@ -249,7 +313,8 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     $node = node_load($form['nid']['#value']);
 
     if (variable_get('time_tracker_comments_' . $node->type, 0)) {
-      $form = array_merge($form, time_tracker_time_entry_form($form_state));
+      $form = array_merge($form, time_tracker_time_entry_form($form['cid']['#value']));
+      //dpm($form);
     }
   }
   
@@ -318,9 +383,11 @@ function time_tracker_nodeapi(&$node, $op) {
  *
  * TODO: Refine this form so that it isn't specific only to comments
  */
-function time_tracker_time_entry_form(&$form_state) {
+function time_tracker_time_entry_form($cid = 0) {
   global $user;
-
+  // Add Javascript to auto complete the duration field
+  // For time interval entries
+  drupal_add_js();
   $results = db_query("SELECT * FROM {time_tracker_activity}");
 
   $activities = array();
@@ -329,16 +396,15 @@ function time_tracker_time_entry_form(&$form_state) {
   while ($result = db_fetch_object($results)) {
     $activities[$result->taid] = $result->name;
   }
-
-  if ($form['cid']['#value']) {
-    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $form['cid']['#value']);
+  
+  if ($cid) {
+    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $cid);
     while ($result = db_fetch_object($results)) {
       $time_tracker_data = $result;
     }
   }
-
   $user_submit = user_load($time_tracker_data->uid);
-
+  //dpm($time_tracker_data);
   $form['time_tracker'] = array(
     '#type' => 'fieldset',
     '#title' => 'Time Tracker',
@@ -351,7 +417,7 @@ function time_tracker_time_entry_form(&$form_state) {
   $form['time_tracker']['cid'] = array();
   $form['time_tracker']['teid'] = array(
     '#type' => 'value',
-    '#default_value' => $time_tracker_data->teid,
+    '#value' => $time_tracker_data->teid,
   );
 
   $form['time_tracker']['uid'] = array(
@@ -368,30 +434,76 @@ function time_tracker_time_entry_form(&$form_state) {
     drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
     drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
   }
+  
+  // Insert different form elements depending on the time_entry_method
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $form['time_tracker']['time_entry']['time'] = array(
+      '#title' => t('Date'),
+      '#type' => 'textfield',
+      '#size' => '20',
+      '#weight' => 0,
+      '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
+    );
+    $form['time_tracker']['time_entry']['duration'] = array(
+      '#title' => t('Hours'),
+      '#type' => 'textfield',
+      '#size' => '10',
+      '#weight' => 1,
+      '#default_value' => $time_tracker_data->duration,
+      '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
+    );
+  } 
+  else { // Time entry method is 'interval'
+    $format = TIME_TRACKER_DEFAULT_DATE_FORMAT; // This should be defined in settings...
 
-  $form['time_tracker']['time'] = array(
-    '#title' => t('Date'),
-    '#type' => 'textfield',
-    '#size' => '20',
-    '#weight' => 0,
-    '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
-  );
-
-  $form['time_tracker']['duration'] = array(
-    '#title' => t('Hours'),
-    '#type' => 'textfield',
-    '#size' => '10',
-    '#weight' => 1,
-    '#default_value' => $time_tracker_data->duration,
-    '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
-  );
-
+    $form['time_tracker']['time_entry']['start'] = array(
+      '#title' => t('Start'),
+      '#type' => 'date_popup',
+      '#default_value' => $time_tracker_data->start ? date($format, $time_tracker_data->start) : '',
+      '#date_format' => $format,
+      '#date_label_position' => 'within',
+      '#weight' => 1,
+    );
+    $form['time_tracker']['time_entry']['end'] = array(
+      '#title' => t('End'),
+      '#type' => 'date_popup',
+      '#default_value' => $time_tracker_data->end ? date($format, $time_tracker_data->end) : '',
+      '#date_format' => $format,
+      '#date_label_position' => 'within',
+      '#weight' => 2,
+    );
+    //dpm($form);
+    // If duration data exists already we post a note to the user
+    if ($time_tracker_data->duration && !($time_tracker_data->end) && !($time_tracker_data->start)) {
+      $form['time_tracker']['duration_msg'] = array(
+        '#prefix' => '<div class="description"><em>',
+        '#value' => "A duration value exists for this time entry, but no Start and End time. <br/>" .
+                    "Saving this entry with a Start and End time will overwrite the duration<br/>" .
+                    "Logged Duration: <b>" .
+                    _time_tracker_hours_to_hours_and_minutes($time_tracker_data->duration) . '</b>',
+        '#suffix' => '</em></div>',
+        '#weight' => 3,
+      );
+    }
+    /*
+      Commenting this out for now. Who needs it really?
+      It was supposed to just be some text that stated the duration
+      calculated by some Javascript... but it's bit of work for now... Later...
+    */
+    // $form['time_tracker']['duration'] = array(
+    //   '#type' => 'markup',
+    //   '#prefix' => '<div class="time_tracker_duration description">',
+    //   '#value' => 'Calculated Duration: ' . $time_tracker_data->duration,
+    //   '#suffix' => '</div>',
+    //   '#weight' => 3,
+    // );
+  }
   $form['time_tracker']['activity'] = array(
     '#title' => t('Activity'),
     '#type' => 'select',
-    '#weight' => 2,
-    '#default_value' => $time_tracker_data->activity,
+    '#weight' => 5,
     '#options' => $activities,
+    '#default_value' => $time_tracker_data->activity,
   );
 
   return $form;
@@ -420,31 +532,55 @@ function time_tracker_comment(&$comment, $op) {
     break;
 
     case 'validate':
-      if (strlen($comment['duration']) && _time_tracker_parse_duration($comment['duration']) === FALSE) {
-        form_set_error('time_tracker][duration', t('Invalid duration value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
+      // Check First if we are tracking by duration or time interval
+      if (variable_get('time_entry_method', 'duration') == 'duration') {
+        if (strlen($comment['duration']) && _time_tracker_parse_duration($comment['duration']) === FALSE) {
+          form_set_error('time_tracker][duration', t('Invalid duration value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
+        }
       }
+      else {
+        // What kind of entry in the date_popup field would make this error?
+      }
+      
     break;
 
     case 'insert':
     case 'update':
-      if (strlen($comment['duration'])) {
-        $duration = _time_tracker_parse_duration($comment['duration']);
-        if ($duration > 0) {
-          $comment['duration'] = $duration;
-          $comment['timestamp'] = strtotime($comment['time']);
-          unset($comment['time']);
+      // Check First if we are tracking by duration or time interval
+      if (variable_get('time_entry_method', 'duration') == 'duration') {
+        if (strlen($comment['duration'])) {
+          $duration = _time_tracker_parse_duration($comment['duration']);
+          if ($duration > 0) {
+            $comment['duration'] = $duration;
+            $comment['timestamp'] = strtotime($comment['time']);
+            unset($comment['time']);
 
+            if (isset($comment['casetracker'])) {
+              $comment['pid'] = $comment['casetracker']['pid'];
+            }
+
+            return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
+          } elseif ($comment['teid']) {
+            // No duration, but there WAS duration information -- someone wants
+            // to remove the time entry!
+            db_query("DELETE FROM {time_tracker_entry} WHERE teid = %d", $comment['teid']);
+          }
+        }
+      }
+      else {
+        if (strlen($comment['start']) && strlen($comment['end'])) {
+          $comment['start'] = strtotime($comment['start']);
+          $comment['end'] = strtotime($comment['end']);
+          //Do we make the duration into a timestamp now??
+          $comment['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration( $comment['start'], $comment['end']));
+          //dpm($comment);
           if (isset($comment['casetracker'])) {
             $comment['pid'] = $comment['casetracker']['pid'];
           }
-
           return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
-        } elseif ($comment['teid']) {
-          // No duration, but there WAS duration information -- someone wants
-          // to remove the time entry!
-          db_query("DELETE FROM {time_tracker_entry} WHERE teid = %d", $comment['teid']);
         }
       }
+      
     break;
 
     case 'delete':
@@ -566,6 +702,35 @@ function _time_tracker_parse_duration($input, $nearest = 0) {
   return $hours;
 }
 
+/**
+ * Formats hours (e.g. 4.5 hours) into an hours and minutes string
+ */
+function _time_tracker_hours_to_hours_and_minutes($hours) {
+    $hrs = floor($hours);
+    $mins = ($hours - $hrs) * 60;
+    if ($hrs = 1) {
+      return $hrs . " hour, " . $mins . ' minutes';
+    }else{
+      return $hrs . " hours, " . $mins . ' minutes';
+    }
+}
+
+/**
+ * A function to calculate the difference between a start time
+ * and a stop time and return a duration in the hh:mm format
+ */
+function convert_phptime_to_duration($start, $stop) {
+  $duration = $stop - $start;
+  // floor() = Always round down
+  if ($duration >= 3600) {
+    $hours = sprintf('%02d', floor($duration / 3600));
+    $mins = sprintf('%02d', floor(($duration % 3600) / 60));
+    return $hours . ":" . $mins;
+  } else {
+    $mins = sprintf('%02d', ($duration/60));
+    return '00:' . $mins;
+  }
+}
 
 /**
  * Adds default values to views filters

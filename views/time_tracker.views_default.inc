@@ -277,8 +277,8 @@ $handler->override_option('filters', array(
     'value' => array(
       'type' => 'date',
       'value' => '',
-      'min' => '',
-      'max' => '',
+      'min' => date("Y-m-d", strtotime('-30 days')),
+      'max' => time(),
     ),
     'group' => '0',
     'exposed' => TRUE,

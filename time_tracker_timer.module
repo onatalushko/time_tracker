@@ -24,19 +24,29 @@ function time_tracker_timer_menu() {
   $items = array();
 
   $items['time_tracker_timer/active'] = array(
-    'title' => 'Active Time Tracker Timers',
+    'title' => 'Active Timers',
     'description' => 'Currently active time tracker timers.',
     'page callback' => 'time_tracker_timer_active_timers',
     'access arguments' => array('view all timers'),
     'type' => MENU_CALLBACK,
   );
+  
+  $items['members/active_timers'] = array(
+    'title' => 'Active Timers',
+    'description' => 'Currently active time tracker timers.',
+    'page callback' => 'time_tracker_timer_active_timers',
+    'access arguments' => array('view all timers'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
 
   $items['admin/settings/time_tracker/timer'] = array(
-    'title' => 'Time tracker timer settings',
+    'title' => 'Time Tracker Timer',
     'description' => 'Configuration settings for the time tracker timer.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_timer_settings_form'),
     'access arguments' => array('administer time tracker timer'),
+    'type' => MENU_LOCAL_TASK,
     'parent' => 'admin/settings/time_tracker',
   );
 
@@ -307,7 +317,7 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
  */
 function time_tracker_timer_startstop_form_submit($form, &$form_state) {
   global $user;
-  dpm($form_state);
+  //dpm($form_state);
 
   if($form_state['values']['timer_state'] == 'start') {
     if(!variable_get('time_tracker_timer_allow_multiple', FALSE)) {
@@ -361,30 +371,62 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
  * This will check if it's a comment form, and if we're tracking time on it
  * If we are, then it checks for a time_tracker_timer record for the current
  * node and user and if one exists with a start AND a stop time, the time
- * is entered in the duration field of the time_tracker section
+ * is entered in the duration field of the time_tracker section.
+ *
+ * Also it hides any user input fields for time entries if the permission is not
+ * set to allow manual time entries
  */
 function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
   // if this is a comment form and we're tracking time on it.
   if ($form_id == 'comment_form' && user_access('add time tracker entries')) {
     global $user;
-    $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form['nid']['#value'], $user->uid);
-
-    while($timer = db_fetch_object($timer_results)) {
-      if(user_access('manually enter time')) {
-        if($timer->stop != 0 && $timer->start != 0) {
-          $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
-          $form['#submit'][] = 'time_tracker_timer_cleartimer_submit'; //add a new submit function
-        }
-      } else {
-        if($timer->stop != 0 && $timer->start != 0) {
-          $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
-          $form['time_tracker']['duration']['#type'] = 'hidden';
-
-          $form['time_tracker']['duration_display']['#weight'] = 1;
-          $form['time_tracker']['duration_display']['#value'] = '<p>Time: ' . convert_phptime_to_duration($timer->start, $timer->stop) . '</p>';
-          $form['#submit'][] = 'time_tracker_timer_cleartimer_submit'; //add a new submit function
-        }
-      }
+    // Only do this for the comments that don't exist yet
+    if (!$form['cid']['#value']) {
+      $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form['nid']['#value'], $user->uid);
+      // There SHOULD be only one timer for each person per node but we'll loop anyway for now...
+      while ($timer = db_fetch_object($timer_results)) {
+        // Only do this if the timer has a start and stop value
+        if ($timer->stop != 0 && $timer->start != 0) {
+          // Extra submit function to clear the timer on save
+          $form['#submit'][] = 'time_tracker_timer_cleartimer_submit';
+          // If we're logging time by Duration...
+          if (variable_get('time_entry_method', 'duration') == 'duration') {
+            $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
+            // If user doesn't have permission, we hide the duration field
+            if (!user_access('manually enter time')) {
+              
+            }
+          }
+          // If we're logging time by interval
+          else {
+            $format = TIME_TRACKER_DEFAULT_DATE_FORMAT; // This should be defined in settings...
+            $form['time_tracker']['time_entry']['start']['#default_value'] = date($format, $timer->start);
+            $form['time_tracker']['time_entry']['end']['#default_value'] = date($format, $timer->stop);
+            // If user doesn't have access to manually enter time values
+            if (!user_access('manually enter time')) {
+              
+            }
+          }
+        } 
+      } // end while
+    } 
+    // If we're on an existing comment, then we need just need to hide the necessary
+    // Fields if permissions don't allow manual time entry
+    if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration' && $form['time_tracker']['duration']['#default_value']) {
+      $form['time_tracker']['duration']['#type'] = 'hidden';
+      $form['time_tracker']['duration_display']['#weight'] = 1;
+      $duration_display = '<p>Time: ' . $form['time_tracker']['duration']['#default_value'] . '</p>';
+      $form['time_tracker']['duration_display']['#value'] = $duration_display;
+    } 
+    elseif (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'interval' && $form['time_tracker']['time_entry']['start']['#default_value'] && $form['time_tracker']['time_entry']['end']['#default_value']) {
+      $form['time_tracker']['time_entry']['start']['#type'] = 'hidden';
+      $form['time_tracker']['time_entry']['end']['#type'] = 'hidden';
+      $time_display = 'Start Time: ' . 
+                      $form['time_tracker']['time_entry']['start']['#default_value'] .
+                      '<br/>' . 'End Time: ' . 
+                      $form['time_tracker']['time_entry']['end']['#default_value'];
+      $form['time_tracker']['time_entry']['time_display']['#weight'] = 1;
+      $form['time_tracker']['time_entry']['time_display']['#value'] = $time_display;
     }
   }
 }
@@ -411,7 +453,7 @@ function time_tracker_timer_active_timers() {
 
   $rows = array();
 
-  if($active_timers) {
+  if(db_affected_rows() > 0) {
     while($timer = db_fetch_object($active_timers)) {
       $user = user_load($timer->uid);
       $ticket = node_load($timer->nid);
@@ -419,33 +461,20 @@ function time_tracker_timer_active_timers() {
 
       if($timer->stop == 0) {
         $rows[] = array(array('data' => theme('user_picture', $user)),
-                        array('data' => t($user->name.' has an active timer: ' . format_interval(time() - $timer->start, '1')) . "<br />" . l($ticket->title, 'node/' . $ticket->nid) . " in " . l($project->title, 'node/' . $project->nid)),
+                        array('data' => t($user->name . ' has an active timer: ' . format_interval(time() - $timer->start, '1')) . "<br />" . l($ticket->title, 'node/' . $ticket->nid) . " in " . l($project->title, 'node/' . $project->nid)),
+        );
+      } elseif ($timer->stop > 0) {
+        $rows[] = array(array('data' => theme('user_picture', $user)),
+                        array('data' => t($user->name . ' has an unsaved timer: ' . format_interval($timer->stop - $timer->start, '1')) . "<br />" . l($ticket->title, 'node/' . $ticket->nid) . " in " . l($project->title, 'node/' . $project->nid)),
         );
       }
     }
   } else {
-    $rows[] = array('data' => t('No active timers here. :('));
+    $rows[] = array(array('data' => t('No active timers right now')));
   }
   $output .= theme('table', NULL, $rows, array('class' => 'time_tracker_timer_active_timers'));
   
   return $output;
-}
-
-/**
- * A function to calculate the difference between a start time
- * and a stop time and return a duration in the hh:mm format
- */
-function convert_phptime_to_duration($start, $stop) {
-  $duration = $stop - $start;
-  // floor() = Always round down
-  if ($duration >= 3600) {
-    $hours = sprintf('%02d', floor($duration / 3600));
-    $mins = sprintf('%02d', floor(($duration % 3600) / 60));
-    return $hours . ":" . $mins;
-  } else {
-    $mins = sprintf('%02d', ($duration/60));
-    return '00:' . $mins;
-  }
 }
 
 /**

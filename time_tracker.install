@@ -53,6 +53,16 @@ function time_tracker_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
+      'start' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'end' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
     ),
     'primary key' => array('teid'),
   );
@@ -82,6 +92,16 @@ function time_tracker_schema() {
 function time_tracker_update_6100() {
   $return = array();
   db_add_field($return, 'time_tracker_entry', 'pid', array('type' => 'int', 'not null' => TRUE, 'unsigned' => TRUE));
+  return $return;
+}
+
+/**
+ * Adding support for start and end times rather than just durations
+ */
+function time_tracker_update_6101() {
+  $return = array();
+  db_add_field($return, 'time_tracker_entry', 'start', array('type' => 'int', 'not null' => TRUE, 'unsigned' => TRUE));
+  db_add_field($return, 'time_tracker_entry', 'end', array('type' => 'int', 'not null' => TRUE, 'unsigned' => TRUE));
   return $return;
 }
 

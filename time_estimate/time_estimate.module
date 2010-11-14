@@ -24,16 +24,6 @@ function time_estimate_menu() {
 }
 
 /**
- * Form builder function for module settings.
- */
-function time_estimate_settings_form(&$form_state) {
-  return $form;
-}
-
-function time_estimate_settings_form_submit($form, &$form_state) {
-}
-
-/**
  * Implementation of hook_form().
  *
  */
