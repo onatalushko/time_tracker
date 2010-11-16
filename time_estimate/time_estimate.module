@@ -115,6 +115,7 @@ function time_estimate_nodeapi(&$node, $op) {
     break;
 
     case 'update':
+      $node->revision = 1;
       if (isset($node->eid)) {
         return drupal_write_record('time_estimate_entry', $node, 'eid');
       }
