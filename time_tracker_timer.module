@@ -73,6 +73,36 @@ function time_tracker_timer_settings_form_submit($form, &$form_state) {
 }
 
 /**
+ * Implementation of hook_forms()
+ *
+ * This hook allows modules to build multiple forms from a single form 
+ * "factory" function but each form will have a different form id for 
+ * submission, validation, theming or alteration by other modules.
+ *
+ * The callback arguments will be passed as parameters to the function. 
+ * Callers of drupal_get_form() are also able to pass in parameters. 
+ * These will be appended after those specified by hook_forms().
+ *
+ * @param $form_id
+ *    This is the form_id passed into drupal_get_form()
+ *
+ * @param $args
+ *    An Array of the parameters that should be passed into the form funciton
+ */
+function time_tracker_timer_forms($form_id,$args){
+  //Check if the form_id passed to drupal_get_form() contains the string 'mymodule_form'
+  if (strpos($form_id, 'time_tracker_timer_startstop_form') !== FALSE) {
+    // Lets attach mymodule_form to $forms[$form_id].  
+    // This effectively allows you to use the same form builder 
+    // function to build a form with any form_id of your choice.
+      $forms[$form_id] = array(
+        'callback' => 'time_tracker_timer_startstop_form',
+      );
+      return $forms;
+   }
+}
+
+/**
  * Implementation of hook_nodeapi().
  */
 function time_tracker_timer_nodeapi(&$node, $op) {
@@ -125,7 +155,8 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
         $rows[] = array(
           'data' => array(
             array(
-              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $start_time),
+              // Note to self: I am able to ennumerate this form_id because of hook_forms() (above)
+              'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $start_time),
               'class' => 'active_timer_control timer_control'
             ),
             array(
@@ -148,7 +179,7 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
         $rows[] = array(
           'data' => array(
             array(
-              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $start_time),
+              'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $start_time),
               'class' => 'stopped_timer_control timer_control'
             ),
             array(
@@ -170,10 +201,10 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
       $username = user_load($timer->uid)->name;
       if($timer->stop == 0) {
         $timer_state = 'stop';
-        $user_rows = array(
+        $user_rows[] = array(
           'data' => array(
             array(
-              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $timer->start, $timer->uid),//t('BUTTON PLACEHOLDER'),
+              'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start, $timer->uid),//t('BUTTON PLACEHOLDER'),
               'class' => 'active_timer_control timer_control'
             ),
             array(
@@ -194,7 +225,7 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
         $user_rows[] = array(
           'data' => array(
             array(
-              'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state, $timer->start, $timer->uid),//t("BUTTON PLACEHOLDER"),
+              'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start, $timer->uid),//t("BUTTON PLACEHOLDER"),
               'class' => 'stopped_timer_control timer_control'
             ),
             array(
@@ -216,7 +247,7 @@ function theme_time_tracker_timer_case_summary($timer_results, &$node) {
     $rows[] = array(
       'data' => array(
         array(
-          'data' => drupal_get_form('time_tracker_timer_startstop_form', $node, $timer_state),
+          'data' => drupal_get_form('time_tracker_timer_startstop_form_start', $node, $timer_state),
           'class' => 'new_timer_control timer_control'
         ),
         array(
@@ -307,6 +338,8 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
       '#button_type' => 'timer_control_reset',
     );
   }
+  
+  $form['#submit'][] = 'time_tracker_timer_startstop_form_submit';
 
   return $form;
 }
@@ -317,8 +350,6 @@ function time_tracker_timer_startstop_form($form, &$node, $timer_state, $start_t
  */
 function time_tracker_timer_startstop_form_submit($form, &$form_state) {
   global $user;
-  //dpm($form_state);
-
   if($form_state['values']['timer_state'] == 'start') {
     if(!variable_get('time_tracker_timer_allow_multiple', FALSE)) {
       $current_timers = db_query("SELECT * FROM {time_tracker_timer} WHERE uid = %d", $form_state['values']['uid']);
@@ -331,7 +362,7 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
       //Create an onject to use for durpal_write_record
       //Object must match Schema
       $timerObj        = new stdClass();
-      $timerObj->nid   = $form_state['values']['nid'];
+      $timerObj->nid   = $form_state['values']['nid']; // may need to use clicked_button?
       $timerObj->pid   = $form_state['values']['pid'];
       $timerObj->uid   = $form_state['values']['uid'];
       $timerObj->start = time();
