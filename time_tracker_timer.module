@@ -422,7 +422,7 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
           $form['#submit'][] = 'time_tracker_timer_cleartimer_submit';
           // If we're logging time by Duration...
           if (variable_get('time_entry_method', 'duration') == 'duration') {
-            $form['time_tracker']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
+            $form['time_tracker']['time_entry']['duration']['#default_value'] = convert_phptime_to_duration($timer->start, $timer->stop);
             // If user doesn't have permission, we hide the duration field
             if (!user_access('manually enter time')) {
               
@@ -443,10 +443,10 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
     } 
     // If we're on an existing comment, then we need just need to hide the necessary
     // Fields if permissions don't allow manual time entry
-    if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration' && $form['time_tracker']['duration']['#default_value']) {
-      $form['time_tracker']['duration']['#type'] = 'hidden';
+    if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration' && $form['time_tracker']['time_entry']['duration']['#default_value']) {
+      $form['time_tracker']['time_entry']['duration']['#type'] = 'hidden';
       $form['time_tracker']['duration_display']['#weight'] = 1;
-      $duration_display = '<p>Time: ' . $form['time_tracker']['duration']['#default_value'] . '</p>';
+      $duration_display = '<p>Time: ' . $form['time_tracker']['time_entry']['duration']['#default_value'] . '</p>';
       $form['time_tracker']['duration_display']['#value'] = $duration_display;
     } 
     elseif (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'interval' && $form['time_tracker']['time_entry']['start']['#default_value'] && $form['time_tracker']['time_entry']['end']['#default_value']) {

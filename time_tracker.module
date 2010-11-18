@@ -490,7 +490,7 @@ function time_tracker_time_entry_form($cid = 0) {
       It was supposed to just be some text that stated the duration
       calculated by some Javascript... but it's bit of work for now... Later...
     */
-    // $form['time_tracker']['duration'] = array(
+    // $form['time_tracker']['time_entry']['duration'] = array(
     //   '#type' => 'markup',
     //   '#prefix' => '<div class="time_tracker_duration description">',
     //   '#value' => 'Calculated Duration: ' . $time_tracker_data->duration,
