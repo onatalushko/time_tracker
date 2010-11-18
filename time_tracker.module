@@ -329,7 +329,7 @@ function time_tracker_nodeapi(&$node, $op) {
       if (module_exists('casetracker')) {
         if (casetracker_is_project($node->type)) {
           $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-
+          
           while ($case = db_fetch_object($case_results)) {
             $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
@@ -367,6 +367,13 @@ function time_tracker_nodeapi(&$node, $op) {
     case 'delete':
       // TODO: if a node is deleted, delete all time entries
       // this should also be done to comment time entries as well.
+      if (module_exists('casetracker')) {
+        // if (casetracker_is_project($node->type)) <-- Not needed! 
+        // Ticket deletion is triggered on project delete and next block will delete time entries
+        if (casetracker_is_case($node->type)) {
+          db_query("DELETE FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+        }
+      }
     break;
     
     case 'insert':

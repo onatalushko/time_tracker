@@ -186,8 +186,8 @@ function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
   if($form['#id'] == 'views-exposed-form-time-tracker-reports-page-1' ||
      $form['#id'] == 'views-exposed-form-time-tracker-user-page-1') {
        
-    $start_date = urlencode(date('F 01, Y', strtotime('September 1 2010')));
-    $end_date = urlencode(date('F d, Y', strtotime('September 29 2010')));
+    $start_date = urlencode(date('F d, Y', strtotime(date('m').'/01/'.date('Y'))));
+    $end_date = urlencode(date('F d, Y', strtotime('-1 second',strtotime('+1 month',strtotime(date('m').'/01/'.date('Y'))))));
     
     // Whaaaaa-aaaat?
     // This is a simple redirect if there is no ? in the file path
