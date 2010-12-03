@@ -39,13 +39,13 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_field_date',
     ),
     'sort' => array(
-      'handler' => 'views_handler_sort_numeric',
+      'handler' => 'views_handler_sort_date',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_date',
+      'handler' => 'time_tracker_views_handler_filter_date',
     ),
     'argument' => array(
-      'handler' => 'views_handler_argument_date',
+      'handler' => 'views_handler_argument',
     ),
   );
   $data['time_tracker_entry']['duration'] = array(
@@ -62,28 +62,6 @@ function time_tracker_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
-    ),
-  );
-  $data['time_tracker_entry']['taid'] = array(
-    'title' => t('Activity'),
-    'help' => t('Time Entry Activity.'),
-    'field' => array(
-      'handler' => 'views_handler_field_numeric',
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_numeric',
-    ),
-    'relationship' => array(
-      'handler' => 'views_handler_relationship',
-      'base' => 'time_tracker_activity',
-      'base field' => 'taid',
-      'label' => t('Time Tracker Activity'),
     ),
   );
   $data['time_tracker_entry']['billable'] = array(
@@ -130,6 +108,16 @@ function time_tracker_views_data() {
       'base' => 'comments',
       'base field' => 'cid',
       'label' => t('Comment'),
+    ),
+  );
+  $data['time_tracker_entry']['activity'] = array(
+    'title' => t('Activity'),
+    'help' => t('Relate an entry to an Activity Name.'),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'time_tracker_activity',
+      'base field' => 'taid',
+      'label' => t('Activity'),
     ),
   );
 
@@ -182,155 +170,125 @@ function time_tracker_views_data() {
   return $data;
 }
 
+/**
+ * Implementation of hook_views_handlers() to register all of the basic handlers
+ * views uses.
+ */
+function time_tracker_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'time_tracker') .'/views',
+      ),
+    'handlers' => array(
+      'time_tracker_views_handler_filter_date' => array(
+        'parent' => 'views_handler_filter_numeric',
+      ),
+    ),
+  );
+}
+
+
 function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
-  if($form['#id'] == 'views-exposed-form-time-tracker-reports-page-1' ||
-     $form['#id'] == 'views-exposed-form-time-tracker-user-page-1') {
-       
-    $start_date = urlencode(date('F d, Y', strtotime(date('m').'/01/'.date('Y'))));
-    $end_date = urlencode(date('F d, Y', strtotime('-1 second',strtotime('+1 month',strtotime(date('m').'/01/'.date('Y'))))));
+  
+  if ($form['form_id']['#id'] == 'edit-views-exposed-form') {
+    if(module_exists('jquery_ui')) {
+      jquery_ui_add(array('ui.datepicker'));
+      drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
+      drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
+      drupal_add_css(drupal_get_path('module', 'time_tracker') . '/views/css/time_tracker_views.css');
+    }
+  }
+  
+  if (isset($form['timestamp']['min']) && isset($form['timestamp']['max']) && arg(0) != 'admin') {
+    
+    $start_date = urlencode($form['timestamp']['min']['#default_value']);
+    $end_date = urlencode($form['timestamp']['max']['#default_value']);
     
     // Whaaaaa-aaaat?
     // This is a simple redirect if there is no ? in the file path
     // It's a hack, I know, but it works...
     if ( !isset($_GET['uid']) && !isset($_GET['timestamp']['min']) && !isset($_GET['timestamp']['max']) &&  !isset($_GET['pid']) && !isset($_GET['group_nid']) ) {
-      drupal_goto('reports', 'timestamp[min]=' . $start_date . '&timestamp[max]=' . $end_date);
-    }
-       
-    if(module_exists('jquery_ui')) {
-      jquery_ui_add(array('ui.datepicker'));
-      drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
-      drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
+      drupal_goto($_GET['q'], 'timestamp[min]=' . $start_date . '&timestamp[max]=' . $end_date);
     }
     
-    //$form['timestamp']['min']['#default_value'] = date('F 01, Y');
-    //$form['timestamp']['max']['#default_value'] = date('F d, Y');
-    //$form['uid']['#default_value'] = "Chris";
-    //$form['pid']['#options'];
-    
-    //Get the group list
-    // $options = array('<choose>' => '<choose...>');
-    // 
-    // $sql = "SELECT node.title, node.nid 
-    //         FROM {node} AS node 
-    //         WHERE node.type = '%s' 
-    //         ORDER BY node.title ASC";
-    //         
-    // $result = db_query($sql, 'group');
-    // 
-    // while ($row = db_fetch_object($result)) {
-    //   $options[$row->nid] = $row->title;
-    // }
-    // 
-    // $default_group_nid = 548; // Active State: Alphabetically first
-    
-    //$_GET['group_nid'] ? $group_nid = $_GET['group_nid'] : $group_nid = $default_group_nid;
-    
-    // $form['group_nid'] = array(
-    //   '#type' => 'select',
-    //   '#title' => t('Group'),
-    //   '#options' => $options,
-    //   '#default_value' => $_GET['group_nid'] ? node_load($group_nid)->title : '<choose...>',
-    //   '#weight' => -10000,
-    //   '#ahah' => array(
+    // if($form['group_nid'] && $form['pid']) {
+    //   $form['group_nid']['#ahah'] = array(
     //     'event' => 'change',
     //     'path' => 'reports/js',
     //     'wrapper' => 'edit-pid-wrapper',
     //     'method' => 'replace',
     //     'effect' => 'slide',
-    //   ),
-    // );
-    
-    //$form['pid']['#title'] = "Project";
-    //$form['pid']['#weight'] = 10;
-    //$form['pid']['#options'] = _get_projects_for_group($group_nid);
-    
-    //$form['#info']['filter-pid']['label'] = "";
-    
-    //dpm($form);
+    //   );
+    // }
+
   }
 }
 
-/**
- * AHAH Callback for the views filters
- * Creates a dependency for the 'Project' filter to 
- * Get the user to choose a Group First.
- *
- * Right now this is disabled because the groups filter has been
- * disabled. Trying to figure out an elegant way of doing this without getting
- * the illegal choice error.
- */
-function report_js() {
-  
-  $group_nid = $_POST['group_nid'];
-  
-  if ($group_nid == '<choose...>') {
-    exit();
-  }
-  
-  $options = _get_projects_for_group($group_nid);
-  
-  //dpr($options);
-  $form_element = array(
-    '#type' => 'select',
-    '#title' => t('Project'),
-    '#default_value' => '',
-    '#options' => $options,
-  );
-  
-  // Build the new form.
-  $form_state = array('submitted' => FALSE);
-  $form_build_id = $_POST['form_build_id'];
-  // Add the new element to the stored form. Without adding the element to the
-  // form, Drupal is not aware of this new elements existence and will not
-  // process it. We retreive the cached form, add the element, and resave.
-  if (!$form = form_get_cache($form_build_id, $form_state)) {
-    exit();
-  }
-  $form['pid'] = $form_element;
-  form_set_cache($form_build_id, $form, $form_state);
-  $form += array(
-    '#post' => $_POST,
-    '#programmed' => FALSE,
-  );
-
-  // Rebuild the form.
-  $form = form_builder('views_exposed_form', $form, $form_state);
-
-  // Render the new output.
-  $choice_form = $form['pid'];
-  unset($choice_form['#prefix'], $choice_form['#suffix']);
-  $output = theme('status_messages') . drupal_render($choice_form);
-  
-  //dpm($form);
-  
-  drupal_json(array('status' => TRUE, 'data' => $output));
-}
-
-/**
- * Returns the projects for a given Group ID
- *
- * NOTE:
- * Groups and Projects are just node types, all stored in the
- * node table in the db. However the og_ancestry table
- * stored the relationship between a project and a group.
- *
- * @param
- * The Group nid for the project.
- */
-function _get_projects_for_group($group_id) {
-  $options = array('any' => '<Any>');
-  
-  $sql = "SELECT node.title, node.nid
-          FROM {node}
-          JOIN {og_ancestry} AS oa ON oa.nid = node.nid
-          JOIN {node} AS no ON no.nid = oa.group_nid
-          WHERE node.type = '%s'
-          AND no.nid ='%s'";
-          
-  $result = db_query($sql, 'casetracker_basic_project', $group_id);
-  
-  while ($row = db_fetch_object($result)) {
-    $options[$row->nid] = $row->title;
-  }
-  return $options;
-}
+// /**
+//  * AHAH Callback for the views filters
+//  * Creates a dependency for the 'Project' filter to 
+//  * Get the user to choose a Group First.
+//  *
+//  * Currently building the html from scratch rather than using
+//  * a drupal function because views exposed filters uses a different
+//  * caching method for it's form build_id etc. and we can't employ
+//  * the usual AHAH methods.
+//  */
+// function report_js() {
+//   
+//   // Get the chosen group from the POST variable
+//   $group_nid = $_POST['group_nid'];
+//   
+//   $projects = _get_projects_for_group($group_nid);
+//   
+//   $options = '';
+//   foreach ($projects as $nid => $project) {
+//     $options .= '<option value="' . $nid . '">' . $project . '</option>';
+//   }
+//   
+//   // Rebuild the element the way views expects it to be built
+//   $html = '<select id="edit-pid" class="form-select" name="pid"><option selected="selected" value="All">&lt;Any&gt;</option>'. $options .'</select>';
+//   
+//   $output = theme('status_messages') . $html;
+//   
+//   drupal_json(array('status' => TRUE, 'data' => $output));
+// }
+// 
+// /**
+//  * Returns the projects for a given Group ID
+//  *
+//  * NOTE:
+//  * Groups and Projects are just node types, all stored in the
+//  * node table in the db. However the og_ancestry table
+//  * stored the relationship between a project and a group.
+//  *
+//  * @param
+//  * The Group nid for the project.
+//  */
+// function _get_projects_for_group($group_id = 'All') {
+//   $options = array();
+//   
+//   if ($group_id == 'All') {
+//     $sql = "SELECT node.title, node.nid
+//             FROM {node}
+//             JOIN {og_ancestry} AS oa ON oa.nid = node.nid
+//             JOIN {node} AS no ON no.nid = oa.group_nid
+//             WHERE node.type = '%s'
+//             ORDER BY node.title ASC";
+//   }
+//   else {
+//     $sql = "SELECT node.title, node.nid
+//             FROM {node}
+//             JOIN {og_ancestry} AS oa ON oa.nid = node.nid
+//             JOIN {node} AS no ON no.nid = oa.group_nid
+//             WHERE node.type = '%s'
+//             AND no.nid = '%s'";
+//   }
+//           
+//   $result = db_query($sql, 'casetracker_basic_project', $group_id);
+//   
+//   while ($row = db_fetch_object($result)) {
+//     $options[$row->nid] = $row->title;
+//   }
+//   return $options;
+// }

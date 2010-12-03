@@ -125,9 +125,18 @@ function time_tracker_timer_nodeapi(&$node, $op) {
  * Implementation of hook_theme().
  */
 function time_tracker_timer_theme() {
-  return array(
-    'time_tracker_timer_case_summary' => array(),
+  $hooks = array();
+  
+  $hooks['time_tracker_timer_case_summary'] = array(
+    'arguments' => array('timer_results' => NULL, 'node' => NULL),
   );
+  
+  $hooks['time_tracker_timer_active_timers_block'] = array(
+    'arguments' => array('active_timers' => NULL),
+  );
+  
+  return $hooks;
+  
 }
 
 /**
@@ -443,21 +452,33 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
     } 
     // If we're on an existing comment, then we need just need to hide the necessary
     // Fields if permissions don't allow manual time entry
-    if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration' && $form['time_tracker']['time_entry']['duration']['#default_value']) {
+    if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration') {
       $form['time_tracker']['time_entry']['duration']['#type'] = 'hidden';
       $form['time_tracker']['duration_display']['#weight'] = 1;
-      $duration_display = '<p>Time: ' . $form['time_tracker']['time_entry']['duration']['#default_value'] . '</p>';
-      $form['time_tracker']['duration_display']['#value'] = $duration_display;
+      if ($form['time_tracker']['time_entry']['duration']['#default_value']) {
+        $duration_display = '<p>Time: ' . $form['time_tracker']['time_entry']['duration']['#default_value'] . '</p>';
+        $form['time_tracker']['duration_display']['#value'] = $duration_display;
+      }
+      else {
+        $duration_display = '<p>Use the timer to log time</p>';
+        $form['time_tracker']['duration_display']['#value'] = $duration_display;
+      }
     } 
-    elseif (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'interval' && $form['time_tracker']['time_entry']['start']['#default_value'] && $form['time_tracker']['time_entry']['end']['#default_value']) {
+    elseif (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'interval') {
       $form['time_tracker']['time_entry']['start']['#type'] = 'hidden';
       $form['time_tracker']['time_entry']['end']['#type'] = 'hidden';
-      $time_display = 'Start Time: ' . 
-                      $form['time_tracker']['time_entry']['start']['#default_value'] .
-                      '<br/>' . 'End Time: ' . 
-                      $form['time_tracker']['time_entry']['end']['#default_value'];
       $form['time_tracker']['time_entry']['time_display']['#weight'] = 1;
-      $form['time_tracker']['time_entry']['time_display']['#value'] = $time_display;
+      if ($form['time_tracker']['time_entry']['start']['#default_value'] && $form['time_tracker']['time_entry']['end']['#default_value']) {
+        $time_display = 'Start Time: ' . 
+                        $form['time_tracker']['time_entry']['start']['#default_value'] .
+                        '<br/>' . 'End Time: ' . 
+                        $form['time_tracker']['time_entry']['end']['#default_value'];
+        $form['time_tracker']['time_entry']['time_display']['#value'] = $time_display;
+      }
+      else {
+        $duration_display = '<p>Use the timer to log time</p>';
+        $form['time_tracker']['duration_display']['#value'] = $duration_display;
+      }
     }
   }
 }
@@ -505,6 +526,127 @@ function time_tracker_timer_active_timers() {
   }
   $output .= theme('table', NULL, $rows, array('class' => 'time_tracker_timer_active_timers'));
   
+  return $output;
+}
+
+/***********************************************************************
+ * ACTIVE TIMER BLOCKS
+ ***********************************************************************/
+
+/**
+ * Implementation of hook_block()
+ */
+function time_tracker_timer_block($op='list', $delta=0, $edit=array()) {
+  switch ($op) {
+    case 'list':
+      $blocks['your_active_timers']['info'] = t('Your Active Timers');
+      return $blocks;
+
+    case 'view':
+      switch ($delta) {
+        case 'your_active_timers':
+          $active_timers = array();
+          $block['subject'] = t('Your Active Timers');
+          $resource = db_query("SELECT * FROM {time_tracker_timer}");
+          if(db_affected_rows() > 0) {
+            while($timer = db_fetch_object($resource)) {
+              $active_timers[] = $timer;
+            }
+            $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
+          }
+          else {
+            $block['content'] = t('You have no active timers at this time');
+          }
+      }
+      return $block;
+  }
+}
+
+/**
+ * Theme function for time_tracker_timer timers.
+ */
+function theme_time_tracker_timer_active_timers_block($active_timers) {
+  
+  global $user;
+  
+  $rows =        array(); // Rows for current user timer messages
+  $output =      '';
+  $start_time =  0;
+  $timer_state = 'start';
+  drupal_add_js(drupal_get_path('module', 'time_tracker'). '/js/timer.js');
+  
+  // Loop through the results. Should only be ONE if user doesn't have 'view all' priveleges
+  foreach ($active_timers as $timer) {
+    $node = node_load($timer->nid);
+    $project = node_load($node->casetracker->pid);
+    // If the timer entry user id matches the current user then we process normally
+    if ($timer->uid == $user->uid) {
+      // If the timer doesn't have a stop value, it's still running
+      if($timer->stop == 0) {
+        //Change the timer state to be in "stop" mode
+        $timer_state = 'stop';
+        $start_time = $timer->start;
+        // Format the rows for eventual theme_table
+        $rows[] = array(
+          'data' => array(
+            array(
+              'data' => '  ',
+              'class' => 'timer_block_icon',
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss(time() - $timer->start),
+              'class' => 'active_timer_time timer_block_time'
+            ),
+          ),
+        );
+        $rows[] = array(
+          'data' => array(
+            array(
+              'data' => t('You have an active timer for ' . l($node->title, 'node/' . $node->nid) . " in " . l($project->title, 'node/' . $project->nid)),
+              'class' => 'active_timer_block_msg timer_block_msg',
+              'colspan' => 2,
+            ),
+          ),
+        );
+      } 
+      else {
+        //If the timer has a stop value, then it has been stopped
+        //BUT not saved since it still exists (should be deleted when stopped and saved)
+        // Set the timer state to 'reset' mode
+        $timer_state = 'reset';
+        $hours_field_link = $node->path . '#edit-time-wrapper';
+        $rows[] = array(
+          'data' => array(
+            array(
+              'data' => '  ',
+              'class' => 'timer_block_icon'
+            ),
+            array(
+              'data' => _time_tracker_format_secs_to_hhmmss($timer->stop - $timer->start),//
+              'class' => 'stopped_timer_time timer_block_time'
+            ),
+          ),
+        );
+        $rows[] = array(
+          'data' => array(
+            array(
+              'data' => t('You have an unsaved timer for ' . l($node->title, 'node/' . $node->nid) . " in " . l($project->title, 'node/' . $project->nid)),
+              'class' => 'active_timer_block_msg timer_block_msg',
+              'colspan' => 2,
+            ),
+          ),
+        );
+      }
+    } 
+  }
+  
+  // Add the output to the end of the casetracker_case_summary
+  $output = theme('table', NULL, $rows, array('class' => 'active_timers_block'));
+  
+  if (user_access('view all timers')) {
+    $output .= '<div class="see_all_timers">' . l('See all active timers', 'time_tracker_timer/active') . '</div>';
+  }
+
   return $output;
 }
 

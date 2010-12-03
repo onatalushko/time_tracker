@@ -24,6 +24,16 @@ function time_estimate_menu() {
 }
 
 /**
+ * Form builder function for module settings.
+ */
+function time_estimate_settings_form(&$form_state) {
+  return $form;
+}
+
+function time_estimate_settings_form_submit($form, &$form_state) {
+}
+
+/**
  * Implementation of hook_form().
  *
  */
@@ -64,27 +74,32 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
 }
 
 /**
- * Implementation of hook_node().
+ * Implementation of hook_nodeapi().
  */
 function time_estimate_nodeapi(&$node, $op) {
   switch ($op) {
+    
     case 'view':
       if (casetracker_is_project($node->type)) {
-        $project_results = db_query("SELECT * FROM {node} WHERE type = %d", $node->type);
+        $total_time_estimate = 0;
+        $total_time = 0;
+        
+        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+        
+        while ($case = db_fetch_object($case_results)) {
 
-        while ($project = db_fetch_object($project_results)) {
-          $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $project->nid);
-          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $project->nid);
+          $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $case->nid);
+          $case_time_entry_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
           while ($case_estimate = db_fetch_object($case_estimate_results)) {
-            $total_time_estimate = $total_time_estimate + $case_estimate->estimate;
+            $total_time_estimate += $case_estimate->estimate;
           }
 
-          while ($case = db_fetch_object($case_results)) {
-            $total_time = $total_time + $case->duration;
+          while ($case = db_fetch_object($case_time_entry_results)) {
+            $total_time += $case->duration;
           }
         }
-
+        
         if ($total_time_estimate > 0) {
           $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
         }
@@ -107,6 +122,7 @@ function time_estimate_nodeapi(&$node, $op) {
         }
       }
     break;
+   
 
     case 'insert':
       if (isset($node->estimate) && $node->estimate > 0) {
@@ -115,11 +131,12 @@ function time_estimate_nodeapi(&$node, $op) {
     break;
 
     case 'update':
-      $node->revision = 1;
       if (isset($node->eid)) {
+        $node->revision = 1;
         return drupal_write_record('time_estimate_entry', $node, 'eid');
       }
       else {
+        $node->revision = 1;
         return drupal_write_record('time_estimate_entry', $node);
       }
     break;

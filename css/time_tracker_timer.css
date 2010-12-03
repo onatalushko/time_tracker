@@ -79,10 +79,40 @@ td.active_timer_time{
   color:#333333;
 }
 
+/* Active Timers Block */
+
+table.active_timers_block {
+  background-color: #d2d2d2;
+}
+
 td.stopped_timer_time  {
   color: #45b200;
 }
 
+td.timer_block_icon {
+  width: 30px;
+  height: 40px;
+  margin: 5px;
+  background: url(images/timer_icon.png) no-repeat 5px 5px;
+  border-right: 1px white dotted;
+  border-bottom: 1px white dotted;
+}
 
+td.timer_block_time {
+  border-bottom: 1px white dotted;
+  font-size: 26px;
+  vertical-align: middle;
+}
 
+td.timer_block_msg {
+  border-top: 1px white dotted;
+}
 
+td.timer_block_msg a {
+  text-decoration: underline;
+  color: #666666;
+}
+
+.see_all_timers {
+  float: right;
+}
