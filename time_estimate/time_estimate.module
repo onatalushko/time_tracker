@@ -101,7 +101,12 @@ function time_estimate_nodeapi(&$node, $op) {
         }
         
         if ($total_time_estimate > 0) {
-          $node->content['casetracker_project_summary']['#value'] = $node->content['casetracker_project_summary']['#value'] . theme('time_estimate_project_summary', $total_time, $total_time_estimate);
+          // We are going to override the time_tracker time logged display entirely
+          unset($node->content['time_tracker_summary']);
+          $node->content['time_estimate'] = array(
+            '#value' => theme('time_estimate_summary', $total_time, $total_time_estimate),
+            '#weight' => -9,
+          );
         }
       }
       elseif (casetracker_is_case($node->type)) {
@@ -114,11 +119,16 @@ function time_estimate_nodeapi(&$node, $op) {
         $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
 
         while ($result = db_fetch_object($results)) {
-          $time_tracker = $time_tracker + $result->duration;
+          $time_tracker_time += $result->duration;
         }
 
         if ($time_estimate > 0) {
-          $node->content['casetracker_case_summary']['#value'] = $node->content['casetracker_case_summary']['#value'] . theme('time_estimate_case_summary', $time_tracker, $time_estimate);
+          // We are going to override the time_tracker time logged display entirely
+          unset($node->content['time_tracker_summary']);
+          $node->content['time_estimate_summary'] = array(
+            '#value' => theme('time_estimate_summary', $time_tracker_time, $time_estimate->estimate),
+            '#weight' => -7,
+          );
         }
       }
     break;
@@ -147,36 +157,66 @@ function time_estimate_nodeapi(&$node, $op) {
   }
 }
 
+/************************************************************************
+  THEME FUNCTIONS
+*************************************************************************/
+
 /**
  * Implementation of hook_theme().
  */
 function time_estimate_theme() {
   return array(
     'time_estimate_project_summary' => array(),
-    'time_estimate_case_summary' => array(),
+    'time_estimate_summary' => array(),
   );
 }
 
-function theme_time_estimate_project_summary($time_tracker, $time_estimate) {
+/**
+ * Theme function for the time estimate summary
+ * 
+ * This theme function is meant to replace the Time Tracker Summary
+ * output by theme_time_tracker_summary in module time_tracker
+ * 
+ * @param $time_tracker_time
+ *    Time logged so far in hours
+ * 
+ * @param $time_estimate_time
+ *    Time estimate in hours
+ */
+function theme_time_estimate_summary($time_tracker_time, $time_estimate_time) {
   if (user_access('view time estimate entries')) {
     $rows = array();
-
-    if ($time_estimate > 0) {
-      $rows[] = array(t('Estimated Hours: ') . $time_estimate . ' (Remaining: ' . ($time_estimate - $time_tracker) . ')');
-    }
-
-    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+    $headers = array(
+      array('data' => t('Estimated Time:')),
+      array('data' => t('Time Logged:')),
+    );
+    $rows[] = array(
+      array(
+        'data' => format_hours_to_hours_and_minutes($time_estimate_time),
+        'class' => 'time_estimate',
+      ),
+      array(
+        'data' => format_hours_to_hours_and_minutes($time_tracker_time) . ' (<em>' . format_hours_to_hours_and_minutes($time_estimate_time - $time_tracker_time) . t(' remaining') . '</em>)', array('@hours' => $time_tracker_time),
+        'class' => 'time_tracker',
+      ),
+    );
+    return theme('table', $headers, $rows, array('class' => 'time_estimate_summary'));
   }
 }
 
-function theme_time_estimate_case_summary($time_tracker, $time_estimate) {
-  if (user_access('view time estimate entries')) {
-    $rows = array();
-
-    if ($time_estimate->estimate > 0) {
-      $rows[] = array(t('Estimated Hours: ') . $time_estimate->estimate . ' (Remaining: ' . ($time_estimate->estimate - $time_tracker) . ')');
-    }
-
-    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
-  }
+/**
+ * Theme function for the time estimate project summary
+ * 
+ * NOT BEING USED RIGHT NOW
+ */
+function theme_time_estimate_project_summary($time_tracker_time, $time_estimate_time) {
+  // if (user_access('view time estimate entries')) {
+  //   $rows = array();
+  // 
+  //   if ($time_estimate_time > 0) {
+  //     $rows[] = array(t('Estimated Time: ') . $time_estimate_time . ' hours (' . ($time_estimate_time - $time_tracker_time) . ' remaining)');
+  //   }
+  // 
+  //   return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+  // }
 }

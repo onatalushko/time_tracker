@@ -242,7 +242,7 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
 
   $form['time_sheet'][$day]['case_list'] = array(
     '#type' => 'select',
-    '#title' => 'Select a case',
+    '#title' => t('Select a case'),
     '#options' => $options,
     '#ahah' => array(
       'path' => 'time_sheet/add_time',
@@ -326,7 +326,7 @@ function time_sheet_add_time() {
   // add some case details so we know what we're dealing with
   $form['time_sheet']['case_details'] = array(
     '#type' => 'markup',
-    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>Time spent by you on this ticket so far: ' . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>Estimated time for this ticket: ' . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
+    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>' . t('Time spent by you on this ticket so far: ') . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>' . t('Estimated time for this ticket: ') . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
     '#prefix' => '<div class="case-details">',
     '#suffix' => '</div>',
     '#weight' => -10,
@@ -494,7 +494,7 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   drupal_write_record('time_tracker_entry', $time);
 
   // TODO: Ajax this up.
-  drupal_set_message('Activity Recorded');
+  drupal_set_message(t('Activity Recorded'));
   //drupal_goto('user/' . $user->uid . '/time_sheet');
 }
 

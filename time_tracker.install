@@ -105,8 +105,18 @@ function time_tracker_update_6101() {
   return $return;
 }
 
+/**
+ * Weighs the time_tracker module so it comes before most other modules.
+ */
+function time_tracker_update_6102() {
+  $return = array();
+  $return[] = $ret[] = update_sql("UPDATE {system} SET weight = -1 WHERE name = 'time_tracker'");
+  return $return;
+}
+
 function time_tracker_install() {
   drupal_install_schema('time_tracker');
+  db_query("UPDATE {system} SET weight = %d WHERE name = '%s'", -1, 'time_tracker');
 }
 
 function time_tracker_uninstall() {
