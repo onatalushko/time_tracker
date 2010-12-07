@@ -251,9 +251,9 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
   } elseif($form_state['values']['timer_state'] == 'reset') {
     $success = db_query('DELETE FROM {time_tracker_timer} WHERE nid = %d AND uid = %d', $form_state['values']['nid'], $form_state['values']['uid']);
     if($success) {
-      drupal_set_message(t('Timer reset', 'message'));
+      drupal_set_message(t('Timer reset'), 'message');
     } else {
-      drupal_set_message(t('Could not reset timer', 'error'));
+      drupal_set_message(t('Could not reset timer'), 'error');
     }
   }
 }
