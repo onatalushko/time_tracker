@@ -112,7 +112,7 @@ function time_tracker_timer_forms($form_id,$args){
 function time_tracker_timer_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      if (casetracker_is_case($node->type) && user_access('add time tracker entries')) {
+      if (module_exists('casetracker') && casetracker_is_case($node->type) && user_access('add time tracker entries')) {
         if (user_access('view all timers')) {
           $timer_results = db_query("SELECT * FROM {time_tracker_timer} WHERE nid = %d", $node->nid);
         } else {
