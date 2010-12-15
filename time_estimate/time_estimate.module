@@ -38,7 +38,9 @@ function time_estimate_settings_form_submit($form, &$form_state) {
  *
  */
 function time_estimate_form_alter(&$form, $form_state, $form_id) {
-  if (module_exists('casetracker') && casetracker_is_case($form['type']['#value'])) {
+  //If we're tracking time on the node
+  if ($form['#id'] == 'node-form' && time_tracker_is_tracking_time($form['#node']->type)) {
+
     $node = node_load($form['nid']['#value']);
 
     global $user;
@@ -55,7 +57,7 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
       '#title' => 'Time Estimate',
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
-      '#weight' => -9,
+      '#weight' => 0,
     );
     $form['time_estimate']['nid'] = array();
     $form['time_estimate']['uid'] = array('#type' => 'value', '#value' => $user->uid);
@@ -80,57 +82,55 @@ function time_estimate_nodeapi(&$node, $op) {
   switch ($op) {
     
     case 'view':
-      if (module_exists('casetracker')) {
-        if (casetracker_is_project($node->type)) {
-          $total_time_estimate = 0;
-          $total_time = 0;
-        
-          $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-        
-          while ($case = db_fetch_object($case_results)) {
+      if (module_exists('casetracker') && casetracker_is_project($node->type)) {
+        $total_time_estimate = 0;
+        $total_time = 0;
+      
+        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+      
+        while ($case = db_fetch_object($case_results)) {
 
-            $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $case->nid);
-            $case_time_entry_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
+          $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $case->nid);
+          $case_time_entry_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
-            while ($case_estimate = db_fetch_object($case_estimate_results)) {
-              $total_time_estimate += $case_estimate->estimate;
-            }
-
-            while ($case = db_fetch_object($case_time_entry_results)) {
-              $total_time += $case->duration;
-            }
+          while ($case_estimate = db_fetch_object($case_estimate_results)) {
+            $total_time_estimate += $case_estimate->estimate;
           }
-        
-          if ($total_time_estimate > 0 && user_access('view time estimate entries')) {
-            // We are going to override the time_tracker time logged display entirely
-            unset($node->content['time_tracker_summary']);
-            $node->content['time_estimate'] = array(
-              '#value' => theme('time_estimate_summary', $total_time, $total_time_estimate),
-              '#weight' => -9,
-            );
+
+          while ($case = db_fetch_object($case_time_entry_results)) {
+            $total_time += $case->duration;
           }
         }
-        elseif (casetracker_is_case($node->type)) {
-          $results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
+      
+        if ($total_time_estimate > 0 && user_access('view time estimate entries')) {
+          // We are going to override the time_tracker time logged display entirely
+          unset($node->content['time_tracker_summary']);
+          $node->content['time_estimate'] = array(
+            '#value' => theme('time_estimate_summary', $total_time, $total_time_estimate),
+            '#weight' => -9,
+          );
+        }
+      }
+      elseif (time_tracker_is_tracking_time($node->type)) {
+        $results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
 
-          while ($result = db_fetch_object($results)) {
-            $time_estimate = $result;
-          }
+        while ($result = db_fetch_object($results)) {
+          $time_estimate = $result;
+        }
 
-          $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+        $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
 
-          while ($result = db_fetch_object($results)) {
-            $time_tracker_time += $result->duration;
-          }
+        while ($result = db_fetch_object($results)) {
+          $time_tracker_time += $result->duration;
+        }
 
-          if ($time_estimate > 0 && user_access('view time estimate entries')) {
-            // We are going to override the time_tracker time logged display entirely
-            unset($node->content['time_tracker_summary']);
-            $node->content['time_estimate_summary'] = array(
-              '#value' => theme('time_estimate_summary', $time_tracker_time, $time_estimate->estimate),
-              '#weight' => -7,
-            );
-          }
+        if ($time_estimate > 0 && user_access('view time estimate entries')) {
+          // We are going to override the time_tracker time logged display entirely
+          unset($node->content['time_tracker_summary']);
+          $node->content['time_estimate_summary'] = array(
+            '#value' => theme('time_estimate_summary', $time_tracker_time, $time_estimate->estimate),
+            '#weight' => -7,
+          );
         }
       }
     break;
@@ -144,11 +144,9 @@ function time_estimate_nodeapi(&$node, $op) {
 
     case 'update':
       if (isset($node->eid)) {
-        $node->revision = 1;
         return drupal_write_record('time_estimate_entry', $node, 'eid');
       }
       else {
-        $node->revision = 1;
         return drupal_write_record('time_estimate_entry', $node);
       }
     break;

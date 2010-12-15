@@ -1,3 +1,11 @@
+/*
+  Time Tracker Control
+*/
+
+.timer_control form {
+  margin: 0;
+}
+
 table.time_tracker_timer tr.active_timer_msg {
   background-color: #cceec4;
 }
@@ -79,6 +87,31 @@ td.active_timer_time{
   color:#333333;
 }
 
+/* Active Timers Page */
+
+td.stopped_timer_time  {
+  color: #45b200;
+}
+
+td.timer_page_icon {
+  vertical-align: middle;
+  padding: 5px 10px;
+  width: 32px;
+}
+
+td.timer_page_msg {
+  padding-left: 10px;
+}
+
+td.timer_page_time {
+  border-left: 1px #ccc dotted;
+  border-right: 1px #ccc dotted;
+  width: 100px;
+  font-size: 26px;
+  padding: 0px 20px;
+  vertical-align: middle;
+}
+
 /* Active Timers Block */
 
 table.active_timers_block {
@@ -93,7 +126,6 @@ td.timer_block_icon {
   width: 30px;
   height: 40px;
   margin: 5px;
-  background: url(images/timer_icon.png) no-repeat 5px 5px;
   border-right: 1px white dotted;
   border-bottom: 1px white dotted;
 }
@@ -106,6 +138,7 @@ td.timer_block_time {
 
 td.timer_block_msg {
   border-top: 1px white dotted;
+  padding-left: 10px;
 }
 
 td.timer_block_msg a {
@@ -116,3 +149,24 @@ td.timer_block_msg a {
 .see_all_timers {
   float: right;
 }
+
+/* Time Tracker Time Entry Form */
+#edit-duration-disabled-wrapper {
+  float:left;
+}
+
+.time_entry_disabled {
+  font-size: 12px;
+  color: #aaa;
+  line-height: 16px;
+  font-style: italic;
+  margin: 16px 10px 10px 10px;
+  float:left;
+}
+
+
+
+
+
+
+

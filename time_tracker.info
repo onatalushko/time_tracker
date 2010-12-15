@@ -1,6 +1,6 @@
 ; $Id$
 name = Time Tracker
-description = Provides time tracking functionality to any casetrackers comments.
+description = Provides time tracking functionality nodes and comments.
 package = General
 core = 6.x
 dependencies[] = views

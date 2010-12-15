@@ -31,7 +31,7 @@ function time_tracker_perm() {
  */
 function time_tracker_menu() {
   $items = array();
-
+  
   $items['admin/settings/time_tracker'] = array(
     'title' => 'Time Tracker',
     'description' => 'Adjust time tracker settings.',
@@ -67,13 +67,20 @@ function time_tracker_menu() {
     'page arguments' => array('time_tracker_activity_form', 5),
     'access arguments' => array('administer time tracker'),
   );
-  $items['user/%user/time'] = array(
-    'title' => 'Time',
-    'description' => 'My Time',
-    'page callback' => 'time_tracker_user_page',
-    'page arguments' => array(1, 'user'),
-    'access arguments' => array('view time tracker entries'),
-    'type' => MENU_LOCAL_TASK,
+  // $items['user/%user/time'] = array(
+  //   'title' => 'Time',
+  //   'description' => 'My Time',
+  //   'page callback' => 'time_tracker_user_page',
+  //   'page arguments' => array(1, 'user'),
+  //   'access arguments' => array('view time tracker entries'),
+  //   'type' => MENU_LOCAL_TASK,
+  // );
+  $items['time_entry/edit/%'] = array(
+    'title' => 'Time Entry',
+    'description' => 'Edit a Time Entry',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('time_tracker_time_entry_form', 1, 2),
+    'access arguments' => array('administer time tracker'),
   );
 
   return $items;
@@ -97,6 +104,18 @@ function time_tracker_settings_form(&$form_state) {
   $msg = t('Note that any entries that have been entered using the <em>duration</em> method will not have start and end times saved in the database. Switching from <em>duration</em> to <em>interval</em> will not retroactively create start and end times for past time entires.');
   
   $form = array();
+  $form['time_tracker_collapse']['time_tracker_default_collapsed'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Collapse time entry form by default"),
+    '#description' => t("Checking this setting will collapse the time tracker time entry form by default"),
+    '#default_value' => variable_get('time_tracker_default_collapsed', 0),
+  );
+  $form['time_tracker_collapse']['time_entry_table_default_collapsed'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Collapse time entry table by default"),
+    '#description' => t("When tracking time on nodes, checking this setting will collapse the time tracker time entry table by default"),
+    '#default_value' => variable_get('time_entry_table_default_collapsed', 0),
+  );
   $form['time_tracker_comments']['hide_comments'] = array(
     '#type' => 'checkbox',
     '#title' => t("Hide comments with time tracker data entirely if user does not have 'view time tracker entries' permission"),
@@ -323,6 +342,7 @@ function time_tracker_activity_delete($form, &$form_state) {
 /**
  * Implementation of hook_form_alter().
  *
+ * Adds the options for tracking time to the 
  */
 function time_tracker_form_alter(&$form, $form_state, $form_id) {
   // what are we tracking time on?
@@ -337,7 +357,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
       '#type' => 'checkbox',
       '#title' => t('Track time on this content types nodes'),
       '#default_value' => variable_get('time_tracker_nodes_' . $form['#node_type']->type, 0),
-      '#description' => t('Track time on this content types nodes.'),
+      '#description' => t('Track time on this content types nodes.'), 
     );
     $form['time_tracker']['time_tracker_comments'] = array(
       '#type' => 'checkbox',
@@ -353,7 +373,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
     $node = node_load($form['nid']['#value']);
 
     if (variable_get('time_tracker_comments_' . $node->type, 0)) {
-      $form = array_merge($form, time_tracker_time_entry_form($form['cid']['#value']));
+      $form = array_merge($form, time_tracker_time_entry_form(NULL, 'comment', $form['cid']['#value']));
     }
   }
   
@@ -365,59 +385,64 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
 function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      if (module_exists('casetracker')) {
-        if (casetracker_is_project($node->type)) {
-          $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-          
-          while ($case = db_fetch_object($case_results)) {
-            $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
+      // If case tracker exists then we can check if it's a project
+      if (module_exists('casetracker') && casetracker_is_project($node->type)) {
+        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+        
+        while ($case = db_fetch_object($case_results)) {
+          $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
-            while ($time = db_fetch_object($time_results)) {
-              $total_time = $total_time + $time->duration;
-            }
-          }
-
-          if($total_time > 0) {
-            $node->content['time_tracker_summary'] = array(
-              '#value' => theme('time_tracker_summary', $total_time),
-              '#weight' => -5,
-            );
+          while ($time = db_fetch_object($time_results)) {
+            $total_time = $total_time + $time->duration;
           }
         }
-        elseif (casetracker_is_case($node->type)) {
-          $case_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-
-          while ($case = db_fetch_object($case_results)) {
-            $total_time = $total_time + $case->duration;
-          }
-
-          if ($total_time > 0) {
-            $node->content['time_tracker_summary'] = array(
-              '#value' => theme('time_tracker_summary', $total_time),
-              '#weight' => -5,
-            );
-          }
+        if($total_time > 0) {
+          $node->content['time_tracker_summary'] = array(
+            '#value' => theme('time_tracker_summary', $total_time),
+            '#weight' => -5,
+          );
         }
-      } else {
+        
+      } 
+      else {
         // if this is a node form display the time tracker
-      }
+        $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+        
+        while ($time_entry = db_fetch_object($resource)) {
+          $total_time = $total_time + $case->duration;
+        }
 
+        if ($total_time > 0) {
+          $node->content['time_tracker_summary'] = array(
+            '#value' => theme('time_tracker_summary', $total_time),
+            '#weight' => -5,
+          );
+        }
+      }
+      
       // display the time tracking form for nodes here.
       if (variable_get('time_tracker_nodes_' . $node->type, 0)) {
-        $node->content['time_tracker']['#value'] = drupal_get_form('time_tracker_time_entry_form');
+        // Store time entries from nodes
+        $node_time_entries = array();
+        $sql = "SELECT * FROM {time_tracker_entry} AS t
+                WHERE nid = %d AND cid = 0
+                ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
+        // Get the entries associated with this node
+        $resource = db_query($sql, $node->nid);
+        // Store the db objects in an array for theme function
+        while ($time_entry = db_fetch_object($resource)) {
+          $node_time_entries[] = $time_entry;
+        }
+        $node->content['time_tracker'] = array(
+          '#value' => theme('time_tracker_time_entry_table', $node_time_entries) . 
+                      drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid),
+          '#weight' => 1,
+        );
       }
     break;
     
     case 'delete':
-      // TODO: if a node is deleted, delete all time entries
-      // this should also be done to comment time entries as well.
-      if (module_exists('casetracker')) {
-        // if (casetracker_is_project($node->type)) <-- Not needed! 
-        // Ticket deletion is triggered on project delete and next block will delete time entries
-        if (casetracker_is_case($node->type)) {
-          db_query("DELETE FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-        }
-      }
+      db_query("DELETE FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
     break;
     
     case 'insert':
@@ -429,64 +454,53 @@ function time_tracker_nodeapi(&$node, $op) {
 
 /**
  * Implementation of hook_comment().
+ * 
  * TODO: previews aren't showing any time_tracker data.
  */
 function time_tracker_comment(&$comment, $op) {
 
   switch ($op) {
     case 'view':
-      // If this is a preview we won't have a cid yet.
-      if (empty($comment->cid)) {
-        $time_tracker_data = (object)$comment->time_tracker;
-        $node = node_load($comment->nid);
-      }
-      else {
-        $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
-        while ($result = db_fetch_object($results)) {
-          $time_tracker_data = $result;
+    // We only want to show time tracker data if user has permission
+      if (user_access('view time tracker entries')) {
+        // If this is a preview we won't have a cid yet.
+        if (empty($comment->cid)) {
+          $time_tracker_data = (object)$comment->time_tracker;
+          $node = node_load($comment->nid);
         }
+        else {
+          $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
+          while ($result = db_fetch_object($results)) {
+            $time_tracker_data = $result;
+          }
+        }
+        if (is_object($time_tracker_data)) {
+          // This will flag the comment so it can be hidden
+          // hide flag is triggered in the preprocess function below
+          $comment->status = 2;
+        }
+        $comment->comment = theme('time_tracker_comment', $time_tracker_data) . $comment->comment;
       }
-      if (is_object($time_tracker_data)) {
-        $comment->status = 2;
-      }
-      $comment->comment = theme('time_tracker_comment', $time_tracker_data) . $comment->comment;
     break;
 
     case 'validate':
-      // Check First if we are tracking by duration or time interval
-      if (variable_get('time_entry_method', 'duration') == 'duration') {
-        // If a duration is set, but no date
-        if (strlen($comment['duration']) && !strlen($comment['time'])) {
-          form_set_error('time', t('Invalid Date Value. You must also set a date if you wish to log time on this comment'));
-        }
-        // If a duration is set, but it is invalid
-        if (strlen($comment['duration']) && _time_tracker_parse_duration($comment['duration']) === FALSE) {
-          form_set_error('duration', t('Invalid duration value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
-        }
-      }
-      elseif (variable_get('time_entry_method', 'duration') == 'interval') {
-        // If there is no start time, but there is an end time
-        if (!strlen($comment['start']) && strlen($comment['end'])) {
-          form_set_error('start][date', t('Enter an End time, or no time at all'));
-        }
-        // If there is no end time, but there is an start time
-        if (!strlen($comment['end']) && strlen($comment['start'])) {
-          form_set_error('end][date', t('Enter an Start time, or no time at all'));
-        }
-          // Make sure From date is before To Date
-        if (strlen($comment['start']) && strlen($comment['end'])) {
-          $start = strtotime($comment['start']);
-          $end = strtotime($comment['end']);
-          if ($start >= $end) {
-            form_set_error('start][date', t('Invalid interval value. Start time must come before End time'));
-          }
-        }
-      }
+      $form_state['values'] = $comment;
+      time_tracker_time_entry_validate(NULL, $form_state);
       
     break;
 
     case 'insert':
     case 'update':
+      // A little extra love for casetracker
+      if (isset($comment['casetracker'])) {
+        $comment['pid'] = $comment['casetracker']['pid'];
+      }
+      elseif (module_exists('casetracker')) {
+        $node = node_load($comment['nid']);
+        if (casetracker_is_project($node->type)) {
+          $comment['pid'] = $node->nid;
+        }
+      }
       // Check First if we are tracking by duration or time interval
       if (variable_get('time_entry_method', 'duration') == 'duration') {
         $duration = _time_tracker_parse_duration($comment['duration']);
@@ -494,9 +508,6 @@ function time_tracker_comment(&$comment, $op) {
           $comment['duration'] = $duration;
           $comment['timestamp'] = strtotime($comment['time']);
           unset($comment['time']);
-          if (isset($comment['casetracker'])) {
-            $comment['pid'] = $comment['casetracker']['pid'];
-          }
           // Update or create the time entry
           return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
         } 
@@ -506,15 +517,13 @@ function time_tracker_comment(&$comment, $op) {
           db_query("DELETE FROM {time_tracker_entry} WHERE teid = %d", $comment['teid']);
         }
       }
-      else {
+      elseif (variable_get('time_entry_method', 'duration') == 'interval') {
         if (strlen($comment['start']) && strlen($comment['end'])) {
           $comment['start'] = strtotime($comment['start']);
+          $comment['timestamp'] = strtotime($comment['start']);
           $comment['end'] = strtotime($comment['end']);
           //Do we make the duration into a timestamp now??
           $comment['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration( $comment['start'], $comment['end']));
-          if (isset($comment['casetracker'])) {
-            $comment['pid'] = $comment['casetracker']['pid'];
-          }
           return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
         }
         elseif ($comment['teid']) {
@@ -541,15 +550,29 @@ function time_tracker_comment(&$comment, $op) {
  *
  * NOTE: This was a first step in refactoring this form into it's own function
  *
- * TODO: Refine this form so that it isn't specific only to comments
+ * @param $type
+ *    The type of time entry form to show. Choose from:
+ *    'node':     Form when tracking time on nodes
+ *    'edit':     Form when editing time entries. Specifically applies to 
+ *                time entries tracked on nodes. Comment time entry editing
+ *                is done when editing the comment
+ *    'comment':  Form when tracking time on comments
+ * 
+ * @param $id
+ *    Depending on the type:
+ *    'node' => nid (node id)
+ *    'edit' => teid (time entry id)
+ *    'comment => cid (comment id)
+ * 
  */
-function time_tracker_time_entry_form($cid = 0) {
+function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   global $user;
-  // Add Javascript to auto complete the duration field
+  // TODO? Add Javascript to auto complete the duration field
   // For time interval entries
-  drupal_add_js();
-  $results = db_query("SELECT * FROM {time_tracker_activity}");
-
+  //drupal_add_js();
+  
+  drupal_add_css(drupal_get_path('module', 'time_tracker') .'/css/time_tracker.css');
+  
   $activities = array();
   $activities[] = '';
   $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
@@ -557,36 +580,80 @@ function time_tracker_time_entry_form($cid = 0) {
     $activities[$result->taid] = $result->name;
   }
   
-  if ($cid) {
-    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $cid);
-    while ($result = db_fetch_object($results)) {
-      $time_tracker_data = $result;
-    }
-  }
-  $user_submit = user_load($time_tracker_data->uid);
-  //dpm($time_tracker_data);
   $form['time_tracker'] = array(
     '#type' => 'fieldset',
     '#title' => 'Time Tracker',
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
     '#weight' => -9,
   );
+  
+  // If we are editing a comment...
+  if ($type == 'comment' && $id) {
+    // Gotta grab the comment's info if we're editing an old comment
+    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $id);
+    $time_tracker_data = db_fetch_object($results);
+    // Need a comment id for comment tracking
+    $form['cid'] = array(
+      '#type' => 'value',
+      '#value' => $time_tracker_data->cid ? $time_tracker_data->cid : $id,
+    );
+  }
+  elseif ($type == 'edit' && $id) {
+    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE teid = %d", $id);
+    $time_tracker_data = db_fetch_object($results);
+    // The node this time entry belongs to
+    $form['nid'] = array(
+      '#type' => 'value',
+      '#value' => $time_tracker_data->nid,
+    );
+    // A delete button
+    $form['time_tracker']['delete'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete'),
+      '#weight' => 8,
+      '#submit' => array('time_tracker_time_entry_delete'),
+    );
+    // We will redirect to the node this time entry belongs to once edited
+    $form['#redirect']['redirect'] = 'node/' . $time_tracker_data->nid;
+  }
+  elseif ($type == 'node' && $id) {
+    // Just need the nid for node time entries
+    $form['nid'] = array(
+      '#type' => 'value',
+      '#value' => $id,
+    );
+  }
+  
+  // If there is a time tracker entry data object
+  if ($time_tracker_data) {
+    // If it's an existing time entry, we need the teid
+    $form['teid'] = array(
+      '#type' => 'value',
+      '#value' => $time_tracker_data->teid,
+    );
+  }
+  
+  $user_submit = user_load($time_tracker_data->uid);
 
-  $form['time_tracker']['nid'] = array();
-  $form['time_tracker']['cid'] = array();
-  $form['time_tracker']['teid'] = array(
-    '#type' => 'value',
-    '#value' => $time_tracker_data->teid,
-  );
-
-  $form['time_tracker']['uid'] = array(
+  // Auto complete user reference but only if you have permission
+  $form['time_tracker']['username'] = array(
     '#title' => t('User'),
     '#access' => user_access('administer time entries'),
-    '#size' => '10',
+    '#size' => '15',
     '#type' => 'textfield',
+    '#weight' => 0,
     '#default_value' => $user_submit->name ? $user_submit->name : $user->name,
     '#autocomplete_path' => 'user/autocomplete',
+  );
+  
+  // The activity choser
+  $form['time_tracker']['activity'] = array(
+    '#title' => t('Activity'),
+    '#type' => 'select',
+    '#weight' => 0,
+    '#options' => $activities,
+    '#default_value' => $time_tracker_data->activity,
   );
 
   if (module_exists('jquery_ui')) {
@@ -615,7 +682,10 @@ function time_tracker_time_entry_form($cid = 0) {
   } 
   else { // Time entry method is 'interval'
     $format = TIME_TRACKER_DEFAULT_DATE_FORMAT; // This should be defined in settings...
-
+    $form['time_tracker']['time_entry']['prefix'] = array(
+      '#value' => '<div class="time_entry">',
+      '#weight' => 0,
+    );
     $form['time_tracker']['time_entry']['start'] = array(
       '#title' => t('Start'),
       '#type' => 'date_popup',
@@ -632,26 +702,128 @@ function time_tracker_time_entry_form($cid = 0) {
       '#date_label_position' => 'within',
       '#weight' => 2,
     );
+    $form['time_tracker']['time_entry']['suffix'] = array(
+      '#value' => '</div>',
+      '#weight' => 3,
+    );
     // If duration data exists already we post a note to the user
     if ($time_tracker_data->duration && !($time_tracker_data->end) && !($time_tracker_data->start)) {
       $form['time_tracker']['duration_msg'] = array(
         '#prefix' => '<div class="description"><em>',
         '#value' => t("A duration value exists for this time entry, but no Start and End time. <br/> Saving this entry with a Start and End time will overwrite the duration<br/> Logged Duration: <b>!duration</b>", array('!duration' => format_hours_to_hours_and_minutes($time_tracker_data->duration))),
         '#suffix' => '</em></div>',
-        '#weight' => 3,
+        '#weight' => 4,
       );
     }
   }
-  $form['time_tracker']['activity'] = array(
-    '#title' => t('Activity'),
-    '#type' => 'select',
-    '#weight' => 5,
-    '#options' => $activities,
-    '#default_value' => $time_tracker_data->activity,
-  );
+  
+  // If this isn't meant to track time on a comment, we need a submit button and notes field
+  if ($type != 'comment') {
+    $form['time_tracker']['note'] = array(
+      '#title' => t('Note'),
+      '#type' => 'textarea',
+      '#weight' => 6,
+      '#rows' => 2,
+      '#resizable' => FALSE,
+      '#default_value' => $time_tracker_data->note,
+    );
+    $form['time_tracker']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+      '#weight' => 7,
+    );
+     $form['#validate'] = array('time_tracker_time_entry_validate');
+     $form['#submit'] = array('time_tracker_time_entry_submit');
+  }
 
   return $form;
 }
+
+function time_tracker_time_entry_validate($form, &$form_state) {
+  $values = $form_state['values'];
+  // Check First if we are tracking by duration or time interval
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    // If a duration is set, but no date
+    if (strlen($values['duration']) && !strlen($values['time'])) {
+      form_set_error('time', t('Invalid Date Value. You must also set a date if you wish to log time'));
+    }
+    // If a duration is set, but it is invalid
+    if (strlen($values['duration']) && _time_tracker_parse_duration($values['duration']) === FALSE) {
+      form_set_error('duration', t('Invalid duration value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
+    }
+  }
+  elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+    // If there is no start time, but there is an end time
+    if (!strlen($values['start']) && strlen($values['end'])) {
+      form_set_error('start][date', t('Enter an End time, or no time at all'));
+    }
+    // If there is no end time, but there is an start time
+    if (!strlen($values['end']) && strlen($values['start'])) {
+      form_set_error('end][date', t('Enter a Start time, or no time at all'));
+    }
+      // Make sure From date is before To Date
+    if (strlen($values['start']) && strlen($values['end'])) {
+      $start = strtotime($values['start']);
+      $end = strtotime($values['end']);
+      if ($start >= $end) {
+        form_set_error('start][date', t('Invalid interval value. Start time must come before End time'));
+      }
+    }
+  }
+}
+
+function time_tracker_time_entry_submit($form, &$form_state) {
+  
+  // Our array for drupal_write_record
+  $time = array();
+  // Our submitted form values
+  $values = $form_state['values'];
+  // Need a user
+  $user = user_load(array('name' => $values['username']));
+  // If this is an existing time entry...
+  $time['teid'] = $values['teid'];
+  
+  // Special handling based on the time entry method
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $time['duration'] = _time_tracker_parse_duration($values['duration']);
+    $time['timestamp'] = strtotime($values['time']);
+  }
+  elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+    $time['start'] = strtotime($values['start']);
+    $time['timestamp'] = strtotime($values['start']);
+    $time['end'] = strtotime($values['end']);
+    $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
+  }
+  
+  // Some extra love for casetracker
+  if (module_exists('casetracker')) {
+    $node = node_load($values['nid']);
+    if (casetracker_is_case($node->type)) {
+      $time['pid'] = $node->casetracker->pid;
+    }
+    elseif (casetracker_is_project($node->type)) {
+      $time['pid'] = $node->nid;
+    }
+  }
+  
+  // The rest of the time entry 
+  $time['activity'] = $values['activity'];
+  $time['uid'] = $user->uid;
+  $time['nid'] = $values['nid'];
+  $time['note'] = $values['note'];
+  
+  // Update the db and send a message to the user
+  drupal_write_record('time_tracker_entry', $time, $time['teid'] ? 'teid' : array());
+  drupal_set_message(t('Time Entry Recorded'));
+}
+
+function time_tracker_time_entry_delete($form, &$form_state) {
+  if ($form_state['values']['teid']) {
+    db_query("DELETE FROM {time_tracker_entry} WHERE teid = %d", $form_state['values']['teid']);
+  }
+  drupal_set_message(t('Time Entry Deleted'));
+}
+
 
 /***********************************************************************
  * THEME FUNCTIONS
@@ -662,6 +834,7 @@ function time_tracker_time_entry_form($cid = 0) {
  */
 function time_tracker_theme() {
   return array(
+    'time_tracker_time_entry_table' => array(),
     'time_tracker_comment' => array(),
     'time_tracker_project_summary' => array(), // not in use
     'time_tracker_summary' => array(),
@@ -672,28 +845,164 @@ function time_tracker_theme() {
 }
 
 /**
- * Theme function for time entries on comments.
+ * Theme function for showing time entries on nodes
+ * 
+ * @param $time_entries
+ *    An array of time entry database objects. 
+ *    Time entry object contains properties:
+ *      $obj->teid: The time entry id
+ *      $obj->nid: The node id this time entry is attached to
+ *      $obj->uid: The user id to whom this time entry belongs
+ *      $obj->cid: If applicable, the comment id for this time entry
+ *      $obj->pid: If applicable, the casetracker project id for this time entru
+ *      $obj->activity: The time entry Activity
+ *      $obj->timestamp: The unix timestamp of when this time entry was dated
+ *      $obj->start: If tracking time by interval, the start time of the entry
+ *      $obj->end: If tracking time by interval, the end time of the entry
+ *      $obj->duration: The time entry duration in HOURS
+ *      $obj->note: Any notes about the time entry (Empty for time tracked on comments)
+ *      $obj->billable: Whether this is billable or not (0 => no, 1 => yes)
  */
-function theme_time_tracker_comment($time_tracker_data) {
-  if (is_object($time_tracker_data) && user_access('view time tracker entries')) {
+function theme_time_tracker_time_entry_table($time_entries) {
+  drupal_add_css(drupal_get_path('module', 'time_tracker') .'/css/time_tracker.css');
+  //Some Variables to make this happen
+  $time;
+  $rows[] = array();
+  //Setting up the table headers
+  $header = array(
+    array('data' => t('User')),
+    array('data' => t('Activity')),
+    array('data' => t('Duration')),
+    array('data' => t('Time')),
+    array('data' => t('Note')),
+  );
+  if (user_access('administer time tracker')) {
+   $header[] = array('data' => t('Ops'));
+  }
+  //Loop through the time entries and add them to the table
+  foreach ($time_entries as $time_entry) {
+    if (variable_get('time_entry_method', 'duration') == 'duration') {
+      $time = date("F d, Y", $time_entry->timestamp);
+    }
+    elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+      if ($time_entry->start && $time_entry->end) {
+        $time = '' . date('h:i A - M d, Y', $time_entry->start) . '<br/>' . date('h:i A - M d, Y', $time_entry->end);
+      }
+      else {
+        $time = date("F d, Y", $time_entry->timestamp) . '<br/>Entered as Duration';
+      }
+    }
+    $row = array(//row
+      'data' => array( //row data
+        array( //Cell1
+          'data' => user_load($time_entry->uid)->name,
+          'class' => 'time_entry_username',
+        ),
+        array( //Cell2
+          'data' => get_activity_name($time_entry->activity),
+          'class' => 'time_entry_username',
+        ),
+        array( //Cell3
+          'data' => format_hours_to_hours_and_minutes($time_entry->duration),
+          'class' => 'time_entry_duration',
+        ),
+        array( //Cell4
+          'data' => $time,
+          'class' => 'time_entry_time',
+        ),
+        array( //Cell5
+          'data' => $time_entry->note,
+          'class' => 'time_entry_note',
+        ),
+      ),
+      'class' => '', //row class
+    );//endrow
+    if (user_access('administer time entries')) {
+      $row['data'][] = array( //Cell6
+        'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid),
+        'class' => 'time_entry_edit',
+      );
+    }
+    $rows[] = $row;
+  }
+  $form = array();
+  $form['time_tracker_time_entries'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Time Tracker Time Entries'),
+    '#collapsible' => TRUE,
+    '#collapsed' => variable_get('time_entry_table_default_collapsed', 0),
+  );
+  $form['time_tracker_time_entries']['entry_table'] = array(
+    '#value' => theme('table', $header, $rows, array('class' => 'time_tracker_time_entries')),
+  );
+  return drupal_render($form);
+}
+
+/**
+ * Theme function for time entries on comments.
+ * 
+ * @param $time_entry
+ *    A time entry database object. 
+ *    Time entry object contains properties:
+ *      $obj->teid: The time entry id
+ *      $obj->nid: The node id this time entry is attached to
+ *      $obj->uid: The user id to whom this time entry belongs
+ *      $obj->cid: If applicable, the comment id for this time entry
+ *      $obj->pid: If applicable, the casetracker project id for this time entru
+ *      $obj->activity: The time entry Activity
+ *      $obj->timestamp: The unix timestamp of when this time entry was dated
+ *      $obj->start: If tracking time by interval, the start time of the entry
+ *      $obj->end: If tracking time by interval, the end time of the entry
+ *      $obj->duration: The time entry duration in HOURS
+ *      $obj->note: Any notes about the time entry (Empty for time tracked on comments)
+ *      $obj->billable: Whether this is billable or not (0 => no, 1 => yes)
+ */
+function theme_time_tracker_comment($time_entry) {
+  if (is_object($time_entry)) {
     $rows = array();
     $time = '';
     
-    if ($time_tracker_data->start && $time_tracker_data->end) {
-      $time = 'from ' . date('M d, Y - h:i A', $time_tracker_data->start) . ' to ' . date('M d, Y - h:i A', $time_tracker_data->end);
-    }
-    else {
-      $time = 'on ' . date("F d, Y", $time_tracker_data->timestamp);
-    }
-    
-    $activity = get_activity_name($time_tracker_data->activity);
+    $activity = get_activity_name($time_entry->activity);
     if ($activity) {
       $activity = '(' . $activity . ') ';
     }
     
-    $rows[] = array(t('Time: '. format_hours_to_hours_and_minutes($time_tracker_data->duration) . ' ' . $activity . $time));
+    if ($time_entry->start && $time_entry->end) {
+      $header = array(
+        array('data' => t('Duration')),
+        array('data' => t('Activity')),
+        array('data' => t('Start')),
+        array('data' => t('End')),
+      );
+      $rows[] = array(//row
+        'data' => array( //row data
+          array( //Cell3
+            'data' => format_hours_to_hours_and_minutes($time_entry->duration),
+            'class' => 'time_entry_duration',
+          ),
+          array( //Cell2
+            'data' => get_activity_name($time_entry->activity),
+            'class' => 'time_entry_activity',
+          ),
+          array( //Cell4
+            'data' => date('h:i A - M d, Y', $time_entry->start),
+            'class' => 'time_entry_start',
+          ),
+          array( //Cell5
+            'data' => date('h:i A - M d, Y', $time_entry->end),
+            'class' => 'time_entry_end',
+          ),
+        ),
+        'class' => '', //row class
+      );//endrow
+      return theme('table', $header, $rows, array('class' => 'time_tracker_entry_comment'));
+    }
+    else {
+      $time = 'on ' . date("F d, Y", $time_entry->timestamp);
+      $rows[] = array(t('Time: '. format_hours_to_hours_and_minutes($time_entry->duration) . ' ' . $activity . $time));
 
-    return theme('table', NULL, $rows, array('class' => 'time_tracker'));
+      return theme('table', NULL, $rows, array('class' => 'time_tracker_entry_comment'));
+    }
   }
 }
 
@@ -743,7 +1052,6 @@ function theme_time_tracker_project_summary($total_time) {
  * it's just not being used right now by any other modules... so let's use it!
  */
 function time_tracker_preprocess_comment(&$vars) {
-  //dpm(variable_get('hide_comments', array()));
   $comment = $vars['comment'];
   if ($comment->status == 2 && variable_get('hide_comments', 0) && !user_access('view time tracker entries')) {
     $vars['hide'] = TRUE;
@@ -829,6 +1137,32 @@ function get_activity_name($activity_id) {
   $activity = db_fetch_object($result);
 
   return $activity->name;
+}
+
+/**
+ * Returns true if either we are tracking time on the case
+ * either on the comments or the node
+ * 
+ * @param $node_type
+ *    The node type to check if we are tracking time on it
+ * 
+ * @return
+ *    Returns FALSE if we're not tracking time on this node
+ *    type, otherwise returns a string of either 'both' 'node'
+ *    or 'comment'
+ */
+function time_tracker_is_tracking_time($node_type) {
+  $tracking = FALSE;
+  if (variable_get('time_tracker_nodes_' . $node_type, 0) && variable_get('time_tracker_comments_' . $node_type, 0)) {
+    $tracking = 'both';
+  }
+  elseif (variable_get('time_tracker_nodes_' . $node_type, 0)) {
+    $tracking = 'node';
+  }
+  elseif (variable_get('time_tracker_comments_' . $node_type, 0)) {
+    $tracking = 'comment';
+  }
+  return $tracking;
 }
 
 /***********************************************************************

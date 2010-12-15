@@ -14,7 +14,12 @@ function time_sheet_init() {
  * Implementation of hook_perm().
  */
 function time_sheet_perm() {
-  return array('administer time sheet', 'view time sheet entries', 'enter time on time sheet');
+  if (module_exists('casetracker')) {
+    return array('administer time sheet', 'view time sheet entries', 'enter time on time sheet for casetracker cases');
+  }
+  else {
+    return array('administer time sheet', 'view time sheet entries');
+  }
 }
 
 /*
@@ -28,18 +33,13 @@ function time_sheet_menu() {
   $items['user/%user/time_sheet'] = array(
     'title' => 'Time Sheet',
     'description' => 'My Time Sheet',
-    'page callback' => 'time_sheet_user_page',
+    'page callback' => 'time_sheet_page',
     'page arguments' => array(1),
     'access arguments' => array('view time sheet entries'),
     'type' => MENU_LOCAL_TASK,
   );
   $items['time_sheet/add_time'] = array(
     'page callback' => 'time_sheet_add_time',
-    'access arguments' => array('view time sheet entries'),
-    'type' => MENU_CALLBACK,
-  );
-  $items['time_sheet/ahah'] = array(
-    'page callback' => 'time_sheet_ahah',
     'access arguments' => array('view time sheet entries'),
     'type' => MENU_CALLBACK,
   );
@@ -94,6 +94,18 @@ function time_sheet_settings_form() {
 }
 
 /**
+ * Implementation of hook_forms()
+ */
+function time_sheet_forms($form_id, $args) {
+  if (strpos($form_id, 'time_sheet_case_list_form') !== FALSE) {
+    $forms[$form_id] = array(
+      'callback' => 'time_sheet_case_list_form',
+    );
+  }
+  return $forms;
+}
+
+/**
  * The users time sheet page callback.
  * 
  * @desc This callback displays a users time_sheet defaulting to the
@@ -102,7 +114,33 @@ function time_sheet_settings_form() {
  * @param $user
  *    Can be a $user object, a $uid or left out entirely to load the current user
  */
-function time_sheet_user_page($user = NULL) {
+function time_sheet_page($user = NULL) {
+  return theme('time_sheet_user_page', $user);
+}
+
+/************************************************************************
+ * THEME FUNCTIONS
+*************************************************************************/
+
+function time_sheet_theme() {
+  return array(
+    'time_sheet_user_page' => array(),
+  );
+}
+
+/**
+ * Theme function for the time_sheet user page
+ * 
+ * @desc This callback displays a users time_sheet defaulting to the
+ * current week.
+ * 
+ * @param $user
+ *    Can be a $user object, a $uid or left out entirely to load the current user
+ * 
+ * @return
+ *    A themed table of time entry data
+ */
+function theme_time_sheet_user_page($user = NULL) {
   //Validates the user being passed in the path is a number (uid)
   if (is_numeric($user)) {
     $user = user_load($user); 
@@ -111,7 +149,7 @@ function time_sheet_user_page($user = NULL) {
     global $user;
   }
   
-  //Get a start timestamp from the url parameters or set a default.
+  // Get a start timestamp from the url parameters or set a default.
   if (!isset($_GET['start'])) {
     $start = time();
   } else {
@@ -175,17 +213,21 @@ function time_sheet_user_page($user = NULL) {
     $total_duration = 0;
     // Loop throug each
     while ($time_entry_result = db_fetch_object($time_entry_results)) {
-      // Load the time entry node object
-      $time_entry = node_load(array('nid' => $time_entry_result->nid));
-      // Load the casetracker project node object
-      $project = node_load(array('nid' => $time_entry->casetracker->pid));
       // Container for row data to display a time entry
       $row = array();
+      // Load the time entry node object
+      $time_entry = node_load(array('nid' => $time_entry_result->nid));
+      // Little extra love for casetracker
+      if (module_exists('casetracker')) {
+        // Load the casetracker project node object
+        $project = node_load(array('nid' => $time_entry_result->pid));
+        $project_link = ' in ' . l($project->title, 'node/' . $project->nid, array('attributes' => array('class' => 'time-sheet-project')));
+      }
       // The little colorful project icon next to time entries in the time_sheet
       // And the time_entry item name. Both linked
-      $row[] = theme('crayon_swatch', $project->nid, crayon_generate_acronym($project->title), $project->title, "node/{$project->nid}") . l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-case')));
+      $row[] = l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-node'))) . $project_link;
       // The amount of time logged for this item
-      $row[] = array('data' => format_plural($time_entry_result->duration, '1 hour', '@count hours'), 'align' => 'right');
+      $row[] = array('data' => format_hours_to_hours_and_minutes($time_entry_result->duration), 'align' => 'right');
       // On going add-up of the total duration of time logged this week
       $total_duration = $total_duration + $time_entry_result->duration;
       // Add the row to the rows
@@ -197,7 +239,7 @@ function time_sheet_user_page($user = NULL) {
     if (count($row) > 1) {
       $row = array();
       $row[] = '<strong>' . t("Total hours for") . " " . date("l", $stamp) . '</strong>';
-      $row[] = array('data' => '<strong>' . format_plural($total_duration, '1 hour', '@count hours') . '</strong>', 'align' => 'right');
+      $row[] = array('data' => '<strong>' . format_hours_to_hours_and_minutes($total_duration) . '</strong>', 'align' => 'right');
       $rows[] = array('data' => $row);
     } else {
       $row = array();
@@ -207,10 +249,11 @@ function time_sheet_user_page($user = NULL) {
     
     $row = array();
     // Put the form to add a case for this day at the bottom of the day's table
-    if (user_access('enter time on time sheet')) {
-      $row[] = array('data' => drupal_get_form('time_sheet_case_list_form', $user, $day, $stamp), 'colspan' => 2);
+    if (module_exists('casetracker') && user_access('enter time on time sheet for casetracker cases')) {
+      $row[] = array('data' => drupal_get_form('time_sheet_case_list_form_' . $day, $user, $day, $stamp), 'colspan' => 2);
+      $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
     }
-    $rows[] = array('data' => $row, 'id' => 'case-details-' . $day);
+    
     
     // Add this day to the table
     $output .= theme('table', $header, $rows, array('id' => 'time-sheet-' . $day));
@@ -219,8 +262,12 @@ function time_sheet_user_page($user = NULL) {
   return $output;
 }
 
+
+/************************************************************************
+ * CASETRACKER TIME ENTRY FORM ON TIME SHEET
+*************************************************************************/
+
 /**
- * Implementation of hook_form().
  * @desc Creates the form that provides the user with a select list of cases.
  * Implements Drupals AHAH for ajax type form submissions.
  *
@@ -251,15 +298,6 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
     ),
   );
   
-  //The CSS for this module hides this next button if JS is enabled.
-  // Does not work YET
-  // $form['time_sheet'][$day]['show_case'] = array(
-  //   '#type' => 'submit',
-  //   '#value' => t('Select'),
-  //   '#attributes' => array('class' => 'show-case'),
-  //   '#submit' => array('time_sheet_add_time_submit_handler'), // Probably don't want to run this here
-  // );
-  
   // CSS hides this button.
   // Submit handlers defined in the ahah form do not get registered
   // This hidden button is will be passed as the 'clicked_button'
@@ -278,25 +316,16 @@ function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
     '#value' => '<div id="case-form-' . $day . '"></div>',
   );
   
-  // $time_tracker_time_entry_form = time_tracker_time_entry_form();
-  // $form['time_sheet'][$day]['time_entry'] = $time_tracker_time_entry_form['time_tracker']['time_entry'];
-
-  
-  //dpm($form);
-  //dpm($form_state);
   return $form;
 }
 
-// function time_sheet_case_list_form_submit($form, &$form_state) {
-//   drupal_set_message(t('the form has been SUBmittEd'));
-// }
 
 /**
  * Page callback For when a user selects a case to add time to from the time sheet 
  */
 function time_sheet_add_time() {
   global $user;
-  //dpm($_POST);
+
   // The usual AHAH stuff that needs to be here for this to work....
   $form_state = array('storage' => NULL, 'submitted' => FALSE);
   $form_build_id = $_POST['form_build_id'];
@@ -307,6 +336,7 @@ function time_sheet_add_time() {
   $form['#programmed'] = $form['#redirect'] = FALSE;
 
   $form = array();
+  
   $case = node_load(array('nid' => $form_state['post']['case_list']));
   $project = node_load(array('nid' => $case->casetracker->pid));
 
@@ -326,7 +356,7 @@ function time_sheet_add_time() {
   // add some case details so we know what we're dealing with
   $form['time_sheet']['case_details'] = array(
     '#type' => 'markup',
-    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>' . t('Time spent by you on this ticket so far: ') . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>' . t('Estimated time for this ticket: ') . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
+    '#value' => '<h3>' . $project->title . '</h3><p>' . $case->teaser . '</p><p><em>' . t('Time spent by you on this case so far: ') . format_plural($total_time, '1 hour', '@count hours') . '</em></p><p><em>' . t('Estimated time for this ticket: ') . format_plural($total_estimate, '1 hour', '@count hours') . '</em></p>',
     '#prefix' => '<div class="case-details">',
     '#suffix' => '</div>',
     '#weight' => -10,
@@ -334,6 +364,39 @@ function time_sheet_add_time() {
 
   $case_status_options = casetracker_realm_load('status');
   $default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
+  
+  
+  // We need to know what to track the time on (nodes or comments)
+  // But only if for some reason this person is tracking time on 
+  // both nodes and comments
+  if (time_tracker_is_tracking_time($case->type) == 'both') {
+    $track_time_on_options = array(
+      'node' => 'Node',
+      'comment' => 'Comment',
+    );
+    $form['time_sheet']['track_time_on_what'] = array(
+      '#type' => 'select',
+      '#title' => t('Track Time On'),
+      '#default_value' => 'comment',
+      '#options' => $track_time_on_options,
+    );
+  }
+  elseif (time_tracker_is_tracking_time($case->type) == 'node') {
+    $form['time_sheet']['track_time_on_what'] = array(
+      '#type' => 'select',
+      '#title' => t('Track Time On'),
+      '#default_value' => 'node',
+      '#options' => array('node' => 'Node'),
+    );
+  }
+  elseif (time_tracker_is_tracking_time($case->type) == 'comment') {
+    $form['time_sheet']['track_time_on_what'] = array(
+      '#type' => 'select',
+      '#title' => t('Track Time On'),
+      '#default_value' => 'comment',
+      '#options' => array('comment' => 'Comment'),
+    );
+  }
 
   $form['time_sheet']['case_status_id'] = array(
     '#type' => 'select',
@@ -398,11 +461,8 @@ function time_sheet_add_time() {
     '#value' => t('Save'),
     '#weight' => 99,
   );
-  
-  //dpm($form);
 
   drupal_process_form($form_id, $form, $form_state);
-  //$form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
 
   drupal_json(array(
     'status'   => TRUE,
@@ -447,6 +507,9 @@ function time_sheet_add_time_submit_handler_validate($form, &$form_state) {
       form_set_error('end', t('End time must be in the format hh:mmAM/PM e.g. 12:30PM'));
     }
   }
+  if (!$form_state['clicked_button']['#post']['track_time_on_what']) {
+    form_set_error('track_time_on_what', t('Please select what you are tracking time on'));
+  }
 }
 
 /**
@@ -456,142 +519,97 @@ function time_sheet_add_time_submit_handler_validate($form, &$form_state) {
 function time_sheet_add_time_submit_handler($form, &$form_state) {
   // TODO: do i need to get rid of this call for user object
   global $user;
-  //dpm($form_state);
-  $values = $form_state['values'];
+  
+  //Some Variables for us to use
+  $time = array();
+  $comment = array();
+  
+  // We don't want to execute any other submit handlers
   unset($form_state['submit_handlers']);
-
-  form_execute_handlers('submit', $form, $form_state);
-
-  $form_state['my_values'] = $values;
-  $form_state['rebuild'] = FALSE;
-  //dpm($form_state);
+  //form_execute_handlers('submit', $form, $form_state);
+  
+  // Get the case
   $case = node_load(array('nid' => $form_state['clicked_button']['#post']['case_list']));
+  
+  $time['pid'] = $case->casetracker->pid;
+  
+  $track_time_on_what = $form_state['clicked_button']['#post']['track_time_on_what'];
+  
+  // Save the comment if we want to track the time on the comments
+  if ($track_time_on_what == 'comment') {
+    $form_state['rebuild'] = FALSE;
 
-  $comment['casetracker'] = get_object_vars($case->casetracker);
-  $comment['casetracker']['assign_to'] = casetracker_get_name($comment['casetracker']['assign_to']);
+    $comment['casetracker'] = get_object_vars($case->casetracker);
+    $comment['casetracker']['assign_to'] = casetracker_get_name($comment['casetracker']['assign_to']);
 
-  $comment['nid'] = $form_state['clicked_button']['#post']['case_list'];
-  $comment['uid'] = $user->uid;
-  $comment['comment'] = $form_state['clicked_button']['#post']['comment'];
-  $comment['casetracker']['case_status_id'] = $form_state['clicked_button']['#post']['case_status_id'];
+    $comment['nid'] = $form_state['clicked_button']['#post']['case_list'];
+    $comment['uid'] = $user->uid;
+    $comment['comment'] = $form_state['clicked_button']['#post']['comment'];
+    $comment['casetracker']['case_status_id'] = $form_state['clicked_button']['#post']['case_status_id'];
 
-  $comment['cid'] = comment_save($comment);
-  casetracker_comment($comment, 'update');
-
+    $comment['cid'] = comment_save($comment);
+    casetracker_comment($comment, 'update');
+    
+    $time['cid'] = $comment['cid'];
+  }
+  elseif ($track_time_on_what == 'node') {
+    $time['note'] = $form_state['clicked_button']['#post']['comment'];
+  }
+  
   $time['timestamp'] = $form_state['clicked_button']['#post']['timestamp'];
   if (variable_get('time_entry_method', 'duration') == 'duration') {
     $time['duration'] = $form_state['clicked_button']['#post']['duration'];
   }
   else {
-    $time['start'] = $form_state['clicked_button']['#post']['duration'];
-    $time['end'] = $form_state['clicked_button']['#post']['duration'];
+    $time['start'] = $form_state['clicked_button']['#post']['start'];
+    $time['end'] = $form_state['clicked_button']['#post']['end'];
     $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
   }
   $time['activity'] = $form_state['clicked_button']['#post']['activity'];
   $time['uid'] = $user->uid;
   $time['nid'] = $form_state['clicked_button']['#post']['case_list'];
-  $time['cid'] = $comment['cid'];
+
   drupal_write_record('time_tracker_entry', $time);
 
-  // TODO: Ajax this up.
-  drupal_set_message(t('Activity Recorded'));
-  //drupal_goto('user/' . $user->uid . '/time_sheet');
+  drupal_set_message(t('Time Entry Recorded'));
 }
 
-function time_sheet_ahah() {
-  $form_state = array('storage' => NULL, 'submitted' => FALSE);
-  $form_build_id = $_POST['form_build_id'];
-  $form = form_get_cache($form_build_id, $form_state);
 
-  $args = $form['#parameters'];
-  $form_id = array_shift($args);
-  $form_state['post'] = $form['#post'] = $_POST;
-  $form['#programmed'] = $form['#redirect'] = FALSE;
+/************************************************************************
+ * Helper Functions
+*************************************************************************/
 
-  drupal_process_form($form_id, $form, $form_state);
-  $form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
-
-  $changed_elements = $form['case-form-monday'];
-  unset($changed_elements['#prefix'], $changed_elements['#suffix']); // Prevent duplicate wrappers.
-  drupal_json(array(
-    'status'   => TRUE,
-    'data'     => drupal_render($form),
-  ));
-}
-
+/**
+ * Function produces a list of recent cases for $user
+ * in the form of options for a select form field
+ * 
+ * @param $user
+ *    The user for whom to retrieve the cases for
+ */
 function _time_sheet_case_list_options($user) {
-  // TODO: quick comment and time entry form
+  // Our Query
+  $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
+                 cc.case_status_id, cc.pid, ccs.case_state_name, 
+                 no.title AS groupname
+          FROM {casetracker_case} AS cc
+          JOIN {node} AS n ON n.nid = cc.nid
+          JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
+          JOIN {og_ancestry} AS oa ON oa.nid = n.nid
+          JOIN {node} AS no ON no.nid = oa.group_nid
+          WHERE cc.assign_to = %d 
+          AND cc.case_status_id NOT IN (6, 7, 8)
+          ORDER BY cc.case_status_id ASC, n.created DESC";
   // grab all cases that the user is assigned to
-  $case_results = db_query("SELECT * FROM {casetracker_case} WHERE assign_to = %d AND case_status_id NOT IN (6, 7, 8)", $user->uid);
+  $case_results = db_query($sql, $user->uid);
 
   // cycle through cases to create the select options array
   $case_options = array('' => t('Select a case...'));
-  while ($case_result = db_fetch_object($case_results)) {
-    $case = node_load(array('nid' => $case_result->nid));
-    $project = node_load(array('nid' => $case->casetracker->pid));
+  while ($case = db_fetch_object($case_results)) {
+    $project = node_load(array('nid' => $case->pid));
 
-    $case_options[$project->title][$case->nid] = $case->title;
+    $case_options[$case->groupname . ' - ' . $project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
 
   }
 
   return $case_options;
-}
-
-
-/**
- * Acronymizer function. Attempts to generate a reasonable acronym from a given string.
- */
-function acronymize($string, $reset = FALSE) {
-  static $cache = array();
-
-  if (!isset($cache[$string]) || $reset) {
-    $split = preg_split('/[ .-]+/', $string, -1, PREG_SPLIT_NO_EMPTY);
-    $acro = '';
-
-    // Capital-letter based acronyms
-    if (preg_match('/[0-9A-Z]+/', $string)) {
-
-      // Eliminate small words
-      foreach ($split as $k => $chunk) {
-        // No caps or numbers, trash it
-        if (!preg_match('/[0-9A-Z]+/', $chunk)) {
-          unset($split[$k]);
-        }
-      }
-      reset($split);
-
-      // Multiword titles -- form acronym from key characters.
-      if (count($split) > 1) {
-        foreach ($split as $chunk) {
-          $char = array();
-          preg_match_all('/[0-9A-Z]/', $chunk, $char);
-          $acro .= implode('', $char[0]);
-        }
-      }
-      // 1 word titles
-      else {
-        $split = array_shift($split);
-        $char = array();
-        preg_match_all('/[0-9A-Z]/', $split, $char);
-        // Use caps as the acronym, but if there's only 1 cap use the whole string.
-        $acro = count($char[0]) > 1 ? implode('', $char[0]) : $split;
-      }
-    }
-    // Lower case title, bail and use first word
-    else {
-      // Multi-word -- use first letter of each
-      if (count($split) > 1) {
-        foreach ($split as $chunk) {
-          $acro .= drupal_substr($chunk, 0, 1);
-        }
-      }
-      // Bail, use first word
-      else {
-        $acro = current($split);
-      }
-    }
-    $cache[$string] = $acro;
-  }
-
-  return $cache[$string];
 }
