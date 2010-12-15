@@ -64,6 +64,22 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
+  $data['time_tracker_entry']['note'] = array(
+    'title' => t('Note'),
+    'help' => t('Notes for node-based time entries'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
   $data['time_tracker_entry']['billable'] = array(
     'title' => t('Billable'),
     'help' => t('Is the Entry Billable?'),
