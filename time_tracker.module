@@ -385,59 +385,61 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
 function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      // If case tracker exists then we can check if it's a project
-      if (module_exists('casetracker') && casetracker_is_project($node->type)) {
-        $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
+      if (user_access('view time tracker entries')) {
+        // If case tracker exists then we can check if it's a project
+        if (module_exists('casetracker') && casetracker_is_project($node->type)) {
+          $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
         
-        while ($case = db_fetch_object($case_results)) {
-          $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
+          while ($case = db_fetch_object($case_results)) {
+            $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
-          while ($time = db_fetch_object($time_results)) {
-            $total_time = $total_time + $time->duration;
+            while ($time = db_fetch_object($time_results)) {
+              $total_time = $total_time + $time->duration;
+            }
+          }
+          if($total_time > 0) {
+            $node->content['time_tracker_summary'] = array(
+              '#value' => theme('time_tracker_summary', $total_time),
+              '#weight' => -5,
+            );
+          }
+        
+        } 
+        else {
+          // if this is a node form display the time tracker
+          $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+        
+          while ($time_entry = db_fetch_object($resource)) {
+            $total_time = $total_time + $case->duration;
+          }
+
+          if ($total_time > 0) {
+            $node->content['time_tracker_summary'] = array(
+              '#value' => theme('time_tracker_summary', $total_time),
+              '#weight' => -5,
+            );
           }
         }
-        if($total_time > 0) {
-          $node->content['time_tracker_summary'] = array(
-            '#value' => theme('time_tracker_summary', $total_time),
-            '#weight' => -5,
-          );
-        }
-        
-      } 
-      else {
-        // if this is a node form display the time tracker
-        $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-        
-        while ($time_entry = db_fetch_object($resource)) {
-          $total_time = $total_time + $case->duration;
-        }
-
-        if ($total_time > 0) {
-          $node->content['time_tracker_summary'] = array(
-            '#value' => theme('time_tracker_summary', $total_time),
-            '#weight' => -5,
-          );
-        }
-      }
       
-      // display the time tracking form for nodes here.
-      if (variable_get('time_tracker_nodes_' . $node->type, 0)) {
-        // Store time entries from nodes
-        $node_time_entries = array();
-        $sql = "SELECT * FROM {time_tracker_entry} AS t
-                WHERE nid = %d AND cid = 0
-                ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
-        // Get the entries associated with this node
-        $resource = db_query($sql, $node->nid);
-        // Store the db objects in an array for theme function
-        while ($time_entry = db_fetch_object($resource)) {
-          $node_time_entries[] = $time_entry;
+        // display the time tracking form for nodes here.
+        if (variable_get('time_tracker_nodes_' . $node->type, 0)) {
+          // Store time entries from nodes
+          $node_time_entries = array();
+          $sql = "SELECT * FROM {time_tracker_entry} AS t
+                  WHERE nid = %d AND cid = 0
+                  ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
+          // Get the entries associated with this node
+          $resource = db_query($sql, $node->nid);
+          // Store the db objects in an array for theme function
+          while ($time_entry = db_fetch_object($resource)) {
+            $node_time_entries[] = $time_entry;
+          }
+          $node->content['time_tracker'] = array(
+            '#value' => theme('time_tracker_time_entry_table', $node_time_entries) . 
+                        drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid),
+            '#weight' => 1,
+          );
         }
-        $node->content['time_tracker'] = array(
-          '#value' => theme('time_tracker_time_entry_table', $node_time_entries) . 
-                      drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid),
-          '#weight' => 1,
-        );
       }
     break;
     
@@ -1016,16 +1018,14 @@ function theme_time_tracker_comment($time_entry) {
  *    A themed table of summary data
  */
 function theme_time_tracker_summary($total_time) {
-  if (user_access('view time tracker entries')) {
-    $rows = array();
+  $rows = array();
 
-    if ($total_time > 0) {
-      $rows[] = array(t('Time logged: ') . '<span class="time_tracker_time">' .
-                      format_hours_to_hours_and_minutes($total_time, TRUE) . '</span>');
-    }
-
-    return theme('table', NULL, $rows, array('class' => 'time_tracker_summary'));
+  if ($total_time > 0) {
+    $rows[] = array(t('Time logged: ') . '<span class="time_tracker_time">' .
+                    format_hours_to_hours_and_minutes($total_time, TRUE) . '</span>');
   }
+
+  return theme('table', NULL, $rows, array('class' => 'time_tracker_summary'));
 }
 
 /**

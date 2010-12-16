@@ -390,14 +390,15 @@ function time_tracker_timer_block($op='list', $delta=0, $edit=array()) {
     case 'view':
       switch ($delta) {
         case 'your_active_timers':
-          $active_timers = array();
-          $block['subject'] = t('Your Active Timers');
-          $resource = db_query("SELECT * FROM {time_tracker_timer}");
-          while($timer = db_fetch_object($resource)) {
-            $active_timers[] = $timer;
+          if (user_access('add time tracker entries')) {
+            $active_timers = array();
+            $block['subject'] = t('Your Active Timers');
+            $resource = db_query("SELECT * FROM {time_tracker_timer}");
+            while($timer = db_fetch_object($resource)) {
+              $active_timers[] = $timer;
+            }
+            $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
           }
-          $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
-
       }
       return $block;
   }
