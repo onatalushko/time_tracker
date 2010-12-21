@@ -410,9 +410,9 @@ function time_tracker_nodeapi(&$node, $op) {
           $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
         
           while ($time_entry = db_fetch_object($resource)) {
-            $total_time = $total_time + $case->duration;
+            $total_time = $total_time + $time_entry->duration;
           }
-
+          
           if ($total_time > 0) {
             $node->content['time_tracker_summary'] = array(
               '#value' => theme('time_tracker_summary', $total_time),
@@ -584,7 +584,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   
   $form['time_tracker'] = array(
     '#type' => 'fieldset',
-    '#title' => 'Time Tracker',
+    '#title' => t('Time Tracker'),
     '#collapsible' => TRUE,
     '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
     '#weight' => -9,
@@ -661,7 +661,8 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   if (module_exists('jquery_ui')) {
     jquery_ui_add(array('ui.datepicker'));
     drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
-    drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
+    drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/custom-theme/jquery-ui-1.8.7.custom.css');
+    //drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/vader/ui.datepicker.css');
   }
   
   // Insert different form elements depending on the time_entry_method
