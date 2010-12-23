@@ -437,7 +437,7 @@ function time_tracker_nodeapi(&$node, $op) {
           $node->content['time_tracker'] = array(
             '#value' => theme('time_tracker_time_entry_table', $node_time_entries) . 
                         drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid),
-            '#weight' => 1,
+            '#weight' => 51,
           );
         }
       }
@@ -661,8 +661,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   if (module_exists('jquery_ui')) {
     jquery_ui_add(array('ui.datepicker'));
     drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
-    drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/custom-theme/jquery-ui-1.8.7.custom.css');
-    //drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/vader/ui.datepicker.css');
+    drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
   }
   
   // Insert different form elements depending on the time_entry_method

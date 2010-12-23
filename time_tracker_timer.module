@@ -126,7 +126,7 @@ function time_tracker_timer_nodeapi(&$node, $op) {
         // Theme the timers and add them to the content of the node
         $node->content['time_tracker_timer'] = array(
           '#value' => theme('time_tracker_timer', $timers, $node),
-          '#weight' => -3,
+          '#weight' => -4,
         );
       }
     break;

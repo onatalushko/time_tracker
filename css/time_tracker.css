@@ -2,6 +2,10 @@
   min-width: 160px;
 } 
 
+.time_tracker_time_entries .time_entry_duration {
+  min-width: 55px;
+}
+
 
 /*
   For the Time entry form on Nodes
