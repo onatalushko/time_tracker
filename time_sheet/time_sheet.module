@@ -275,7 +275,7 @@ function theme_time_sheet_user_page($user = NULL) {
  * @param $user
  * @param $day
  */
-function time_sheet_case_list_form(&$form_state, &$user, $day, $stamp) {
+function time_sheet_case_list_form($form_state, $user, $day, $stamp) {
   $form = array();
   $form['time_sheet'][$day]['#cache'] = TRUE;
   //$form['#submit'][] = 'time_sheet_add_time_submit_handler';
@@ -590,28 +590,54 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
  */
 function _time_sheet_case_list_options($user) {
   // Our Query
-  $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
-                 cc.case_status_id, cc.pid, ccs.case_state_name, 
-                 no.title AS groupname
-          FROM {casetracker_case} AS cc
-          JOIN {node} AS n ON n.nid = cc.nid
-          JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
-          JOIN {og_ancestry} AS oa ON oa.nid = n.nid
-          JOIN {node} AS no ON no.nid = oa.group_nid
-          WHERE cc.assign_to = %d 
-          AND cc.case_status_id NOT IN (6, 7, 8)
-          ORDER BY cc.case_status_id ASC, n.created DESC";
-  // grab all cases that the user is assigned to
-  $case_results = db_query($sql, $user->uid);
+  if (module_exists('atrium')) {
+    $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
+                       cc.case_status_id, cc.pid, ccs.case_state_name, 
+                       no.title AS groupname
+                FROM {casetracker_case} AS cc
+                JOIN {node} AS n ON n.nid = cc.nid
+                JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
+                JOIN {og_ancestry} AS oa ON oa.nid = n.nid
+                JOIN {node} AS no ON no.nid = oa.group_nid
+                WHERE cc.assign_to = %d 
+                AND cc.case_status_id NOT IN (6, 7, 8)
+                ORDER BY cc.case_status_id ASC, n.created DESC";
+    // grab all cases that the user is assigned to
+    $case_results = db_query($sql, $user->uid);
 
-  // cycle through cases to create the select options array
-  $case_options = array('' => t('Select a case...'));
-  while ($case = db_fetch_object($case_results)) {
-    $project = node_load(array('nid' => $case->pid));
+    // cycle through cases to create the select options array
+    $case_options = array('' => t('Select a case...'));
+    while ($case = db_fetch_object($case_results)) {
+      $project = node_load(array('nid' => $case->pid));
 
-    $case_options[$case->groupname . ' - ' . $project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
+      $case_options[$case->groupname . ' - ' . $project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
 
+    }
+
+    return $case_options;
   }
+  else {
+    $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
+                   cc.case_status_id, cc.pid, ccs.case_state_name
+            FROM {casetracker_case} AS cc
+            JOIN {node} AS n ON n.nid = cc.nid
+            JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
+            WHERE cc.assign_to = %d 
+            AND cc.case_status_id NOT IN (6, 7, 8)
+            ORDER BY cc.case_status_id ASC, n.created DESC";
+    // grab all cases that the user is assigned to
+    $case_results = db_query($sql, $user->uid);
 
-  return $case_options;
+    // cycle through cases to create the select options array
+    $case_options = array('' => t('Select a case...'));
+    while ($case = db_fetch_object($case_results)) {
+      $project = node_load(array('nid' => $case->pid));
+
+      $case_options[$project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
+
+    }
+
+    return $case_options;
+  }
+    
 }
