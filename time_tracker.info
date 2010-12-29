@@ -1,7 +1,7 @@
 ; $Id$
 name = Time Tracker
 description = Provides time tracking functionality nodes and comments.
-package = General
+package = Time Tracker
 core = 6.x
 dependencies[] = views
 dependencies[] = views_calc

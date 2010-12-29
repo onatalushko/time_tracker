@@ -1,6 +1,6 @@
 ; $Id$
 name = Time Sheet
 description = Provides time sheet functionality for extra accountability.
-package = General
+package = Time Tracker
 core = 6.x
 dependencies[] = time_tracker

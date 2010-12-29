@@ -1,6 +1,6 @@
 ; $Id$
 name = Time Estimate
 description = Provides time estimate functionality on a casetracker project node.
-package = General
+package = Time Tracker
 core = 6.x
 dependencies[] = time_tracker
