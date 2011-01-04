@@ -480,9 +480,14 @@ function theme_time_tracker_timer($timers, $node) {
       else {
         //If the timer has a stop value, then it has been stopped
         //BUT not saved since it still exists (should be deleted when stopped and saved)
-        // Set the timer state to 'reset' mode
+        // Set the timer state to 'reset' mode   
         $timer_state = 'reset';
-        $hours_field_link = $node->path . '#comment-form';
+        if (time_tracker_is_tracking_time($node->type) == 'node') {
+          $hours_field_link = 'node/' . $node->nid . '#time-tracker-time-entry-form';
+        }
+        else {
+          $hours_field_link = 'node/' . $node->nid . '#comment-form';
+        }
         $rows[] = array(
           'data' => array(
             array(
