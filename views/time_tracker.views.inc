@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  *   Views integration for time_tracker

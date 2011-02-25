@@ -1,4 +1,3 @@
-; $Id$
 name = Time Estimate
 description = Provides time estimate functionality on a casetracker project node.
 package = Time Tracker
