@@ -1,4 +1,5 @@
 <?php
+// $Id: time_tracker.module,v 1.31 2010/07/22 00:32:32 codi Exp $
 
 /**
  * @file
@@ -786,6 +787,8 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   
   // Special handling based on the time entry method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $time['start'] = 0;
+    $time['end'] = 0;
     $time['duration'] = _time_tracker_parse_duration($values['duration']);
     $time['timestamp'] = strtotime($values['time']);
   }

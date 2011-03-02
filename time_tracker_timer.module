@@ -270,7 +270,6 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
  * set to allow manual time entries
  */
 function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
-
   // if this is a time tracking form...
   // Note: The time entry form and the comment form should have the same
   // form structure even though they have different ids because we merged them
