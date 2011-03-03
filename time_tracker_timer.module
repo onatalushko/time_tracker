@@ -154,10 +154,10 @@ function time_tracker_timer_startstop_form($form, $node, $timer_state, $start_ti
     '#value' => $node->nid,
   );
 
-  $form['pid'] = array(
-    '#type' => 'value',
-    '#value' => $node->casetracker->pid,
-  );
+  // $form['pid'] = array(
+  //   '#type' => 'value',
+  //   '#value' => $node->casetracker->pid,
+  // );
   
   $form['uid'] = array(
     '#type' => 'value',
@@ -227,7 +227,7 @@ function time_tracker_timer_startstop_form_submit($form, &$form_state) {
       //Object must match Schema
       $timerObj        = new stdClass();
       $timerObj->nid   = $form_state['values']['nid']; // may need to use clicked_button?
-      $timerObj->pid   = $form_state['values']['pid'];
+      //$timerObj->pid   = $form_state['values']['pid'];
       $timerObj->uid   = $form_state['values']['uid'];
       $timerObj->start = time();
       //Write the new record

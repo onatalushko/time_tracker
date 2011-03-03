@@ -46,6 +46,38 @@ function time_tracker_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
+    ), 
+  );
+  $data['time_tracker_entry']['start'] = array(
+    'title' => t('Start Time'),
+    'help' => t('Start time of the Entry.'),
+    'field' => array(
+      'handler' => 'views_handler_field_date',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+    'filter' => array(
+      'handler' => 'time_tracker_views_handler_filter_date',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
+  $data['time_tracker_entry']['end'] = array(
+    'title' => t('End Time'),
+    'help' => t('End time of the Entry.'),
+    'field' => array(
+      'handler' => 'views_handler_field_date',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+    'filter' => array(
+      'handler' => 'time_tracker_views_handler_filter_date',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
     ),
   );
   $data['time_tracker_entry']['duration'] = array(
@@ -80,22 +112,23 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
-  $data['time_tracker_entry']['billable'] = array(
-    'title' => t('Billable'),
-    'help' => t('Is the Entry Billable?'),
-    'field' => array(
-      'handler' => 'views_handler_field_boolean',
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_boolean',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument',
-    ),
-  );
+  // This isn't being used right now so I'm de-exposing it to views
+  // $data['time_tracker_entry']['billable'] = array(
+  //   'title' => t('Billable'),
+  //   'help' => t('Is the Entry Billable?'),
+  //   'field' => array(
+  //     'handler' => 'views_handler_field_boolean',
+  //   ),
+  //   'sort' => array(
+  //     'handler' => 'views_handler_sort',
+  //   ),
+  //   'filter' => array(
+  //     'handler' => 'views_handler_filter_boolean',
+  //   ),
+  //   'argument' => array(
+  //     'handler' => 'views_handler_argument',
+  //   ),
+  // );
   $data['time_tracker_entry']['locked'] = array(
     'title' => t('Locked'),
     'help' => t('Is the Entry Locked?'),

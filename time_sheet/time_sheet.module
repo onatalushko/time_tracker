@@ -1,4 +1,5 @@
 <?php
+// $Id: time_sheet.module,v 1.5 2010/07/14 23:46:17 codi Exp $
 
 /**
  * @file
@@ -219,7 +220,7 @@ function theme_time_sheet_user_page($user = NULL) {
       // Little extra love for casetracker
       if (module_exists('casetracker')) {
         // Load the casetracker project node object
-        $project = node_load(array('nid' => $time_entry_result->pid));
+        $project = node_load(array('nid' => $time_entry->casetracker->pid));
         $project_link = ' in ' . l($project->title, 'node/' . $project->nid, array('attributes' => array('class' => 'time-sheet-project')));
       }
       // The little colorful project icon next to time entries in the time_sheet
@@ -530,7 +531,7 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   // Get the case
   $case = node_load(array('nid' => $form_state['clicked_button']['#post']['case_list']));
   
-  $time['pid'] = $case->casetracker->pid;
+  //$time['pid'] = $case->casetracker->pid;
   
   $track_time_on_what = $form_state['clicked_button']['#post']['track_time_on_what'];
   
@@ -610,9 +611,7 @@ function _time_sheet_case_list_options($user) {
       $project = node_load(array('nid' => $case->pid));
 
       $case_options[$case->groupname . ' - ' . $project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
-
     }
-
     return $case_options;
   }
   else {
@@ -633,10 +632,7 @@ function _time_sheet_case_list_options($user) {
       $project = node_load(array('nid' => $case->pid));
 
       $case_options[$project->title][$case->nid] = $case->title . ' (' . $case->case_state_name . ')';
-
     }
-
     return $case_options;
-  }
-    
+  }  
 }

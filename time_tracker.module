@@ -507,15 +507,15 @@ function time_tracker_comment(&$comment, $op) {
     case 'insert':
     case 'update':
       // A little extra love for casetracker
-      if (isset($comment['casetracker'])) {
-        $comment['pid'] = $comment['casetracker']['pid'];
-      }
-      elseif (module_exists('casetracker')) {
-        $node = node_load($comment['nid']);
-        if (casetracker_is_project($node->type)) {
-          $comment['pid'] = $node->nid;
-        }
-      }
+      // if (isset($comment['casetracker'])) {
+      //   $comment['pid'] = $comment['casetracker']['pid'];
+      // }
+      // elseif (module_exists('casetracker')) {
+      //   $node = node_load($comment['nid']);
+      //   if (casetracker_is_project($node->type)) {
+      //     $comment['pid'] = $node->nid;
+      //   }
+      // }
       // Check First if we are tracking by duration or time interval
       if (variable_get('time_entry_method', 'duration') == 'duration') {
         $duration = _time_tracker_parse_duration($comment['duration']);
@@ -852,15 +852,15 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   }
   
   // Some extra love for casetracker
-  if (module_exists('casetracker')) {
-    $node = node_load($values['nid']);
-    if (casetracker_is_case($node->type)) {
-      $time['pid'] = $node->casetracker->pid;
-    }
-    elseif (casetracker_is_project($node->type)) {
-      $time['pid'] = $node->nid;
-    }
-  }
+  // if (module_exists('casetracker')) {
+  //   $node = node_load($values['nid']);
+  //   if (casetracker_is_case($node->type)) {
+  //     $time['pid'] = $node->casetracker->pid;
+  //   }
+  //   elseif (casetracker_is_project($node->type)) {
+  //     $time['pid'] = $node->nid;
+  //   }
+  // }
   
   // The rest of the time entry 
   $time['activity'] = $values['activity'];
@@ -919,7 +919,7 @@ function time_tracker_theme() {
  *      $obj->nid: The node id this time entry is attached to
  *      $obj->uid: The user id to whom this time entry belongs
  *      $obj->cid: If applicable, the comment id for this time entry
- *      $obj->pid: If applicable, the casetracker project id for this time entru
+ *      $obj->pid: If applicable, the casetracker project id for this time entry (deprecated)
  *      $obj->activity: The time entry Activity
  *      $obj->timestamp: The unix timestamp of when this time entry was dated
  *      $obj->start: If tracking time by interval, the start time of the entry
@@ -1023,7 +1023,7 @@ function theme_time_tracker_time_entry_table($time_entries) {
  *      $obj->nid: The node id this time entry is attached to
  *      $obj->uid: The user id to whom this time entry belongs
  *      $obj->cid: If applicable, the comment id for this time entry
- *      $obj->pid: If applicable, the casetracker project id for this time entru
+ *      $obj->pid: If applicable, the casetracker project id for this time entry (deprecated)
  *      $obj->activity: The time entry Activity
  *      $obj->timestamp: The unix timestamp of when this time entry was dated
  *      $obj->start: If tracking time by interval, the start time of the entry
