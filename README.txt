@@ -1,3 +1,4 @@
+$Id$
 
 Description
 -----------
@@ -96,14 +97,23 @@ Double check your permissions before getting started:
 * add time tracker entries	
 	Permission to allow users to track time
 	
+* view time tracker entries
+  Allow users to view time entries
+	
+* edit time entries	
+	Allow users to edit time entries
+	
+* delete time entries	
+	Allow users to delete time entries
+	
 * administer time entries	
-	Allow users to edit or delete time entries
+	Gives access to additional options when editing a time entry:
+	 - Allows locking of time entires (if that particular setting is on)
+	 - Allows editing of locked time entries
+	 - Allows changing of username associated with a time entry
 	
 * administer time tracker	
 	Access the administration pages
-	
-* view time tracker entries
-  Should this role be allowed to even see the time entries?
   
 
 ** Time Estimate **

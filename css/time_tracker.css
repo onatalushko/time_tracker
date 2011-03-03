@@ -61,6 +61,10 @@
   clear: none;
 }
 
+#edit-locked-wrapper {
+  clear:both;
+}
+
 #edit-note-wrapper {
   clear: both;
 }

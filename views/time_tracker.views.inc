@@ -1,4 +1,5 @@
 <?php
+// $Id: time_tracker.views.inc,v 1.10 2010/06/11 23:10:08 codi Exp $
 /**
  * @file
  *   Views integration for time_tracker
@@ -95,6 +96,22 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
+  $data['time_tracker_entry']['locked'] = array(
+    'title' => t('Locked'),
+    'help' => t('Is the Entry Locked?'),
+    'field' => array(
+      'handler' => 'views_handler_field_boolean',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
   $data['time_tracker_entry']['uid'] = array(
     'title' => t('Author'),
     'help' => t('Relate an entry to the user who created it.'),
@@ -179,6 +196,18 @@ function time_tracker_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+  
+  // Access Time Tracker Data from the comments base table
+  $data['comments']['cid'] = array(
+    'relationship' => array(
+      'title' => t('Time Tracker'),
+      'help' => t('Access time tracker data for comments.'),
+      'handler' => 'views_handler_relationship',
+      'base' => 'time_tracker_entry',
+      'base field' => 'cid',
+      'label' => t('Time Tracker'),
     ),
   );
 
