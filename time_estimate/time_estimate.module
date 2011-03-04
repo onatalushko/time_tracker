@@ -1,4 +1,5 @@
 <?php
+// $Id: time_estimate.module,v 1.8 2010/07/22 00:33:04 codi Exp $
 
 /**
  * @file
@@ -53,7 +54,7 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
 
     $form['time_estimate'] = array(
       '#type' => 'fieldset',
-      '#title' => 'Time Estimate',
+      '#title' => t('Time Estimate'),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
       '#weight' => 0,
