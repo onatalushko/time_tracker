@@ -38,6 +38,11 @@ function time_tracker_timer_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
+      'total' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
     ),
     'primary key' => array('ttid'),
   );
@@ -51,4 +56,13 @@ function time_tracker_timer_install() {
 
 function time_tracker_timer_uninstall() {
   drupal_uninstall_schema('time_tracker_timer');
+}
+
+/**
+ * Adds the 'pause' field to the timer table
+ */
+function time_tracker_timer_update_6100() {
+  $return = array();
+  db_add_field($return, 'time_tracker_timer', 'total', array('type' => 'int', 'not_null' => TRUE, 'unsigned' => TRUE));
+  return $return;
 }

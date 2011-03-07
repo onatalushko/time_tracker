@@ -1189,8 +1189,13 @@ function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_
  * A function to calculate the difference between a start time
  * and a stop time and return a duration in the hh:mm format
  */
-function convert_phptime_to_duration($start, $stop) {
-  $duration = $stop - $start;
+function convert_phptime_to_duration($start, $stop = 0) {
+  if ($stop == 0) {
+    $duration = $start;
+  }
+  else {
+    $duration = $stop - $start;
+  }
   // floor() = Always round down
   if ($duration >= 3600) {
     $hours = sprintf('%02d', floor($duration / 3600));

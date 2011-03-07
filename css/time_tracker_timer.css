@@ -66,6 +66,22 @@ td.timer_control input {
   text-align:center;
   overflow: hidden;
 }
+td.timer_control.stopped_timer_control {
+  width: 260px;
+}
+
+td.timer_control.stopped_timer_control input.form-timer_control_reset {
+  float: left;
+  width: 112px;
+  padding: 0 0 3px 20px;
+}
+
+td.timer_control.stopped_timer_control input.form-timer_control_resume {
+  float: left;
+  width: 132px;
+  padding: 0 0 3px 20px;
+  margin-right: 10px;
+}
 
 input.form-timer_control_start {
   background: url("images/start_timer_button.png") no-repeat 0 0;
@@ -77,6 +93,10 @@ input.form-timer_control_stop {
 
 input.form-timer_control_reset {
   background: url("images/reset_timer_button.png") no-repeat 0 0;
+}
+
+input.form-timer_control_resume {
+  background: url("images/resume_timer_button.png") no-repeat 0 0;
 }
 
 td.new_timer_time {
