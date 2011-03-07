@@ -435,12 +435,7 @@ function time_sheet_add_time() {
     );
   }
   
-    $activities = array();
-    $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-  
-    while ($result = db_fetch_object($results)) {
-      $activities[$result->taid] = $result->name;
-    }
+    $activities = get_active_activities_options();
   
     $form['time_sheet']['activity'] = array(
       '#title' => t('Activity'),

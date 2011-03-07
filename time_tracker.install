@@ -90,6 +90,10 @@ function time_tracker_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
+      'status' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+      ),
     ),
     'primary key' => array('taid'),
   );
@@ -137,6 +141,16 @@ function time_tracker_update_6103() {
 function time_tracker_update_6104() {
   $return = array();
   db_add_field($return, 'time_tracker_entry', 'locked', array('type' => 'int', 'size' => 'tiny'));
+  return $return;
+}
+
+/**
+ * Adds locked field to time_tracker_entry
+ */
+function time_tracker_update_6105() {
+  $return = array();
+  db_add_field($return, 'time_tracker_activity', 'status', array('type' => 'int', 'size' => 'tiny'));
+  db_query("UPDATE {time_tracker_activity} SET status = 1 WHERE 1");
   return $return;
 }
 

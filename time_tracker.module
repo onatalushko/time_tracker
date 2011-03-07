@@ -55,18 +55,10 @@ function time_tracker_menu() {
     'type' => MENU_LOCAL_TASK,
     'parent' => 'admin/settings/time_tracker',
   );
-  $items['admin/settings/time_tracker/activity/add'] = array(
-    'title' => 'Add Activity',
+  $items['admin/settings/time_tracker/activity/delete/%'] = array(
+    'title' => 'Delete Activity',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('time_tracker_activity_form'),
-    'access arguments' => array('administer time tracker'),
-    'type' => MENU_LOCAL_TASK,
-    'parent' => 'admin/settings/time_tracker',
-  );
-  $items['admin/settings/time_tracker/activity/edit/%'] = array(
-    'title' => 'Edit Activity',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('time_tracker_activity_form', 5),
+    'page arguments' => array('time_tracker_delete_activity_confirm', 5),
     'access arguments' => array('administer time tracker'),
   );
   $items['time_entry/edit/%'] = array(
@@ -179,25 +171,27 @@ function theme_time_tracker_activity_table($form) {
   // The table headers
   $header = array(
     t('Activity Name'), 
-    t('Operations'), 
+    t('Enabled'),
+    t('Delete'), 
     t('Weight')
   );
-  
   // Take all the form elements and format theme for theme_table
-  foreach (element_children($form) as $key) {
-    if (isset($form[$key]['name'])) {
+  foreach (element_children($form['activities']) as $key) {
+    if (isset($form['activities'][$key]['name'])) {
       // Add class to group weight fields for drag and drop.
-      $form[$key]['weight']['#attributes']['class'] = 'activity-weight';
+      $form['activities'][$key]['weight']['#attributes']['class'] = 'activity-weight';
       // array to store row data
       $row = array();
-      $row[] = drupal_render($form[$key]['name']);
-      $row[] = drupal_render($form[$key]['edit']);
-      $row[] = drupal_render($form[$key]['weight']);
+      $row[] = drupal_render($form['activities'][$key]['name']);
+      $row[] = drupal_render($form['activities'][$key]['status']);
+      $row[] = drupal_render($form['activities'][$key]['delete']);
+      $row[] = drupal_render($form['activities'][$key]['weight']);
       $rows[] = array('data' => $row, 'class' => 'draggable');
     }
   }
   // Theme it as a table
   $output = theme('table', $header, $rows, array('id' => 'activity-table'));
+  $output .= drupal_render($form['add_new_activity']);
   // Render the form
   $output .= drupal_render($form);
   // Add the table drag functionality
@@ -230,30 +224,51 @@ function time_tracker_activity_table_form() {
     '#theme' => 'time_tracker_activity_table'
   );
   
+  $form['add_new_activity'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Add a new Activity'),
+    '#tree' => TRUE,
+  );
+  
+  $form['add_new_activity']['new_activity_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Activity Name'),
+    '#size' => 30,
+    '#description' => t('Add an activity that time can be tracked for.'),
+    '#default_value' => '',
+  );
+  
   // Loop through the activites and add them to the form.
   if (count($activities) > 0) {
     foreach ($activities as $activity) {
-      $form[$activity->taid]['#activity'] = (array)$activity;
+      $form['activities'][$activity->taid]['#activity'] = (array)$activity;
       // The activity name
-      $form[$activity->taid]['name'] = array(
-        '#value' => check_plain($activity->name)
+      $form['activities'][$activity->taid]['name'] = array(
+        '#type' => 'textfield',
+        '#default_value' => check_plain($activity->name),
       );
       // The weight (this is for the tabledrag we'll add in the theme function
-      $form[$activity->taid]['weight'] = array(
+      $form['activities'][$activity->taid]['weight'] = array(
         '#type' => 'textfield', 
         '#delta' => 10, 
         '#default_value' => $activity->weight
       );
+      // Is this activity enabled?
+      $form['activities'][$activity->taid]['status'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('enabled'),
+        '#default_value' => $activity->status ? TRUE : FALSE,
+      );
       // The Edit link to edit the activity
-      $form[$activity->taid]['edit'] = array(
-        '#value' => l(t('edit'), "admin/settings/time_tracker/activity/edit/$activity->taid")
+      $form['activities'][$activity->taid]['delete'] = array(
+        '#value' => l(t('delete'), "admin/settings/time_tracker/activity/delete/$activity->taid")
       );
     }
     // The submit button for the form
     $form['submit'] = array(
       '#type' => 'submit', 
       '#value' => t('Save'),
-      '#submit' => array('time_tracker_settings_form_submit'),
+      '#submit' => array('time_tracker_activity_table_form_submit'),
     );
   }
   elseif (isset($activity)) {
@@ -269,13 +284,20 @@ function time_tracker_activity_table_form() {
  * @param $form
  * @param $form_state
  */
-function time_tracker_settings_form_submit($form, &$form_state) {
-  foreach ($form_state['values'] as $taid => $activity) {
-    // Gotta save the new order
-    if (is_numeric($taid) && $form[$taid]['#activity']['weight'] != $form_state['values'][$taid]['weight']) {
-      $form[$taid]['#activity']['taid'] = $taid;
-      $form[$taid]['#activity']['weight'] = $form['#post'][$taid]['weight'];
-      drupal_write_record('time_tracker_activity', $form[$taid]['#activity'], array('taid'));
+function time_tracker_activity_table_form_submit($form, &$form_state) {
+  // If we're adding a new one
+  if ($form_state['values']['add_new_activity']['new_activity_name']) {
+    $activity = array();
+    $activity['name'] = $form_state['values']['add_new_activity']['new_activity_name'];
+    $activity['weight'] = count($form_state['values']['activities']) + 1;
+    $activity['status'] = 1;
+    drupal_write_record('time_tracker_activity', $activity);
+  }
+  foreach ($form_state['values']['activities'] as $taid => $activity) {
+    // If anything has changed...
+    if (is_numeric($taid) && ($form[$taid]['#activity']['weight'] != $activity['weight'] || $form[$taid]['#activity']['status'] != $activity['status'] || $form[$taid]['#activity']['name'] != $activity['name'])) {
+      $activity['taid'] = $taid;
+      drupal_write_record('time_tracker_activity', $activity, array('taid'));
     }
   }
   drupal_set_message('Activities Saved');
@@ -284,41 +306,21 @@ function time_tracker_settings_form_submit($form, &$form_state) {
 /**
  * Form builder function for module time tracker activities.
  */
-function time_tracker_activity_form(&$form_state, $taid = NULL) {
-
-  $form['#redirect'] = 'admin/settings/time_tracker/list';
-
+function time_tracker_delete_activity_confirm(&$form_state, $taid) {
+  
+  $form = array();
+    
   if ($taid) {
-    $activity = db_fetch_object(db_query("SELECT * FROM {time_tracker_activity} WHERE taid = " . $taid));
-
-    $form['time_tracker_activity']['taid'] = array(
+    $form['taid'] = array(
       '#type' => 'value',
-      '#default_value' => $activity->taid,
+      '#default_value' => $taid,
     );
+    $question = t('Are you sure you want to delete the activity: !activity_name', array('!activity_name' => get_activity_name($taid)));
+    return confirm_form($form, $question, 'admin/settings/time_tracker/activity/list');
   }
-
-  $form['time_tracker_activity']['name'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Activity'),
-    '#size' => 30,
-    '#description' => t('Add an activity that time can be tracked for.'),
-    '#default_value' => $activity->name,
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save'),
-  );
-
-  if ($taid) {
-    $form['delete'] = array(
-      '#type' => 'submit',
-      '#value' => t('Delete'),
-      '#submit' => array('time_tracker_activity_delete'),
-    );
+  else {
+    return $form['msg']['#value'] = 'No Activity ID passed in.';
   }
-
-  return $form;
 }
 
 /**
@@ -327,25 +329,10 @@ function time_tracker_activity_form(&$form_state, $taid = NULL) {
  * @param $form
  * @param $form_state
  */
-function time_tracker_activity_form_submit($form, &$form_state) {
-  if (isset($form_state['values']['taid'])) {
-    drupal_set_message(t('Activity Updated'));
-    return drupal_write_record('time_tracker_activity', $form_state['values'], array('taid'));
-  }
-  else {
-    drupal_set_message(t('Activity Added'));
-    return drupal_write_record('time_tracker_activity', $form_state['values']);
-  }
-}
-
-/**
- * Function for deleting time tracker activity entries.
- */
-function time_tracker_activity_delete($form, &$form_state) {
+function time_tracker_delete_activity_confirm_submit($form, &$form_state) {
+  $form_state['redirect'] = 'admin/settings/time_tracker/activity/list';
   db_query('DELETE FROM {time_tracker_activity} WHERE taid = ' . $form_state['values']['taid']);
   drupal_set_message(t('Activity %name Deleted', array('%name' => $form_state['values']['name'])));
-
-  drupal_goto('admin/settings/time_tracker');
 }
 
 /************************************************************************
@@ -588,12 +575,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   
   drupal_add_css(drupal_get_path('module', 'time_tracker') .'/css/time_tracker.css');
   
-  $activities = array();
-  $activities[] = '';
-  $results = db_query("SELECT * FROM {time_tracker_activity} ORDER BY weight ASC");
-  while ($result = db_fetch_object($results)) {
-    $activities[$result->taid] = $result->name;
-  }
+  $activities = get_active_activities_options();
   
   $lock = FALSE;
   
@@ -850,17 +832,6 @@ function time_tracker_time_entry_submit($form, &$form_state) {
     $time['end'] = strtotime($values['end']);
     $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
   }
-  
-  // Some extra love for casetracker
-  // if (module_exists('casetracker')) {
-  //   $node = node_load($values['nid']);
-  //   if (casetracker_is_case($node->type)) {
-  //     $time['pid'] = $node->casetracker->pid;
-  //   }
-  //   elseif (casetracker_is_project($node->type)) {
-  //     $time['pid'] = $node->nid;
-  //   }
-  // }
   
   // The rest of the time entry 
   $time['activity'] = $values['activity'];
@@ -1205,6 +1176,20 @@ function convert_phptime_to_duration($start, $stop = 0) {
     $mins = sprintf('%02d', ($duration/60));
     return '00:' . $mins;
   }
+}
+
+/**
+ * Helper function to get the active activities
+ * Formatted as a options list array for a select form element
+ */
+function get_active_activities_options() {
+  $activities = array();
+  $activities[] = '';
+  $results = db_query("SELECT * FROM {time_tracker_activity} WHERE status = 1 ORDER BY weight ASC");
+  while ($result = db_fetch_object($results)) {
+    $activities[$result->taid] = $result->name;
+  }
+  return $activities;
 }
 
 
