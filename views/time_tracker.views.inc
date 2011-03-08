@@ -287,85 +287,38 @@ function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
     if ( !isset($_GET['uid']) && !isset($_GET['timestamp']['min']) && !isset($_GET['timestamp']['max']) &&  !isset($_GET['pid']) && !isset($_GET['group_nid']) ) {
       drupal_goto($_GET['q'], 'timestamp[min]=' . $start_date . '&timestamp[max]=' . $end_date);
     }
-    
-    // if($form['group_nid'] && $form['pid']) {
-    //   $form['group_nid']['#ahah'] = array(
-    //     'event' => 'change',
-    //     'path' => 'reports/js',
-    //     'wrapper' => 'edit-pid-wrapper',
-    //     'method' => 'replace',
-    //     'effect' => 'slide',
-    //   );
-    // }
 
   }
 }
 
-// /**
-//  * AHAH Callback for the views filters
-//  * Creates a dependency for the 'Project' filter to 
-//  * Get the user to choose a Group First.
-//  *
-//  * Currently building the html from scratch rather than using
-//  * a drupal function because views exposed filters uses a different
-//  * caching method for it's form build_id etc. and we can't employ
-//  * the usual AHAH methods.
-//  */
-// function report_js() {
-//   
-//   // Get the chosen group from the POST variable
-//   $group_nid = $_POST['group_nid'];
-//   
-//   $projects = _get_projects_for_group($group_nid);
-//   
-//   $options = '';
-//   foreach ($projects as $nid => $project) {
-//     $options .= '<option value="' . $nid . '">' . $project . '</option>';
-//   }
-//   
-//   // Rebuild the element the way views expects it to be built
-//   $html = '<select id="edit-pid" class="form-select" name="pid"><option selected="selected" value="All">&lt;Any&gt;</option>'. $options .'</select>';
-//   
-//   $output = theme('status_messages') . $html;
-//   
-//   drupal_json(array('status' => TRUE, 'data' => $output));
-// }
-// 
-// /**
-//  * Returns the projects for a given Group ID
-//  *
-//  * NOTE:
-//  * Groups and Projects are just node types, all stored in the
-//  * node table in the db. However the og_ancestry table
-//  * stored the relationship between a project and a group.
-//  *
-//  * @param
-//  * The Group nid for the project.
-//  */
-// function _get_projects_for_group($group_id = 'All') {
-//   $options = array();
-//   
-//   if ($group_id == 'All') {
-//     $sql = "SELECT node.title, node.nid
-//             FROM {node}
-//             JOIN {og_ancestry} AS oa ON oa.nid = node.nid
-//             JOIN {node} AS no ON no.nid = oa.group_nid
-//             WHERE node.type = '%s'
-//             ORDER BY node.title ASC";
-//   }
-//   else {
-//     $sql = "SELECT node.title, node.nid
-//             FROM {node}
-//             JOIN {og_ancestry} AS oa ON oa.nid = node.nid
-//             JOIN {node} AS no ON no.nid = oa.group_nid
-//             WHERE node.type = '%s'
-//             AND no.nid = '%s'";
-//   }
-//           
-//   $result = db_query($sql, 'casetracker_basic_project', $group_id);
-//   
-//   while ($row = db_fetch_object($result)) {
-//     $options[$row->nid] = $row->title;
-//   }
-//   return $options;
-// }
+/**
+ * Implementation of hook_date_api_tables
+ */
+function time_tracker_date_api_tables() {
+  return array('time_tracker_entry');
+}
+
+/**
+ * Implementation of hook_date_api_fields
+ * This is required to allow timetracker timestamp
+ * as a date argument in views.
+ */
+function time_tracker_date_api_fields($field) {
+  $values = array(
+    'sql_type' => DATE_UNIX,
+    'tz_handling' => 'site',
+    'timezone_field' => '',
+    'offset_field' => '',
+    'related_fields' => array(),
+    'granularity' => array('year', 'month', 'day', 'hour', 'minute', 'second'),
+  );
+  
+  switch($field) {
+    case 'time_tracker_entry.timestamp':
+    case 'time_tracker_entry.start':
+    case 'time_tracker_entry.end': 
+      return $values;
+  }
+}
+
+
