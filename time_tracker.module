@@ -264,16 +264,18 @@ function time_tracker_activity_table_form() {
         '#value' => l(t('delete'), "admin/settings/time_tracker/activity/delete/$activity->taid")
       );
     }
-    // The submit button for the form
-    $form['submit'] = array(
-      '#type' => 'submit', 
-      '#value' => t('Save'),
-      '#submit' => array('time_tracker_activity_table_form_submit'),
-    );
   }
   elseif (isset($activity)) {
     unset($form[$activity->taid]['weight']);
   }
+  
+  // The submit button for the form
+  $form['submit'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Save'),
+    '#submit' => array('time_tracker_activity_table_form_submit'),
+  );
+  
   // Return the form
   return $form;
 }
@@ -293,11 +295,13 @@ function time_tracker_activity_table_form_submit($form, &$form_state) {
     $activity['status'] = 1;
     drupal_write_record('time_tracker_activity', $activity);
   }
-  foreach ($form_state['values']['activities'] as $taid => $activity) {
-    // If anything has changed...
-    if (is_numeric($taid) && ($form[$taid]['#activity']['weight'] != $activity['weight'] || $form[$taid]['#activity']['status'] != $activity['status'] || $form[$taid]['#activity']['name'] != $activity['name'])) {
-      $activity['taid'] = $taid;
-      drupal_write_record('time_tracker_activity', $activity, array('taid'));
+  if (count($form_state['values']['activities']) > 0) {
+    foreach ($form_state['values']['activities'] as $taid => $activity) {
+      // If anything has changed...
+      if (is_numeric($taid) && ($form[$taid]['#activity']['weight'] != $activity['weight'] || $form[$taid]['#activity']['status'] != $activity['status'] || $form[$taid]['#activity']['name'] != $activity['name'])) {
+        $activity['taid'] = $taid;
+        drupal_write_record('time_tracker_activity', $activity, array('taid'));
+      }
     }
   }
   drupal_set_message('Activities Saved');
