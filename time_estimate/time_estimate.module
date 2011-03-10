@@ -124,7 +124,7 @@ function time_estimate_nodeapi(&$node, $op) {
           $time_tracker_time += $result->duration;
         }
 
-        if ($time_estimate > 0 && user_access('view time estimate entries')) {
+        if ($time_estimate->estimate > 0 && user_access('view time estimate entries')) {
           // We are going to override the time_tracker time logged display entirely
           unset($node->content['time_tracker_summary']);
           $node->content['time_estimate_summary'] = array(

@@ -1046,7 +1046,11 @@ function theme_time_tracker_comment($time_entry) {
     }
     else {
       $time = 'on ' . date("F d, Y", $time_entry->timestamp);
-      $rows[] = array(t('Time: '. format_hours_to_hours_and_minutes($time_entry->duration) . ' ' . $activity . $time));
+      $rows[] = array(t('Time: !duration !activity on !time', array(
+        '!duration' => format_hours_to_hours_and_minutes($time_entry->duration),
+        '!time' => format_date($time_entry->timestamp, 'custom', 'F d, Y'),
+        '!activity' => $activity,
+      )));
 
       return theme('table', NULL, $rows, array('class' => 'time_tracker_entry_comment'));
     }
