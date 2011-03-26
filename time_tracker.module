@@ -525,8 +525,7 @@ function time_tracker_comment(&$comment, $op) {
       }
       elseif (variable_get('time_entry_method', 'duration') == 'interval') {
         if (strlen($comment['start']) && strlen($comment['end'])) {
-          $comment['start'] = strtotime($comment['start']);
-          $comment['timestamp'] = strtotime($comment['start']);
+          $comment['start'] = $comment['timestamp'] = strtotime($comment['start']);
           $comment['end'] = strtotime($comment['end']);
           //Do we make the duration into a timestamp now??
           $comment['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration( $comment['start'], $comment['end']));
