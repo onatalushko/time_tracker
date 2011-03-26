@@ -347,11 +347,7 @@ function time_sheet_add_time() {
     $total_time = $total_time + $result_case->duration;
   }
   // Grab the total time estimate for this ticket
-  $total_estimate = 0;
-  $estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $node->nid);
-  while ($estimate_result = db_fetch_object($estimate_results)) {
-    $total_estimate = $estimate_result;
-  }
+  $total_estimate = db_result(db_query("SELECT estimate FROM {time_estimate_entry} WHERE nid = %d", $case->nid));
 
   // add some case details so we know what we're dealing with
   $form['time_sheet']['case_details'] = array(
