@@ -244,6 +244,43 @@ function time_tracker_views_data() {
     ),
   );
 
+  // Define a "table" called 'time_tracker_totals', which will actually be
+  // a subquery that will add up all the time tracked on the node.
+  $data['time_tracker_totals'] = array(
+    'table' => array(
+      'group' => t('Time Tracker'),
+      // Join this "table" to the Node table, so this can be used in node views,
+      // which is the whole point.
+      'join' => array(
+        'node' => array(
+          'left_field' => 'nid',
+          'field' => 'nid',
+          // Use a custom join handler, which constructs the query. This is
+          // defined below.
+          'handler' => 'time_tracker_node_join_handler',
+        ),
+      ),
+    ),
+
+    // Create a field called total_time, to add up all the time tracked on
+    // a node. Allow it to be used as a numeric Field, Filter, and Sort.
+    'total_time' => array(
+      'title' => t('Total time'),
+      'help' => t('The total time tracked on the node (not including time tracked on comments)'),
+      'field' => array(
+        'handler' => 'views_handler_field_numeric',
+        'click sortable' => TRUE,
+        'float' => TRUE,
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_numeric',
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+    ),
+  );
+
   return $data;
 }
 
@@ -322,3 +359,27 @@ function time_tracker_date_api_fields($field) {
 }
 
 
+/**
+ * Handles the join between the node table and the time information.
+ *
+ * Note that this handler is in the views.inc file rather than in its own file,
+ * because we need to load it. Views doesn't auto-load join handlers, unlike
+ * other handlers (i.e., join handlers are not Views handlers per se, despite
+ * the name).
+ */
+class time_tracker_node_join_handler extends views_join {
+
+  /**
+   * Overrides the views_join::join() method.
+   *
+   * Custom join that makes a sub-query.
+   */
+  function join($table, &$query) {
+    $alias = $table['alias'];
+    $left = $query->get_table_info('node');
+    $left_field = $left['alias'] . ".nid";
+
+    $output = $this->type . " JOIN (SELECT SUM(`duration`) as total_time, `nid` FROM {time_tracker_entry} GROUP BY nid) as $alias ON $left_field = $alias.nid";
+    return $output;
+  }
+}
