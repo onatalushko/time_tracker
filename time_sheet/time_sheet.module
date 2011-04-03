@@ -22,10 +22,31 @@ function time_sheet_perm() {
   }
 }
 
+/**
+ * Custom Access Control
+ */
+function time_sheet_view_access($account) {
+  if (is_numeric($account)) {
+    $account = user_load($account);
+  }
+  // The user is not blocked and logged in at least once.
+  if (!$account->access || !$account->status) {
+    return false;
+  }
+  if ($account && $account->uid) {
+    if ((user_access('view all time tracker entries') && user_access('view time sheet entries')) || user_access('administer users')) {
+      return true;
+    }
+    if ((user_access('view own time tracker entries') && user_access('view time sheet entries')) && $GLOBALS['user']->uid == $account->uid) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
  * Implementation of hook_menu().
  *
- * TODO: Add a menu item for admin settings.
  * TODO: Add a menu item for administrators to view finalized time sheet entries.
  */
 function time_sheet_menu() {
@@ -35,12 +56,14 @@ function time_sheet_menu() {
     'description' => 'My Time Sheet',
     'page callback' => 'time_sheet_page',
     'page arguments' => array(1),
-    'access arguments' => array('view time sheet entries'),
+    'access callback' => 'time_sheet_view_access',
+    'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
   );
-  $items['time_sheet/add_time'] = array(
+  $items['time_sheet/add_time/%user'] = array(
     'page callback' => 'time_sheet_add_time',
-    'access arguments' => array('view time sheet entries'),
+    'access callback' => 'time_sheet_view_access',
+    'access arguments' => array(2),
     'type' => MENU_CALLBACK,
   );
   $items['admin/settings/time_tracker/time_sheets'] = array(
@@ -292,7 +315,7 @@ function time_sheet_case_list_form($form_state, $user, $day, $stamp) {
     '#title' => t('Select a case'),
     '#options' => $options,
     '#ahah' => array(
-      'path' => 'time_sheet/add_time',
+      'path' => 'time_sheet/add_time/' . $user->uid,
       'wrapper' => 'case-form-' . $day,
       'event' => 'change',
     ),

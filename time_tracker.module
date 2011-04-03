@@ -23,8 +23,8 @@ define('TIME_TRACKER_DEFAULT_DATE_FORMAT', 'Y-m-d h:i A');
  */
 function time_tracker_perm() {
   return array('administer time tracker', 'add time tracker entries',
-    'view time tracker entries', 'edit time tracker entries', 
-    'delete time tracker entires', 'administer time entries');
+    'view all time tracker entries', 'view own time tracker entries', 'edit time tracker entries', 
+    'delete time tracker entries', 'administer time entries');
 }
 
 /**
@@ -96,8 +96,8 @@ function time_tracker_settings_form(&$form_state) {
   );
   $form['time_tracker_settings']['hide_comments'] = array(
     '#type' => 'checkbox',
-    '#title' => t("Hide comments with time tracker data entirely if user does not have 'view time tracker entries' permission"),
-    '#description' => t("Checking this setting will hide any comments that have time tracking data on them from any users without the 'view time tracker entries' permission"),
+    '#title' => t("Hide comments with time tracker data entirely if user does not have 'view all time tracker entries' or 'view own time tracker entries' permission"),
+    '#description' => t("Checking this setting will hide any comments that have time tracking data on them from any users without the 'view all time tracker entries' or 'view own time tracker entries' permission"),
     '#default_value' => variable_get('hide_comments', 0),
   );
   $form['time_tracker_settings']['allow_locked_time_entries'] = array(
@@ -389,7 +389,7 @@ function time_tracker_form_alter(&$form, $form_state, $form_id) {
 function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
-      if (user_access('view time tracker entries')) {
+      if (user_access('view all time tracker entries') || user_access('view own time tracker entries')) {
         // If case tracker exists then we can check if it's a project
         if (module_exists('casetracker') && casetracker_is_project($node->type)) {
           $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
@@ -468,7 +468,7 @@ function time_tracker_comment(&$comment, $op) {
   switch ($op) {
     case 'view':
     // We only want to show time tracker data if user has permission
-      if (user_access('view time tracker entries')) {
+      if (user_access('view all time tracker entries') || (user_access('view own time tracker entries') && $GLOBALS['user']->uid == $comment->uid)) {
         // If this is a preview we won't have a cid yet.
         if (empty($comment->cid)) {
           $time_tracker_data = (object)$comment->time_tracker;
@@ -921,58 +921,60 @@ function theme_time_tracker_time_entry_table($time_entries) {
   }
   //Loop through the time entries and add them to the table
   foreach ($time_entries as $time_entry) {
-    if (variable_get('time_entry_method', 'duration') == 'duration') {
-      $time = date("F d, Y", $time_entry->timestamp);
-    }
-    elseif (variable_get('time_entry_method', 'duration') == 'interval') {
-      if ($time_entry->start && $time_entry->end) {
-        $time = '' . date('h:i A - M d, Y', $time_entry->start) . '<br/>' . date('h:i A - M d, Y', $time_entry->end);
+    if (user_access('view all time tracker entries') || (user_access('view own time tracker entries') && $GLOBALS['user']->uid == $time_entry->uid)) {
+      if (variable_get('time_entry_method', 'duration') == 'duration') {
+        $time = date("F d, Y", $time_entry->timestamp);
       }
-      else {
-        $time = date("F d, Y", $time_entry->timestamp) . '<br/>Entered as Duration';
+      elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+        if ($time_entry->start && $time_entry->end) {
+          $time = '' . date('h:i A - M d, Y', $time_entry->start) . '<br/>' . date('h:i A - M d, Y', $time_entry->end);
+        }
+        else {
+          $time = date("F d, Y", $time_entry->timestamp) . '<br/>Entered as Duration';
+        }
       }
-    }
-    $row = array(//row
-      'data' => array( //row data
-        array( //Cell1
-          'data' => user_load($time_entry->uid)->name,
-          'class' => 'time_entry_username',
+      $row = array(//row
+        'data' => array( //row data
+          array( //Cell1
+            'data' => user_load($time_entry->uid)->name,
+            'class' => 'time_entry_username',
+          ),
+          array( //Cell2
+            'data' => get_activity_name($time_entry->activity),
+            'class' => 'time_entry_username',
+          ),
+          array( //Cell3
+            'data' => format_hours_to_hours_and_minutes($time_entry->duration),
+            'class' => 'time_entry_duration',
+          ),
+          array( //Cell4
+            'data' => $time,
+            'class' => 'time_entry_time',
+          ),
+          array( //Cell5
+            'data' => $time_entry->note,
+            'class' => 'time_entry_note',
+          ),
         ),
-        array( //Cell2
-          'data' => get_activity_name($time_entry->activity),
-          'class' => 'time_entry_username',
-        ),
-        array( //Cell3
-          'data' => format_hours_to_hours_and_minutes($time_entry->duration),
-          'class' => 'time_entry_duration',
-        ),
-        array( //Cell4
-          'data' => $time,
-          'class' => 'time_entry_time',
-        ),
-        array( //Cell5
-          'data' => $time_entry->note,
-          'class' => 'time_entry_note',
-        ),
-      ),
-      'class' => '', //row class
-    );//endrow
-    if (user_access('edit time tracker entries') || user_access('administer time entries')) {
-      // If entry is locked and user does not have proper permissions
-   	  if (variable_get('allow_locked_time_entries', 0) && $time_entry->locked && !user_access('administer time entries')) {
-   	    $row['data'][] = array( //Cell6
-   	      'data' => t('locked'),
-   	      'class' => 'time_entry_edit',
-   	    );
-   	  } 
-      else {
-        $row['data'][] = array( //Cell6
-          'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid),
-          'class' => 'time_entry_edit',
-        );
+        'class' => '', //row class
+      );//endrow
+      if (user_access('edit time tracker entries') || user_access('administer time entries')) {
+        // If entry is locked and user does not have proper permissions
+     	  if (variable_get('allow_locked_time_entries', 0) && $time_entry->locked && !user_access('administer time entries')) {
+     	    $row['data'][] = array( //Cell6
+     	      'data' => t('locked'),
+     	      'class' => 'time_entry_edit',
+     	    );
+     	  } 
+        else {
+          $row['data'][] = array( //Cell6
+            'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid),
+            'class' => 'time_entry_edit',
+          );
+        }
       }
+      $rows[] = $row;
     }
-    $rows[] = $row;
   }
   $form = array();
   $form['time_tracker_time_entries'] = array(
@@ -1105,7 +1107,7 @@ function theme_time_tracker_project_summary($total_time) {
  */
 function time_tracker_preprocess_comment(&$vars) {
   $comment = $vars['comment'];
-  if ($comment->status == 2 && variable_get('hide_comments', 0) && !user_access('view time tracker entries')) {
+  if ($comment->status == 2 && variable_get('hide_comments', 0) && !user_access('view all time tracker entries')) {
     $vars['hide'] = TRUE;
   }
 }
@@ -1132,8 +1134,12 @@ function time_tracker_preprocess_comment(&$vars) {
  * @param $sep
  *    Optional separator for the hours and minutes. Default is ', '
  *    e.g. 10 hours, 30 minutes
+ * 
+ * @param $round
+ *    Optional boolean to tell the function whether or not to round the output
+ *    Not in use yet, but soon!
  */
-function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ') {
+function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ', $round = FALSE) {
     $hrs = floor($hours);
     $mins = round(($hours - $hrs) * 60);
     // Format the 'hours' text
