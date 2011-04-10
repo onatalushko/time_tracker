@@ -7,10 +7,16 @@
  */
 
 /*
-  The default date format for displaying dates and times
+  Define some constants
 */
+// Default Date formats
 define('TIME_TRACKER_DEFAULT_DATE_FORMAT', 'Y-m-d h:i A');
-
+define('TIME_TRACKER_DEFAULT_TIMESTAMP_FORMAT', 'F d, Y');
+define('TIME_TRACKER_DEFAULT_INTERVAL_FORMAT', 'h:i A - M d, Y');
+// Constants for what we are tracking time on
+define('TIME_TRACKER_BOTH', 'both');
+define('TIME_TRACKER_NODE', 'node');
+define('TIME_TRACKER_COMMENT', 'comment');
 
 // TODO: Abstract the time_entry_form and make it themeable.
 
@@ -90,6 +96,8 @@ function time_tracker_settings_form(&$form_state) {
   $msg = t('Note that any entries that have been entered using the <em>duration</em> method will not have start and end times saved in the database. Switching from <em>duration</em> to <em>interval</em> will not retroactively create start and end times for past time entires.');
   
   $form = array();
+  
+  // Basic Settings
   $form['time_tracker_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t("General Settings"),
@@ -106,6 +114,8 @@ function time_tracker_settings_form(&$form_state) {
     '#description' => t("Checking this setting will allow users with the 'administer time entries' permission to lock time entries, preventing them from being editied."),
     '#default_value' => variable_get('allow_locked_time_entries', 0),
   );
+  
+  // Default settings for time tracker time entry and time display fieldsets
   $form['time_tracker_fieldset_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t("Fieldset Settings"),
@@ -122,6 +132,8 @@ function time_tracker_settings_form(&$form_state) {
     '#description' => t("When tracking time on nodes, checking this setting will collapse the time tracker time entry table by default"),
     '#default_value' => variable_get('time_entry_table_default_collapsed', 0),
   );
+  
+  // Time entry settings (duration or interval)
   $form['time_entry_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t("Time Entry Settings"),
@@ -140,6 +152,69 @@ function time_tracker_settings_form(&$form_state) {
     '#prefix' => '<div class="description">',
     '#suffix' => '</div>',
     '#value' => $msg,
+  );
+  
+  // Date formats
+  $msg = 'Dates will be output using format_date(). Below, please specify PHP date format strings as required by <a href="http://php.net/manual/en/function.date.php">date()</a>. A backslash should be used before a character to avoid interpreting the character as part of a date format.';
+  $form['time_tracker_date_formats'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Time Tracker Date Formats'),
+  );
+  $form['time_tracker_date_formats']['time_entry_message'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<div class="description">',
+    '#suffix' => '</div>',
+    '#value' => $msg,
+  );
+  $form['time_tracker_date_formats']['time_interval_date_format'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Time Interval Date Formats'),
+    '#description' => t('The date format for displaying time interval start and end time entries. Default is @date', array('@date' => format_date(time(), 'custom', 'h:i A - M d, Y'))),
+    '#default_value' => variable_get('time_interval_date_format', 'h:i A - M d, Y'),
+  );
+  $form['time_tracker_date_formats']['timestamp_date_format'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Timestamp Date Format'),
+    '#description' => t('The date format for displaying time entry timestamps. Usually would be displayed without time, although time information is available if desired. Default is @date', array('@date' => format_date(time(), 'custom', 'F d, Y'))),
+    '#default_value' => variable_get('timestamp_date_format', 'F d, Y'),
+  );
+  
+  // Settings for time rounding
+  $form['time_rounding_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Time Rounding Settings'),
+  );
+  $form['time_rounding_settings']['time_tracker_rounding_operation'] = array(
+    '#type' => 'select',
+    '#title' => t('Rounding Operation'),
+    '#description' => t('The rounding operation to perform.'),
+    '#default_value' => variable_get('time_tracker_rounding_operation', 'auto'),
+    '#options' => array(
+      'auto' => 'Auto',
+      'up' => 'Round Up',
+      'down' => 'Round Down',
+    ),
+  );
+  $form['time_rounding_settings']['time_tracker_rounding_interval'] = array(
+    '#type' => 'select',
+    '#title' => t('Rounding Interval'),
+    '#description' => t('The interval (in minutes) to round time entries to. Choose 0 for no rounding'),
+    '#default_value' => variable_get('time_tracker_rounding_interval', 0),
+    '#options' => array(
+      0 => '0',
+      5 => '5',
+      10 => '10',
+      15 => '15',
+      20 => '20',
+      30 => '30',
+      60 => '60 (hour)',
+    ),
+  );
+  $form['time_rounding_settings']['time_tracker_rounding_message'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Display Time Rounding message on Time Entry Form"),
+    '#description' => t("Checking this setting will show a message on the time entry form, informing users that their entries will be rounded upon saving."),
+    '#default_value' => variable_get('time_tracker_rounding_message', 0),
   );
   
   return system_settings_form($form);
@@ -497,19 +572,11 @@ function time_tracker_comment(&$comment, $op) {
 
     case 'insert':
     case 'update':
-      // A little extra love for casetracker
-      // if (isset($comment['casetracker'])) {
-      //   $comment['pid'] = $comment['casetracker']['pid'];
-      // }
-      // elseif (module_exists('casetracker')) {
-      //   $node = node_load($comment['nid']);
-      //   if (casetracker_is_project($node->type)) {
-      //     $comment['pid'] = $node->nid;
-      //   }
-      // }
+      $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
+      $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
       // Check First if we are tracking by duration or time interval
       if (variable_get('time_entry_method', 'duration') == 'duration') {
-        $duration = _time_tracker_parse_duration($comment['duration']);
+        $duration = time_tracker_round(_time_tracker_parse_duration($comment['duration']), $rounding_interval / 60, $rounding_operation);
         if ($duration > 0) {
           $comment['duration'] = $duration;
           $comment['timestamp'] = strtotime($comment['time']);
@@ -525,8 +592,8 @@ function time_tracker_comment(&$comment, $op) {
       }
       elseif (variable_get('time_entry_method', 'duration') == 'interval') {
         if (strlen($comment['start']) && strlen($comment['end'])) {
-          $comment['start'] = $comment['timestamp'] = strtotime($comment['start']);
-          $comment['end'] = strtotime($comment['end']);
+          $comment['start'] = $comment['timestamp'] = time_tracker_round(strtotime($comment['start']), $rounding_interval * 60, $rounding_operation);
+          $comment['end'] = time_tracker_round(strtotime($comment['end']), $rounding_interval * 60, $rounding_operation);
           //Do we make the duration into a timestamp now??
           $comment['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration( $comment['start'], $comment['end']));
           return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
@@ -571,24 +638,42 @@ function time_tracker_comment(&$comment, $op) {
  * 
  */
 function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
+  // Current user
   global $user;
-  // TODO? Add Javascript to auto complete the duration field
-  // For time interval entries
-  //drupal_add_js();
   
+  // Our base css for the form to put form elements side by side
   drupal_add_css(drupal_get_path('module', 'time_tracker') .'/css/time_tracker.css');
   
+  // Our list of possible activities formatted as an option list for the select drop down
   $activities = get_active_activities_options();
   
+  // Assume it isn't locked for now.
   $lock = FALSE;
   
+  // The time tracker time entry form fieldset
   $form['time_tracker'] = array(
     '#type' => 'fieldset',
     '#title' => t('Time Tracker'),
     '#collapsible' => TRUE,
     '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
+    '#description' => $msg,
     '#weight' => -9,
   );
+  
+  // Display a message about the rounding if it's on and messages are set to display
+  if (variable_get('time_tracker_rounding_message', 0) && variable_get('time_tracker_rounding_interval', 0)) {
+    $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
+    $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
+    if ($rounding_operation == 'auto') {
+      $rounding_operation = 'rounded';
+    }
+    else {
+      $rounding_operation = 'rounded ' . $rounding_operation;
+    }
+    $msg = t('Time rounding is ON. Time will be !rounded to the nearest !minutes minute interval.', array('!rounded' => $rounding_operation, '!minutes' => $rounding_interval));
+    // Add it to the time_tracker fieldset
+    $form['time_tracker']['#description'] = $msg;
+  }
   
   // If we are editing a comment...
   if ($type == 'comment' && $id) {
@@ -698,7 +783,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
       '#type' => $lock ? 'value' : 'textfield',
       '#size' => '20',
       '#weight' => 0,
-      '#default_value' => empty($time_tracker_data->timestamp) ? date("F d, Y", time()) : date("F d, Y", $time_tracker_data->timestamp),
+      '#default_value' => empty($time_tracker_data->timestamp) ? format_date(time(), 'custom', variable_get('timestamp_date_format', 'F d, Y')) : format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
     );
     $form['time_tracker']['time_entry']['duration'] = array(
       '#title' => t('Hours'),
@@ -710,7 +795,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     );
   } 
   else { // Time entry method is 'interval'
-    $format = TIME_TRACKER_DEFAULT_DATE_FORMAT; // This should be defined in settings...
+    $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
     $form['time_tracker']['time_entry']['prefix'] = array(
       '#value' => '<div class="time_entry">',
       '#weight' => 0,
@@ -718,7 +803,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     $form['time_tracker']['time_entry']['start'] = array(
       '#title' => t('Start'),
       '#type' => $lock ? 'value' : 'date_popup',
-      '#default_value' => $time_tracker_data->start ? date($format, $time_tracker_data->start) : '',
+      '#default_value' => $time_tracker_data->start ? format_date($time_entry->start, 'custom', $format) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 1,
@@ -726,7 +811,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     $form['time_tracker']['time_entry']['end'] = array(
       '#title' => t('End'),
       '#type' => $lock ? 'value' : 'date_popup',
-      '#default_value' => $time_tracker_data->end ? date($format, $time_tracker_data->end) : '',
+      '#default_value' => $time_tracker_data->end ? format_date($time_entry->end, 'custom', $format) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 2,
@@ -821,18 +906,20 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   $user = user_load(array('name' => $values['username']));
   // If this is an existing time entry...
   $time['teid'] = $values['teid'];
-  
+  // Store the rounding data
+  $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
+  $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
   // Special handling based on the time entry method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
     $time['start'] = 0;
     $time['end'] = 0;
-    $time['duration'] = _time_tracker_parse_duration($values['duration']);
+    $time['duration'] = time_tracker_round(_time_tracker_parse_duration($values['duration']), $rounding_interval / 60, $rounding_operation);
     $time['timestamp'] = strtotime($values['time']);
   }
   elseif (variable_get('time_entry_method', 'duration') == 'interval') {
-    $time['start'] = strtotime($values['start']);
-    $time['timestamp'] = strtotime($values['start']);
-    $time['end'] = strtotime($values['end']);
+    $time['start'] = time_tracker_round(strtotime($values['start']), $rounding_interval * 60, $rounding_operation);
+    $time['end'] = time_tracker_round(strtotime($values['end']), $rounding_interval * 60, $rounding_operation);
+    $time['timestamp'] = $time['start'];
     $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
   }
   
@@ -853,7 +940,20 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   
   // Update the db and send a message to the user
   drupal_write_record('time_tracker_entry', $time, $time['teid'] ? 'teid' : array());
-  drupal_set_message(t('Time Entry Recorded'));
+  
+  // Message to the user
+  if ($rounding_interval) {
+    if ($rounding_operation == 'auto') {
+      $rounding_operation = 'rounded';
+    }
+    else {
+      $rounding_operation = 'rounded ' . $rounding_operation;
+    }
+    drupal_set_message(t('Time Entry Recorded. Time was !rounded to the nearest !minutes mintues', array('!rounded' => $rounding_operation, '!minutes' => $rounding_interval)));
+  }
+  else {
+    drupal_set_message(t('Time Entry Recorded'));
+  }
 }
 
 function time_tracker_time_entry_delete($form, &$form_state) {
@@ -923,14 +1023,14 @@ function theme_time_tracker_time_entry_table($time_entries) {
   foreach ($time_entries as $time_entry) {
     if (user_access('view all time tracker entries') || (user_access('view own time tracker entries') && $GLOBALS['user']->uid == $time_entry->uid)) {
       if (variable_get('time_entry_method', 'duration') == 'duration') {
-        $time = date("F d, Y", $time_entry->timestamp);
+        $time = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y'));
       }
       elseif (variable_get('time_entry_method', 'duration') == 'interval') {
         if ($time_entry->start && $time_entry->end) {
-          $time = '' . date('h:i A - M d, Y', $time_entry->start) . '<br/>' . date('h:i A - M d, Y', $time_entry->end);
+          $time = '' . format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')) . '<br/>' . format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y'));
         }
         else {
-          $time = date("F d, Y", $time_entry->timestamp) . '<br/>Entered as Duration';
+          $time = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')) . '<br/>Entered as Duration';
         }
       }
       $row = array(//row
@@ -1037,11 +1137,11 @@ function theme_time_tracker_comment($time_entry) {
             'class' => 'time_entry_activity',
           ),
           array( //Cell4
-            'data' => date('h:i A - M d, Y', $time_entry->start),
+            'data' => format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
             'class' => 'time_entry_start',
           ),
           array( //Cell5
-            'data' => date('h:i A - M d, Y', $time_entry->end),
+            'data' => format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
             'class' => 'time_entry_end',
           ),
         ),
@@ -1050,10 +1150,9 @@ function theme_time_tracker_comment($time_entry) {
       return theme('table', $header, $rows, array('class' => 'time_tracker_entry_comment'));
     }
     else {
-      $time = 'on ' . date("F d, Y", $time_entry->timestamp);
       $rows[] = array(t('Time: !duration !activity on !time', array(
         '!duration' => format_hours_to_hours_and_minutes($time_entry->duration),
-        '!time' => format_date($time_entry->timestamp, 'custom', 'F d, Y'),
+        '!time' => format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
         '!activity' => $activity,
       )));
 
@@ -1135,38 +1234,35 @@ function time_tracker_preprocess_comment(&$vars) {
  *    Optional separator for the hours and minutes. Default is ', '
  *    e.g. 10 hours, 30 minutes
  * 
- * @param $round
- *    Optional boolean to tell the function whether or not to round the output
- *    Not in use yet, but soon!
  */
-function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ', $round = FALSE) {
-    $hrs = floor($hours);
-    $mins = round(($hours - $hrs) * 60);
-    // Format the 'hours' text
-    if ($abbrev_hrs == TRUE) {
-      $hours_str = format_plural($hrs, '1 hr', '@count hrs');
+function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ') {
+  $hrs = floor($hours);
+  $mins = round(($hours - $hrs) * 60);
+  // Format the 'hours' text
+  if ($abbrev_hrs == TRUE) {
+    $hours_str = format_plural($hrs, '1 hr', '@count hrs');
+  }
+  else {
+    $hours_str = format_plural($hrs, '1 hour', '@count hours');
+  }
+  // Don't show minutes if there are none
+  if ($mins == 0) {
+    return $hours_str;
+  }
+  else { 
+    if ($abbrev_mins == TRUE) {
+      $minutes_str = format_plural($mins, '1 min', '@count mins');
     }
     else {
-      $hours_str = format_plural($hrs, '1 hour', '@count hours');
+      $minutes_str = format_plural($mins, '1 minute', '@count minute');
     }
-    // Don't show minutes if there are none
-    if ($mins == 0) {
-      return $hours_str;
+    if ($hrs == 0) {
+      return $minutes_str;
     }
-    else { 
-      if ($abbrev_mins == TRUE) {
-        $minutes_str = format_plural($mins, '1 min', '@count mins');
-      }
-      else {
-        $minutes_str = format_plural($mins, '1 minute', '@count minute');
-      }
-      if ($hrs == 0) {
-        return $minutes_str;
-      }
-      else {
-        return $hours_str . ', ' . $minutes_str;
-      }
+    else {
+      return $hours_str . ', ' . $minutes_str;
     }
+  }
 }
 
 /**
@@ -1189,6 +1285,58 @@ function convert_phptime_to_duration($start, $stop = 0) {
     $mins = sprintf('%02d', ($duration/60));
     return '00:' . $mins;
   }
+}
+
+/**
+ * Rounds numbers to a particular time interval.
+ * Can accept any single format of time (i.e. seconds, minutes, hours)
+ * However, the interval format should match the value format or the
+ * rounding will not work as expected.
+ * 
+ * EXAMPLES:
+ *  1) If you are passing in a UNIX timestamp which is measured in seconds
+ *     and you want to round it to the neares 15 minute interval, you will
+ *     need to pass in 900 as the interval (15 mins * 60 secs/min = 900)
+ *  2) If you are passing in time measured in (fracional) hours (e.g. 1.5
+ *     for 1 hour and 30 minutes) and you want to round it to the nearest 
+ *     15 minute interval, you will need to pass in 0.25 as the interval
+ *     (15 mins / 60 mins/hr = 0.25)
+ * 
+ * @param $value
+ *   The value to round
+ * 
+ * @param $interval
+ *   The interval to round to. See explanation above for specifics
+ * 
+ * @param $operation
+ *   The rounding operation to use. Accepted values are:
+ *    'auto': Automatically rounds up or down, which ever is closest
+ *    'down': Rounds down no matter what
+ *    'up': Rounds up no matter what
+ * 
+ * @return
+ *   The rounded timestamp
+ */
+function time_tracker_round($value, $interval, $operation = 'auto') {
+  
+  // Make sure it's a numeric value and the interval isn't 0
+  if (!is_numeric($value) || $interval <= 0) {
+    return $value;
+  }
+
+  switch ($operation) {
+    case 'auto':
+      $value = round($value / $interval) * $interval;
+      break;
+    case 'down':
+      $value = floor($value / $interval) * $interval;
+      break;
+    case 'up':
+      $value = ceil($value / $interval) * $interval;
+      break;
+  }
+
+  return $value;
 }
 
 /**
@@ -1231,13 +1379,13 @@ function get_activity_name($activity_id) {
 function time_tracker_is_tracking_time($node_type) {
   $tracking = FALSE;
   if (variable_get('time_tracker_nodes_' . $node_type, 0) && variable_get('time_tracker_comments_' . $node_type, 0)) {
-    $tracking = 'both';
+    $tracking = TIME_TRACKER_BOTH;
   }
   elseif (variable_get('time_tracker_nodes_' . $node_type, 0)) {
-    $tracking = 'node';
+    $tracking = TIME_TRACKER_NODE;
   }
   elseif (variable_get('time_tracker_comments_' . $node_type, 0)) {
-    $tracking = 'comment';
+    $tracking = TIME_TRACKER_COMMENT;
   }
   return $tracking;
 }
@@ -1255,13 +1403,11 @@ function time_tracker_is_tracking_time($node_type) {
  *  * clock times: 1:15 = 1 hour, 15 minutes
  *
  * @param string $input
- *  The user-entered duration value.
- * @param integer $nearest
- *  Round time to the nearest fraction. Pass 0 to not round (default).
+ *   The user-entered duration value.
  * @return mixed
  *  Returns a time fraction, or FALSE if it could not parse the input.
  */
-function _time_tracker_parse_duration($input, $nearest = 0) {
+function _time_tracker_parse_duration($input) {
   $input = (string)$input;
 
   if (!strlen($input)) {
@@ -1273,10 +1419,6 @@ function _time_tracker_parse_duration($input, $nearest = 0) {
     $hours = $matches[0];
   } else {
     return FALSE;
-  }
-
-  if ($nearest) {
-    $hours = round($hours / $nearest) * $nearest;
   }
 
   return $hours;

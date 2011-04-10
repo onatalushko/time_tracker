@@ -301,9 +301,9 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
             }
             // If we're logging time by interval
             else {
-              $format = TIME_TRACKER_DEFAULT_DATE_FORMAT; // This should be defined in settings...
-              $form['time_tracker']['time_entry']['start']['#default_value'] = date($format, $timer->start);
-              $form['time_tracker']['time_entry']['end']['#default_value'] = date($format, $timer->stop);
+              $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
+              $form['time_tracker']['time_entry']['start']['#default_value'] = format_date($timer->start, 'custom', $format);
+              $form['time_tracker']['time_entry']['end']['#default_value'] = format_date($timer->stop, 'custom', $format, $timer->stop);
             }
           } 
         } // end while
