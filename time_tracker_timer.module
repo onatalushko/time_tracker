@@ -463,7 +463,7 @@ function theme_time_tracker_timer($timers, $node) {
     if ($timer->uid == $user->uid) {
       // If the timer doesn't have a stop value, it's still running
       if($timer->stop == 0) {
-        //Change the timer state to be in "stop" mode
+        //Change the timer state to be in "active" state
         $timer_state = 'active'; //active
         // Format the rows for eventual theme_table
         $rows[] = array(
@@ -487,7 +487,7 @@ function theme_time_tracker_timer($timers, $node) {
       else {
         //If the timer has a stop value, then it has been stopped
         //BUT not saved since it still exists (should be deleted when stopped and saved)
-        // Set the timer state to 'reset' mode   
+        // Set the timer state to 'stopped' state   
         $timer_state = 'stopped'; //stopped
         if (time_tracker_is_tracking_time($node->type) == 'node') {
           $hours_field_link = 'node/' . $node->nid . '#time-tracker-time-entry-form';
@@ -624,7 +624,7 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
     }
     // If the timer doesn't have a stop value, it's still running
     if($timer->stop == 0) {
-      //Change the timer state to be in "stop" mode
+      //Change the timer state to be in "active" state
       $timer_state = 'active';
       $start_time = $timer->start;
       $timer_msg = t('!username has an active timer on !timer_links', array(
@@ -638,6 +638,11 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
             'data' => theme_image(drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_grey.png', 'timer icon', 'Time Tracker Timer Icon'),
             'class' => 'timer_page_icon',
           ),
+          // Uncomment this part to get the timer controls in the block
+          // array(
+          //   'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start),
+          //   'class' => 'active_timer_control timer_control'
+          // ),
           array(
             'data' =>  _time_tracker_format_secs_to_hhmmss(time() - $timer->start + $timer->total),
             'class' => 'active_timer_time timer_page_time'
@@ -652,7 +657,7 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
     else {
       //If the timer has a stop value, then it has been stopped
       //BUT not saved since it still exists (should be deleted when stopped and saved)
-      // Set the timer state to 'reset' mode
+      // Set the timer state to 'stopped' state
       $timer_state = 'stopped';
       $hours_field_link = $node->path . '#edit-time-wrapper';
       $total_time = $timer->total ? $timer->total : $timer->stop - $timer->start;
@@ -666,6 +671,11 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
             'data' => theme_image(drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_grey.png', 'timer icon', 'Time Tracker Timer Icon'),
             'class' => 'timer_page_icon'
           ),
+          // Uncomment the following to get the timer controls on the page
+          // array(
+          //   'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start),
+          //   'class' => 'stopped_timer_control timer_control'
+          // ),
           array(
             'data' => _time_tracker_format_secs_to_hhmmss($total_time),//
             'class' => 'stopped_timer_time timer_page_time'
@@ -721,7 +731,7 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
     if ($timer->uid == $user->uid) {
       // If the timer doesn't have a stop value, it's still running
       if($timer->stop == 0) {
-        //Change the timer state to be in "stop" mode
+        //Change the timer state to be in "active" state
         $timer_state = 'active';
         $start_time = $timer->start;
         $timer_msg = t('You have an active timer on ') . $timer_links;
@@ -732,6 +742,11 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
               'data' => theme_image(drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_white.png', 'timer icon', 'Time Tracker Timer Icon'),
               'class' => 'timer_block_icon',
             ),
+            // Uncomment this part to get the timer controls in the block
+            // array(
+            //   'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start),
+            //   'class' => 'active_timer_control timer_control'
+            // ),
             array(
               'data' => _time_tracker_format_secs_to_hhmmss(time() - $timer->start + $timer->total),
               'class' => 'active_timer_time timer_block_time'
@@ -749,9 +764,9 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
         );
       } 
       else {
-        //If the timer has a stop value, then it has been stopped
-        //BUT not saved since it still exists (should be deleted when stopped and saved)
-        // Set the timer state to 'reset' mode
+        // If the timer has a stop value, then it has been stopped
+        // BUT not saved since it still exists (should be deleted when stopped and saved)
+        // Set the timer state to 'stopped' state
         $timer_state = 'stopped';
         $hours_field_link = $node->path . '#edit-time-wrapper';
         $total_time = $timer->total ? $timer->total : $timer->stop - $timer->start;
@@ -762,6 +777,11 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
               'data' => theme_image(drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_white.png', 'timer icon', 'Time Tracker Timer Icon'),
               'class' => 'timer_block_icon'
             ),
+            // Uncomment this part to get the timer controls in the block
+            // array(
+            //   'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start),
+            //   'class' => 'stopped_timer_control timer_control'
+            // ),
             array(
               'data' => _time_tracker_format_secs_to_hhmmss($total_time),//
               'class' => 'stopped_timer_time timer_block_time'
