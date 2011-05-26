@@ -98,7 +98,7 @@ function time_estimate_nodeapi(&$node, $op) {
           }
 
           while ($case = db_fetch_object($case_time_entry_results)) {
-            $total_time += $case->duration;
+            $total_time += $case->duration - $case->deductions;
           }
         }
       
@@ -121,7 +121,7 @@ function time_estimate_nodeapi(&$node, $op) {
         $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
 
         while ($result = db_fetch_object($results)) {
-          $time_tracker_time += $result->duration;
+          $time_tracker_time += $result->duration - $result->deductions;
         }
 
         if ($time_estimate->estimate > 0 && user_access('view time estimate entries')) {
@@ -189,11 +189,11 @@ function theme_time_estimate_summary($time_tracker_time, $time_estimate_time) {
   
   if ($time_estimate_time > $time_tracker_time) {
     $class = 'time_under';
-    $remaining = format_hours_to_hours_and_minutes($time_estimate_time - $time_tracker_time, TRUE) . t(' remaining');
+    $remaining = format_hours_to_hours_and_minutes($time_estimate_time - $time_tracker_time, FALSE, TRUE) . t(' remaining');
   }
   else {
     $class = 'time_over';
-    $remaining = t('over by: ') . format_hours_to_hours_and_minutes(abs($time_estimate_time - $time_tracker_time), TRUE);
+    $remaining = t('over by: ') . format_hours_to_hours_and_minutes(abs($time_estimate_time - $time_tracker_time), FALSE, TRUE);
   }
   
   $headers = array(

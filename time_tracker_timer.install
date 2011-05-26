@@ -43,6 +43,11 @@ function time_tracker_timer_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
+      'deductions' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
     ),
     'primary key' => array('ttid'),
   );
@@ -59,10 +64,19 @@ function time_tracker_timer_uninstall() {
 }
 
 /**
- * Adds the 'pause' field to the timer table
+ * Adds the 'total' field to the timer table
  */
 function time_tracker_timer_update_6100() {
   $return = array();
   db_add_field($return, 'time_tracker_timer', 'total', array('type' => 'int', 'not_null' => TRUE, 'unsigned' => TRUE));
+  return $return;
+}
+
+/**
+ * Adds the 'deductions' field to the timer table
+ */
+function time_tracker_timer_update_6101() {
+  $return = array();
+  db_add_field($return, 'time_tracker_timer', 'deductions', array('type' => 'int', 'not_null' => TRUE, 'unsigned' => TRUE));
   return $return;
 }

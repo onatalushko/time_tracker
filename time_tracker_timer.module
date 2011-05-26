@@ -17,7 +17,7 @@ function time_tracker_timer_init() {
  * Implementation of hook_perm().
  */
 function time_tracker_timer_perm() {
-  return array('view all timers', 'manually enter time', 'administer time tracker timer');
+  return array('view all timers', 'manually enter time', 'manually enter deductions', 'administer time tracker timer');
 }
 
 /**
@@ -185,7 +185,7 @@ function time_tracker_timer_startstop_form($form, $node, $timer_state, $start_ti
     );
   } 
   elseif ($timer_state == 'stopped') {
-    if (variable_get('time_entry_method', 'duration') == 'duration') {
+    if (variable_get('time_entry_method', 'duration') == 'duration' || (variable_get('time_entry_method', 'duration') == 'interval' && variable_get('enable_deductions_field', 0))) {
       $form['resume'] = array(
         '#type' => 'submit',
         '#value' => t('Resume'),
@@ -199,9 +199,15 @@ function time_tracker_timer_startstop_form($form, $node, $timer_state, $start_ti
         '#submit' => array('time_tracker_timer_startstop_form_reset_submit'),
       );
     }
+    else {
+      $form['reset'] = array(
+        '#type' => 'submit',
+        '#value' => t('Reset'),
+        '#button_type' => 'timer_control_reset_only',
+        '#submit' => array('time_tracker_timer_startstop_form_reset_submit'),
+      );
+    }
   }
-  
-  //$form['#submit'][] = 'time_tracker_timer_startstop_form_submit';
 
   return $form;
 }
@@ -249,7 +255,14 @@ function time_tracker_timer_startstop_form_stop_submit($form, &$form_state) {
 }
 
 function time_tracker_timer_startstop_form_resume_submit($form, &$form_state) {
-  $success = db_query("UPDATE {time_tracker_timer} SET start = %d, stop = 0 WHERE nid = %d AND uid = %d", time(),  $form_state['values']['nid'], $form_state['values']['uid']);
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $success = db_query("UPDATE {time_tracker_timer} SET start = %d, stop = 0 WHERE nid = %d AND uid = %d", time(), $form_state['values']['nid'], $form_state['values']['uid']);
+  }
+  else {
+    $result = db_fetch_object(db_query("SELECT stop, deductions FROM {time_tracker_timer} WHERE nid = %d AND uid = %d", $form_state['values']['nid'], $form_state['values']['uid']));
+    $deductions = time() - $result->stop + $result->deductions;
+    $success = db_query("UPDATE {time_tracker_timer} SET start = %d, stop = 0, deductions = %d WHERE nid = %d AND uid = %d", time(), $deductions, $form_state['values']['nid'], $form_state['values']['uid']);
+  }
   //Let the user know if the write was successful (Timer was stopped)
   if($success) {
     drupal_set_message(t('Timer resumed.'), 'message');
@@ -282,7 +295,7 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
   // if this is a time tracking form...
   // Note: The time entry form and the comment form should have the same
   // form structure even though they have different ids because we merged them
-  if (($form_id == 'comment_form' || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries')) {
+  if (($form_id == 'comment_form' || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries') && arg(0) == 'node' && is_numeric(arg(1))) {
     global $user;
     $node = node_load($form['nid']['#value']);
     if (time_tracker_is_tracking_time($node->type)) {
@@ -295,54 +308,101 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
           if ($timer->stop != 0 && $timer->start != 0) {
             // Extra submit function to clear the timer on save
             $form['#submit'][] = 'time_tracker_timer_cleartimer_submit';
+            // Setup some variables
+            // Calculate the start time based on the stop time, total so far and the deductions
+            $start_time = $timer->stop - $timer->total - $timer->deductions;
+            $stop_time = $timer->stop; // need this later if manual time entry is disabled [lazy]
+            $deductions = $timer->deductions; // need this later if manual time entry is disabled [lazy]
+            $duration = $timer->total; // need this later if manual time entry is disabled [lazy]
             // If we're logging time by Duration...
             if (variable_get('time_entry_method', 'duration') == 'duration') {
-              $form['time_tracker']['time_entry']['duration']['#default_value'] =  convert_phptime_to_duration($timer->total);
+              $form['time_tracker']['time_entry']['time']['#default_value'] = date('Y-m-d', $start_time);
+              $form['time_tracker']['time_entry']['duration']['#default_value'] = convert_phptime_to_duration($timer->total);
             }
             // If we're logging time by interval
             else {
-              $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
-              $form['time_tracker']['time_entry']['start']['#default_value'] = format_date($timer->start, 'custom', $format);
-              $form['time_tracker']['time_entry']['end']['#default_value'] = format_date($timer->stop, 'custom', $format, $timer->stop);
+              $form['time_tracker']['time_entry']['start']['#default_value'] = date('Y-m-d H:i', $start_time);
+              $form['time_tracker']['time_entry']['end']['#default_value'] = date('Y-m-d H:i', $stop_time);
+              $form['time_tracker']['time_entry']['deductions']['#default_value'] = $timer->deductions ? format_hours_to_hours_and_minutes($timer->deductions / 3600, TRUE) : $timer->deductions;
             }
           } 
         } // end while
       }
+      
       $no_manual_entry_msg = t('Manual Time Entry is currently disabled') . '<br/>' . t('Use the timer to log time');
+      $classes = 'time_entry_disabled';
       // If we're on an existing comment, then we need just need to hide the necessary
       // Fields if permissions don't allow manual time entry
       if (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'duration') {
         // We need to make a copy of the field for display because
         // Disabled fields don't pass data to the submit function
-        $form['time_tracker']['time_entry']['duration_disabled'] = $form['time_tracker']['time_entry']['duration'];
-        // Hide the actual form field
+        // $form['time_tracker']['time_entry']['duration_disabled'] = $form['time_tracker']['time_entry']['duration'];
+        // Hide the actual form fields
         $form['time_tracker']['time_entry']['duration']['#type'] = 'hidden';
-        // Disable the display field
-        $form['time_tracker']['time_entry']['duration_disabled']['#disabled'] = TRUE;
-        $form['time_tracker']['time_entry']['duration_disabled']['#description'] .= '<br/>' . $no_manual_entry_msg;
+        $form['time_tracker']['time_entry']['time']['#type'] = 'hidden';
+        $form['time_tracker']['time_entry']['deductions']['#type'] = 'hidden';
+        if ($form['time_tracker']['time_entry']['duration']['#default_value']) {
+          $format = variable_get('timestamp_date_format', 'F d, Y');
+          if (user_access('manually enter deductions')) {
+            $form['time_tracker']['time_entry']['deductions']['#type'] = 'textfield';
+            $no_manual_entry_msg = t('Date : @date<br />Duration : @duration', array(
+                            '@date' => format_date($start_time, 'custom', $format),
+                            '@duration' => format_hours_to_hours_and_minutes($duration / 3600)));
+          }
+          else {
+            $form['time_tracker']['time_entry']['deductions']['#type'] = 'hidden';
+            $no_manual_entry_msg = t('Date : @date<br />Duration : @duration<br />Deductions: @deductions', array(
+                            '@date' => format_date($start_time, 'custom', $format),
+                            '@duration' => format_hours_to_hours_and_minutes($duration / 3600),
+                            '@deductions' => format_hours_to_hours_and_minutes($deductions / 3600)));
+            $classes .= ' with_deductions';
+          }
+        }
+        $form['time_tracker']['time_entry']['time_display'] = array(
+          '#value' => $no_manual_entry_msg,
+          '#weight' => 4,
+          '#prefix' => '<div class='.$classes.'>',
+          '#suffix' => '</div>',
+        );
       } 
       elseif (!user_access('manually enter time') && variable_get('time_entry_method', 'duration') == 'interval') {
-        // We would use #disabled here but it doesn't work right now (dec 2010) 
-        // with the date_popup time field right now (issue #938234)
         // Hide the actual fields with the times
         $form['time_tracker']['time_entry']['start']['#type'] = 'hidden';
         $form['time_tracker']['time_entry']['end']['#type'] = 'hidden';
+        unset($form['time_tracker']['time_entry']['prefix']);
+        unset($form['time_tracker']['time_entry']['suffix']);
+        $form['time_tracker']['time_entry']['deductions']['#type'] = 'hidden';
         // Change the container div for themeing purposes
-        $form['time_tracker']['time_entry']['prefix']['#value'] = '<div class="time_entry_disabled">';
-        $form['time_tracker']['time_entry']['suffix']['#value'] = '</div>';
+        // $form['time_tracker']['time_entry']['prefix']['#value'] = '<div class="time_entry_disabled">';
+        // $form['time_tracker']['time_entry']['suffix']['#value'] = '</div>';
         // If there's a start and end time then we just display the time
         if ($form['time_tracker']['time_entry']['start']['#default_value'] && $form['time_tracker']['time_entry']['end']['#default_value']) {
-          $time_display = t('Start Time: @start<br/>End Time: @end', array(
-                          '@start' => $form['time_tracker']['time_entry']['start']['#default_value'],
-                          '@end' => $form['time_tracker']['time_entry']['end']['#default_value']));
-          $form['time_tracker']['time_entry']['time_display']['#value'] = $time_display;
-          $form['time_tracker']['time_entry']['time_display']['#weight'] = 1;
+          $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
+          if (user_access('manually enter deductions')) {
+            $form['time_tracker']['time_entry']['deductions']['#type'] = 'textfield';
+            $no_manual_entry_msg = t('Start Time : @start<br />End Time : @end', array(
+                            '@start' => format_date($start_time, 'custom', $format),
+                            '@end' => format_date($stop_time, 'custom', $format)));
+          }
+          else {
+            $no_manual_entry_msg = t('Start Time : @start<br />End Time : @end<br />Deductions: @deductions', array(
+                            '@start' => format_date($start_time, 'custom', $format),
+                            '@end' => format_date($stop_time, 'custom', $format),
+                            '@deductions' => format_hours_to_hours_and_minutes($deductions / 3600)));
+            $classes .= ' with_deductions';
+          }
+          $form['time_tracker']['time_entry']['time_display'] = array(
+            '#value' => $no_manual_entry_msg,
+            '#weight' => 4,
+            '#prefix' => '<div class="'.$classes.'">',
+            '#suffix' => '</div>',
+          );
         }
-        else {
-          //Otherwise we tell the user to use the timer
-          $form['time_tracker']['time_entry']['time_display']['#value'] = $no_manual_entry_msg;
-          $form['time_tracker']['time_entry']['time_display']['#weight'] = 1;
-        }
+        // else {
+        //   //Otherwise we tell the user to use the timer
+        //   $form['time_tracker']['time_entry']['time_display']['#value'] = $no_manual_entry_msg;
+        //   $form['time_tracker']['time_entry']['time_display']['#weight'] = 4;
+        // }
       }
     }
   }

@@ -10,7 +10,7 @@
   Define some constants
 */
 // Default Date formats
-define('TIME_TRACKER_DEFAULT_DATE_FORMAT', 'Y-m-d h:i A');
+define('TIME_TRACKER_DEFAULT_DATE_FORMAT', 'Y-m-d H:i');
 define('TIME_TRACKER_DEFAULT_TIMESTAMP_FORMAT', 'F d, Y');
 define('TIME_TRACKER_DEFAULT_INTERVAL_FORMAT', 'h:i A - M d, Y');
 // Constants for what we are tracking time on
@@ -113,6 +113,24 @@ function time_tracker_settings_form(&$form_state) {
     '#title' => t("Allow locking of time entries"),
     '#description' => t("Checking this setting will allow users with the 'administer time entries' permission to lock time entries, preventing them from being editied."),
     '#default_value' => variable_get('allow_locked_time_entries', 0),
+  );
+  $form['time_tracker_settings']['enable_billable_field'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable the 'Billable' field"),
+    '#description' => t("Checking this setting will enable a checkbox to flag time entries as billable"),
+    '#default_value' => variable_get('enable_billable_field', 0),
+  );
+  $form['time_tracker_settings']['enable_billed_field'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable the 'Billed' field"),
+    '#description' => t("Checking this setting will enable a checkbox to flag time entries as billed"),
+    '#default_value' => variable_get('enable_billed_field', 0),
+  );
+  $form['time_tracker_settings']['enable_deductions_field'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable the 'Deductions' field"),
+    '#description' => t("Checking this setting will enable a text field for logging time entry deductions. An example usage of this field would be for a time entriy from 9:00am to 5:00pm with a deduction of 30 minutes for a lunch break."),
+    '#default_value' => variable_get('enable_deductions_field', 0),
   );
   
   // Default settings for time tracker time entry and time display fieldsets
@@ -473,10 +491,10 @@ function time_tracker_nodeapi(&$node, $op) {
             $time_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
 
             while ($time = db_fetch_object($time_results)) {
-              $total_time = $total_time + $time->duration;
+              $total_time = $total_time + ($time->duration - $time->deductions);
             }
           }
-          if($total_time > 0) {
+          if ($total_time > 0) {
             $node->content['time_tracker_summary'] = array(
               '#value' => theme('time_tracker_summary', $total_time),
               '#weight' => -5,
@@ -489,7 +507,7 @@ function time_tracker_nodeapi(&$node, $op) {
           $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
         
           while ($time_entry = db_fetch_object($resource)) {
-            $total_time = $total_time + $time_entry->duration;
+            $total_time = $total_time + ($time->duration - $time->deductions);
           }
           
           if ($total_time > 0) {
@@ -574,6 +592,8 @@ function time_tracker_comment(&$comment, $op) {
     case 'update':
       $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
       $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
+      // Round the deductions if necessary
+      $comment['deductions'] = isset($comment['deductions']) ? time_tracker_round(_time_tracker_parse_duration($comment['deductions']), $rounding_interval / 60, $rounding_operation) : NULL;
       // Check First if we are tracking by duration or time interval
       if (variable_get('time_entry_method', 'duration') == 'duration') {
         $duration = time_tracker_round(_time_tracker_parse_duration($comment['duration']), $rounding_interval / 60, $rounding_operation);
@@ -699,7 +719,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
       $form['time_tracker']['delete'] = array(
         '#type' => 'submit',
         '#value' => t('Delete'),
-        '#weight' => 8,
+        '#weight' => 9,
         '#submit' => array('time_tracker_time_entry_delete'),
       );
     }
@@ -728,7 +748,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
           '#type' => 'checkbox',
           '#description' => 'Lock this time entry, preventing further editing',
           '#default_value' => $time_tracker_data->locked ? TRUE : FALSE,
-          '#weight' => 6.5,
+          '#weight' => 6,
         );
       }
       elseif ($time_tracker_data->locked) {
@@ -773,24 +793,31 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   if (module_exists('jquery_ui')) {
     jquery_ui_add(array('ui.datepicker'));
     drupal_add_js(drupal_get_path('module', 'time_tracker') .'/js/datepicker.settings.js');
+    // $js_settings['timeTracker'] = array(
+    //   'timeTrackerDateFormat' => datepicker_format_replacements(variable_get('timestamp_date_format', 'F d, Y')),
+    // );
+    // drupal_add_js($js_settings, 'setting');
     drupal_add_css(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/themes/default/ui.datepicker.css');
   }
   
   // Insert different form elements depending on the time_entry_method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $format = variable_get('timestamp_date_format', 'F d, Y');
     $form['time_tracker']['time_entry']['time'] = array(
       '#title' => t('Date'),
-      '#type' => $lock ? 'value' : 'textfield',
-      '#size' => '20',
+      '#type' => $lock ? 'value' : 'date_popup',
+      '#date_format' => $format,
+      '#date_label_position' => 'within',
+      '#size' => 20,
       '#weight' => 0,
-      '#default_value' => empty($time_tracker_data->timestamp) ? format_date(time(), 'custom', variable_get('timestamp_date_format', 'F d, Y')) : format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
+      '#default_value' => empty($time_tracker_data->timestamp) ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, time()) : date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->timestamp),
     );
     $form['time_tracker']['time_entry']['duration'] = array(
       '#title' => t('Hours'),
       '#type' => $lock ? 'value' : 'textfield',
       '#size' => '10',
       '#weight' => 1,
-      '#default_value' => $time_tracker_data->duration,
+      '#default_value' => $time_tracker_data->duration ? format_hours_to_hours_and_minutes($time_tracker_data->duration, TRUE) : $time_tracker_data->duration,
       '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
     );
   } 
@@ -803,7 +830,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     $form['time_tracker']['time_entry']['start'] = array(
       '#title' => t('Start'),
       '#type' => $lock ? 'value' : 'date_popup',
-      '#default_value' => $time_tracker_data->start ? format_date($time_entry->start, 'custom', $format) : '',
+      '#default_value' => $time_tracker_data->start ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->start) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 1,
@@ -811,7 +838,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     $form['time_tracker']['time_entry']['end'] = array(
       '#title' => t('End'),
       '#type' => $lock ? 'value' : 'date_popup',
-      '#default_value' => $time_tracker_data->end ? format_date($time_entry->end, 'custom', $format) : '',
+      '#default_value' => $time_tracker_data->end ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->end) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 2,
@@ -831,12 +858,44 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     }
   }
   
+  // Deductions
+  if (variable_get('enable_deductions_field', 0)) {
+    $form['time_tracker']['time_entry']['deductions'] = array(
+      '#title' => t('Deductions'),
+      '#type' => $lock ? 'value' : 'textfield',
+      '#size' => '10',
+      '#weight' => 3,
+      '#default_value' => $time_tracker_data->deductions ? format_hours_to_hours_and_minutes($time_tracker_data->deductions, TRUE) : $time_tracker_data->deductions,
+      '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
+    );
+  }
+  
+  // Billable and Billed fields
+  if (variable_get('enable_billable_field', 0)) {
+    $form['time_tracker']['billable'] = array(
+      '#title' => t('Billable'),
+      '#type' => $lock ? 'value' : 'checkbox',
+      '#size' => '10',
+      '#weight' => 6,
+      '#default_value' => $time_tracker_data->billable,
+    );
+  }
+  if (variable_get('enable_billed_field', 0)) {
+    $form['time_tracker']['billed'] = array(
+      '#title' => t('Billed'),
+      '#type' => $lock ? 'value' : 'checkbox',
+      '#size' => '10',
+      '#weight' => 6,
+      '#default_value' => $time_tracker_data->billed,
+    );
+  }
+  
   // If this isn't meant to track time on a comment, we need a submit button and notes field
   if ($type != 'comment') {
     $form['time_tracker']['note'] = array(
       '#title' => t('Note'),
       '#type' => $lock ? 'value' : 'textarea',
-      '#weight' => 6,
+      '#weight' => 7,
       '#rows' => 2,
       '#resizable' => FALSE,
       '#default_value' => $time_tracker_data->note,
@@ -845,7 +904,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
       $form['time_tracker']['submit'] = array(
         '#type' => 'submit',
         '#value' => t('Save'),
-        '#weight' => 7,
+        '#weight' => 8,
       );
     }
     $form['#validate'] = array('time_tracker_time_entry_validate');
@@ -894,6 +953,12 @@ function time_tracker_time_entry_validate($form, &$form_state) {
       }
     }
   }
+  elseif (isset($values['deductions'])) {
+    // If a duration is set, but it is invalid
+    if (strlen($values['deductions']) && _time_tracker_parse_duration($values['deductions']) === FALSE) {
+      form_set_error('duration', t('Invalid deductions value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
+    }
+  }
 }
 
 function time_tracker_time_entry_submit($form, &$form_state) {
@@ -909,6 +974,7 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   // Store the rounding data
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
+  
   // Special handling based on the time entry method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
     $time['start'] = 0;
@@ -930,13 +996,13 @@ function time_tracker_time_entry_submit($form, &$form_state) {
   $time['note'] = $values['note'];
 
   // If locked was in the form use it
-  if(isset($values['locked'])) {
-    $time['locked'] = $values['locked'];
-  }
-  // Otherwise default to FALSE
-  else {
-    $time['locked'] = FALSE;
-  }
+  $time['locked'] = isset($values['locked']) ? $values['locked'] : FALSE;
+  // If billable was in the form use it
+  $time['billable'] = isset($values['billable']) ? $values['billable'] : NULL;
+  // If billed was in the form use it
+  $time['billed'] = isset($values['billed']) ? $values['billed'] : NULL;
+  // If billed was in the form use it
+  $time['deductions'] = isset($values['deductions']) ? time_tracker_round(_time_tracker_parse_duration($values['deductions']), $rounding_interval / 60, $rounding_operation) : NULL;
   
   // Update the db and send a message to the user
   drupal_write_record('time_tracker_entry', $time, $time['teid'] ? 'teid' : array());
@@ -1004,27 +1070,46 @@ function time_tracker_theme() {
  *      $obj->locked: Whether this entry has been locked, requires extra permissions
  */
 function theme_time_tracker_time_entry_table($time_entries) {
+  // Add the css for some base theming of the table
   drupal_add_css(drupal_get_path('module', 'time_tracker') .'/css/time_tracker.css');
   //Some Variables to make this happen
-  $time;
   $rows[] = array();
   //Setting up the table headers
   $header = array(
     array('data' => t('User')),
     array('data' => t('Activity')),
-    array('data' => t('Duration')),
-    array('data' => t('Time')),
-    array('data' => t('Note')),
   );
+  // If the deductions field is on
+  if (variable_get('enable_deductions_field', 0)) {
+    $header[] = array('data' => t('Duration'));
+    $header[] = array('data' => t('Deductions'));
+    $header[] = array('data' => t('Total'));
+  }
+  else {
+    $header[] = array('data' => t('Duration'));
+  }
+  // These columns are always there
+  $header[] = array('data' => t('Time'));
+  $header[] = array('data' => t('Note'));
+  // Only show the billed and billable fields if they're on
+  if (variable_get('enable_billable_field', 0)) {
+    $header[] = array('data' => t('Billable'));
+  }
+  if (variable_get('enable_billed_field', 0)) {
+    $header[] = array('data' => t('Billed'));
+  }
+  // Need to add the operations column if permissions allow it
   if (user_access('edit time tracker entries') || user_access('administer time entries')) {
    $header[] = array('data' => t('Ops'));
   }
   //Loop through the time entries and add them to the table
   foreach ($time_entries as $time_entry) {
     if (user_access('view all time tracker entries') || (user_access('view own time tracker entries') && $GLOBALS['user']->uid == $time_entry->uid)) {
+      // Special formatting for duration based time entries
       if (variable_get('time_entry_method', 'duration') == 'duration') {
         $time = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y'));
       }
+      // Special formatting for interval based time entries
       elseif (variable_get('time_entry_method', 'duration') == 'interval') {
         if ($time_entry->start && $time_entry->end) {
           $time = '' . format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')) . '<br/>' . format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y'));
@@ -1033,6 +1118,7 @@ function theme_time_tracker_time_entry_table($time_entries) {
           $time = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')) . '<br/>Entered as Duration';
         }
       }
+      // Populate the row
       $row = array(//row
         'data' => array( //row data
           array( //Cell1
@@ -1041,23 +1127,47 @@ function theme_time_tracker_time_entry_table($time_entries) {
           ),
           array( //Cell2
             'data' => get_activity_name($time_entry->activity),
-            'class' => 'time_entry_username',
+            'class' => 'time_entry_activity',
           ),
           array( //Cell3
             'data' => format_hours_to_hours_and_minutes($time_entry->duration),
             'class' => 'time_entry_duration',
           ),
-          array( //Cell4
-            'data' => $time,
-            'class' => 'time_entry_time',
-          ),
-          array( //Cell5
-            'data' => $time_entry->note,
-            'class' => 'time_entry_note',
-          ),
         ),
         'class' => '', //row class
       );//endrow
+      if (variable_get('enable_deductions_field', 0)) {
+        $row['data'][] = array( //Cell6
+   	      'data' => format_hours_to_hours_and_minutes($time_entry->deductions),
+   	      'class' => 'time_entry_deductions',
+   	    );
+   	    $row['data'][] = array( //Cell6
+   	      'data' => format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions),
+   	      'class' => 'time_entry_total',
+   	    );
+      }
+      // The time field is not optional
+      $row['data'][] = array( //Cell4
+        'data' => $time,
+        'class' => 'time_entry_time',
+ 	    );
+ 	    // The note field is not optional
+ 	    $row['data'][] = array( //Cell5
+        'data' => $time_entry->note,
+        'class' => 'time_entry_note',
+ 	    );
+      if (variable_get('enable_billable_field', 0)) {
+        $row['data'][] = array( //Cell6
+   	      'data' => $time_entry->billable ? t('Yes') : t('No'),
+   	      'class' => 'time_entry_billable',
+   	    );
+      }
+      if (variable_get('enable_billed_field', 0)) {
+        $row['data'][] = array( //Cell6
+   	      'data' => $time_entry->billed ? t('Yes') : t('No'),
+   	      'class' => 'time_entry_billed',
+   	    );
+      }
       if (user_access('edit time tracker entries') || user_access('administer time entries')) {
         // If entry is locked and user does not have proper permissions
      	  if (variable_get('allow_locked_time_entries', 0) && $time_entry->locked && !user_access('administer time entries')) {
@@ -1119,41 +1229,79 @@ function theme_time_tracker_comment($time_entry) {
       $activity = '(' . $activity . ') ';
     }
     
+    // If there is a time start and end, it's a time entry that was logged as an interval
     if ($time_entry->start && $time_entry->end) {
-      $header = array(
-        array('data' => t('Duration')),
-        array('data' => t('Activity')),
-        array('data' => t('Start')),
-        array('data' => t('End')),
-      );
-      $rows[] = array(//row
+      //Setting up the table headers
+      $header[] = array('data' => t('Duration'));
+      if (variable_get('enable_deductions_field', 0)) {
+        $header[] = array('data' => t('Deductions'));
+        $header[] = array('data' => t('Total'));
+      }
+      $header[] = array('data' => t('Activity'));
+      $header[] = array('data' => t('Start'));
+      $header[] = array('data' => t('End'));
+      if (variable_get('enable_billable_field', 0)) {
+        $header[] = array('data' => t('Billable'));
+      }
+      if (variable_get('enable_billed_field', 0)) {
+        $header[] = array('data' => t('Billed'));
+      }
+      
+      $row = array(//row
         'data' => array( //row data
           array( //Cell3
             'data' => format_hours_to_hours_and_minutes($time_entry->duration),
             'class' => 'time_entry_duration',
           ),
-          array( //Cell2
-            'data' => get_activity_name($time_entry->activity),
-            'class' => 'time_entry_activity',
-          ),
-          array( //Cell4
-            'data' => format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
-            'class' => 'time_entry_start',
-          ),
-          array( //Cell5
-            'data' => format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
-            'class' => 'time_entry_end',
-          ),
         ),
         'class' => '', //row class
       );//endrow
+      if (variable_get('enable_deductions_field', 0)) {
+        $row['data'][] = array( 
+   	      'data' => format_hours_to_hours_and_minutes($time_entry->deductions),
+   	      'class' => 'time_entry_deductions',
+   	    );
+   	    $row['data'][] = array( 
+   	      'data' => format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions),
+   	      'class' => 'time_entry_total',
+   	    );
+      }
+      $row['data'][] = array( 
+        'data' => get_activity_name($time_entry->activity),
+        'class' => 'time_entry_activity',
+ 	    );
+ 	    $row['data'][] = array( 
+        'data' => format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
+        'class' => 'time_entry_start',
+ 	    );
+ 	    $row['data'][] = array( 
+        'data' => format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
+        'class' => 'time_entry_end',
+ 	    );
+      if (variable_get('enable_billable_field', 0)) {
+        $row['data'][] = array( //Cell6
+   	      'data' => $time_entry->billable ? t('Yes') : t('No'),
+   	      'class' => 'time_entry_billable',
+   	    );
+      }
+      if (variable_get('enable_billed_field', 0)) {
+        $row['data'][] = array( //Cell6
+   	      'data' => $time_entry->billed ? t('Yes') : t('No'),
+   	      'class' => 'time_entry_billed',
+   	    );
+      }
+      $rows[] = $row;
       return theme('table', $header, $rows, array('class' => 'time_tracker_entry_comment'));
     }
     else {
-      $rows[] = array(t('Time: !duration !activity on !time', array(
+      $rows[] = array(t('Time: !total (!duration - !deductions) !activity on !time. !billable !billed', array(
+        '!total' => format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions),
         '!duration' => format_hours_to_hours_and_minutes($time_entry->duration),
+        '!deductions' => format_hours_to_hours_and_minutes($time_entry->deductions),
         '!time' => format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
         '!activity' => $activity,
+        '!billable' => $time_entry->billable ? 'Billable: Yes. ' : 'Billable: No. ',
+        '!billed' => $time_entry->billed ? 'Billed: Yes.' : 'Billed: No.',
       )));
 
       return theme('table', NULL, $rows, array('class' => 'time_tracker_entry_comment'));
@@ -1175,7 +1323,7 @@ function theme_time_tracker_summary($total_time) {
 
   if ($total_time > 0) {
     $rows[] = array(t('Time logged: ') . '<span class="time_tracker_time">' .
-                    format_hours_to_hours_and_minutes($total_time, TRUE) . '</span>');
+                    format_hours_to_hours_and_minutes($total_time, FALSE, TRUE) . '</span>');
   }
 
   return theme('table', NULL, $rows, array('class' => 'time_tracker_summary'));
@@ -1211,6 +1359,108 @@ function time_tracker_preprocess_comment(&$vars) {
   }
 }
 
+/***********************************************************************
+ * API FUNCTIONS
+ ***********************************************************************/
+
+/**
+ * Returns all the time tracker entries for a node
+ * 
+ * @param $nid
+ *    The nid of the node to retrieve the time entries for
+ * 
+ * @param $type
+ *    Optional parameter to specify which time entries to return:
+ *    'all': Returns all time entries
+ *    'comment': Returns only comment based time entries
+ *    'node': Returns only node based time entries 
+ * 
+ * @return
+ *    Returns an array of time tracker entry objects
+ */
+function time_tracker_get_time_entries_for_node($nid, $type = 'all') {
+  $time_entries = array();
+  switch ($type) {
+    case 'node':
+      $sql = "SELECT * FROM {time_tracker_entry} AS t
+              WHERE nid = %d AND cid = 0
+              ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
+      // Get the entries associated with this node
+      $resource = db_query($sql, $nid);
+      // Store the db objects in an array for theme function
+      while ($time_entry = db_fetch_object($resource)) {
+        $time_entries[] = $time_entry;
+      }
+      break;
+    case 'comment':
+      $sql = "SELECT * FROM {time_tracker_entry} AS t
+              WHERE nid = %d AND cid <> 0
+              ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
+      // Get the entries associated with this node
+      $resource = db_query($sql, $nid);
+      // Store the db objects in an array for theme function
+      while ($time_entry = db_fetch_object($resource)) {
+        $time_entries[] = $time_entry;
+      }
+      breal;
+    case 'all':
+      $sql = "SELECT * FROM {time_tracker_entry} AS t
+              WHERE nid = %d
+              ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
+      // Get the entries associated with this node
+      $resource = db_query($sql, $nid);
+      // Store the db objects in an array for theme function
+      while ($time_entry = db_fetch_object($resource)) {
+        $time_entries[] = $time_entry;
+      }
+      break;
+  }
+  return $time_entries;
+}
+
+/**
+ * Returns the enabled time tracker fields
+ * 
+ * @param $type
+ *    Optional parameter to specify which time entries to return:
+ *    'all': Returns all time entries
+ *    'comment': Returns only comment based time entries
+ *    'node': Returns only node based time entries 
+ * 
+ * @return
+ *    Returns an array of time tracker entry objects
+ */
+function time_tracker_get_enabled_fields($type = 'node') {
+  $enabled_fields = array();
+  
+  return $enabled_fields;
+}
+
+/**
+ * Returns true if either we are tracking time on the case
+ * either on the comments or the node
+ * 
+ * @param $node_type
+ *    The node type to check if we are tracking time on it
+ * 
+ * @return
+ *    Returns FALSE if we're not tracking time on this node
+ *    type, otherwise returns a string of either 'both' 'node'
+ *    or 'comment'
+ */
+function time_tracker_is_tracking_time($node_type) {
+  $tracking = FALSE;
+  if (variable_get('time_tracker_nodes_' . $node_type, 0) && variable_get('time_tracker_comments_' . $node_type, 0)) {
+    $tracking = TIME_TRACKER_BOTH;
+  }
+  elseif (variable_get('time_tracker_nodes_' . $node_type, 0)) {
+    $tracking = TIME_TRACKER_NODE;
+  }
+  elseif (variable_get('time_tracker_comments_' . $node_type, 0)) {
+    $tracking = TIME_TRACKER_COMMENT;
+  }
+  return $tracking;
+}
 
 /***********************************************************************
  * HELPER FUNCTIONS -- Public
@@ -1235,32 +1485,40 @@ function time_tracker_preprocess_comment(&$vars) {
  *    e.g. 10 hours, 30 minutes
  * 
  */
-function format_hours_to_hours_and_minutes($hours, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ') {
+function format_hours_to_hours_and_minutes($hours, $clock_time = FALSE, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ') {
   $hrs = floor($hours);
   $mins = round(($hours - $hrs) * 60);
-  // Format the 'hours' text
-  if ($abbrev_hrs == TRUE) {
-    $hours_str = format_plural($hrs, '1 hr', '@count hrs');
+  if ($clock_time) {
+    if ($mins < 10) {
+      $mins = '0' . $mins;
+    }
+    return $hrs . ':' . $mins;
   }
   else {
-    $hours_str = format_plural($hrs, '1 hour', '@count hours');
-  }
-  // Don't show minutes if there are none
-  if ($mins == 0) {
-    return $hours_str;
-  }
-  else { 
-    if ($abbrev_mins == TRUE) {
-      $minutes_str = format_plural($mins, '1 min', '@count mins');
+    // Format the 'hours' text
+    if ($abbrev_hrs == TRUE) {
+      $hours_str = format_plural($hrs, '1 hr', '@count hrs');
     }
     else {
-      $minutes_str = format_plural($mins, '1 minute', '@count minute');
+      $hours_str = format_plural($hrs, '1 hour', '@count hours');
     }
-    if ($hrs == 0) {
-      return $minutes_str;
+    // Don't show minutes if there are none
+    if ($mins == 0) {
+      return $hours_str;
     }
-    else {
-      return $hours_str . ', ' . $minutes_str;
+    else { 
+      if ($abbrev_mins == TRUE) {
+        $minutes_str = format_plural($mins, '1 min', '@count mins');
+      }
+      else {
+        $minutes_str = format_plural($mins, '1 minute', '@count minute');
+      }
+      if ($hrs == 0) {
+        return $minutes_str;
+      }
+      else {
+        return $hours_str . ', ' . $minutes_str;
+      }
     }
   }
 }
@@ -1362,32 +1620,6 @@ function get_activity_name($activity_id) {
   $activity = db_fetch_object($result);
 
   return $activity->name;
-}
-
-/**
- * Returns true if either we are tracking time on the case
- * either on the comments or the node
- * 
- * @param $node_type
- *    The node type to check if we are tracking time on it
- * 
- * @return
- *    Returns FALSE if we're not tracking time on this node
- *    type, otherwise returns a string of either 'both' 'node'
- *    or 'comment'
- */
-function time_tracker_is_tracking_time($node_type) {
-  $tracking = FALSE;
-  if (variable_get('time_tracker_nodes_' . $node_type, 0) && variable_get('time_tracker_comments_' . $node_type, 0)) {
-    $tracking = TIME_TRACKER_BOTH;
-  }
-  elseif (variable_get('time_tracker_nodes_' . $node_type, 0)) {
-    $tracking = TIME_TRACKER_NODE;
-  }
-  elseif (variable_get('time_tracker_comments_' . $node_type, 0)) {
-    $tracking = TIME_TRACKER_COMMENT;
-  }
-  return $tracking;
 }
 
 /***********************************************************************

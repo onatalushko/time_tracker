@@ -250,9 +250,9 @@ function theme_time_sheet_user_page($user = NULL) {
       // And the time_entry item name. Both linked
       $row[] = l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-node'))) . $project_link;
       // The amount of time logged for this item
-      $row[] = array('data' => format_hours_to_hours_and_minutes($time_entry_result->duration), 'align' => 'right');
+      $row[] = array('data' => format_hours_to_hours_and_minutes($time_entry_result->duration - $time_entry_result->deductions), 'align' => 'right');
       // On going add-up of the total duration of time logged this week
-      $total_duration = $total_duration + $time_entry_result->duration;
+      $total_duration = $total_duration + ($time_entry_result->duration - $time_entry_result->deductions);
       // Add the row to the rows
       $rows[] = array('data' => $row);
     }
@@ -431,7 +431,6 @@ function time_sheet_add_time() {
         '#type' => 'textfield',
         '#size' => '10',
         '#required' => TRUE,
-        '#default_value' => $time_tracker_data->duration,
         '#description' => t('eg. 2.5 for two and a half hours'),
       );
   }
@@ -441,7 +440,6 @@ function time_sheet_add_time() {
       '#type' => 'textfield',
       '#size' => '10',
       '#required' => TRUE,
-      '#default_value' => $time_tracker_data->duration,
       '#description' => t('Use the format hh:mmAM/PM e.g. 12:30PM'),
     );
     $form['time_sheet']['end'] = array(
@@ -449,7 +447,6 @@ function time_sheet_add_time() {
       '#type' => 'textfield',
       '#size' => '10',
       '#required' => TRUE,
-      '#default_value' => $time_tracker_data->duration,
       '#description' => t('Use the format hh:mmAM/PM e.g. 12:30PM'),
     );
   }
@@ -459,7 +456,6 @@ function time_sheet_add_time() {
     $form['time_sheet']['activity'] = array(
       '#title' => t('Activity'),
       '#type' => 'select',
-      '#default_value' => $time_tracker_data->activity,
       '#options' => $activities,
     );
   

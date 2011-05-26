@@ -18,17 +18,20 @@
 
 #edit-start-wrapper,
 #edit-end-wrapper,
+#edit-time-wrapper,
 #edit-start-datepicker-popup-0-wrapper,
 #edit-end-datepicker-popup-0-wrapper,
 #edit-start-timeEntry-popup-1-wrapper,
-#edit-end-timeEntry-popup-1-wrapper {
+#edit-end-timeEntry-popup-1-wrapper,
+#edit-time-datepicker-popup-0-wrapper {
   padding: 0px;
 }
 
 #edit-username-wrapper,
 #edit-time-wrapper,
 #edit-duration-wrapper,
-#edit-activity-wrapper {
+#edit-activity-wrapper,
+#edit-deductions-wrapper {
   float:left;
 }
 
@@ -61,7 +64,9 @@
   clear: none;
 }
 
-#edit-locked-wrapper {
+#edit-locked-wrapper,
+#edit-billable-wrapper,
+#edit-billed-wrapper {
   clear:both;
 }
 
@@ -88,20 +93,28 @@
 
 #edit-start-1-wrapper,
 #edit-end-1-wrapper,
+#edit-time-1-wrapper,
 #edit-start-1-datepicker-popup-0-wrapper,
 #edit-end-1-datepicker-popup-0-wrapper,
 #edit-start-1-timeEntry-popup-1-wrapper,
-#edit-end-1-timeEntry-popup-1-wrapper {
+#edit-end-1-timeEntry-popup-1-wrapper,
+#edit-time-1-datepicker-popup-0-wrapper {
   padding: 0px;
 }
 
 #edit-username-1-wrapper,
 #edit-time-1-wrapper,
 #edit-duration-1-wrapper,
-#edit-activity-1-wrapper {
+#edit-activity-1-wrapper,
+#edit-deductions-1-wrapper {
   float:left;
 }
 
+#edit-locked-1-wrapper,
+#edit-billable-1-wrapper,
+#edit-billed-1-wrapper {
+  clear:both;
+}
 
 #edit-duration-1-wrapper input {
   width: 60px;

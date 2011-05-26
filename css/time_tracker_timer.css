@@ -171,7 +171,8 @@ td.timer_block_msg a {
 }
 
 /* Time Tracker Time Entry Form */
-#edit-duration-disabled-wrapper {
+#edit-duration-disabled-wrapper,
+#edit-duration-disabled-1-wrapper {
   float:left;
 }
 
@@ -182,6 +183,10 @@ td.timer_block_msg a {
   font-style: italic;
   margin: 16px 10px 10px 10px;
   float:left;
+}
+
+.time_entry_disabled.with_deductions {
+  margin: 4px 10px 10px 10px;
 }
 
 
