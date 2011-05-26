@@ -514,6 +514,12 @@ function theme_time_tracker_timer($timers, $node) {
   $output =      '';
   $start_time = 0;
   $timer_state = 'new'; // new
+  if (variable_get('time_entry_method', 'duration') == 'interval' && !variable_get('enable_deductions_field', 0)) {
+    $no_resume = ' no_resume';
+  }
+  else {
+    $no_resume = '';
+  }
   drupal_add_js(drupal_get_path('module', 'time_tracker'). '/js/timer.js');
 
   // Loop through the results. Should only be ONE if user doesn't have 'view all' priveleges
@@ -560,7 +566,7 @@ function theme_time_tracker_timer($timers, $node) {
           'data' => array(
             array(
               'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $start_time),
-              'class' => 'stopped_timer_control timer_control'
+              'class' => 'stopped_timer_control timer_control' . $no_resume,
             ),
             array(
               'data' => _time_tracker_format_secs_to_hhmmss($total_time),//
@@ -607,7 +613,7 @@ function theme_time_tracker_timer($timers, $node) {
           'data' => array(
             array(
               'data' => drupal_get_form('time_tracker_timer_startstop_form_' . $timer->ttid, $node, $timer_state, $timer->start, $timer->uid),//t("BUTTON PLACEHOLDER"),
-              'class' => 'stopped_timer_control timer_control'
+              'class' => 'stopped_timer_control timer_control' . $no_resume,
             ),
             array(
               'data' => _time_tracker_format_secs_to_hhmmss($total_time),//

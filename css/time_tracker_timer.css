@@ -66,8 +66,13 @@ td.timer_control input {
   text-align:center;
   overflow: hidden;
 }
+
 td.timer_control.stopped_timer_control {
   width: 260px;
+}
+
+td.timer_control.stopped_timer_control.no_resume {
+  width: 165px;
 }
 
 td.timer_control.stopped_timer_control input.form-timer_control_reset {
@@ -93,6 +98,10 @@ input.form-timer_control_stop {
 
 input.form-timer_control_reset {
   background: url("images/reset_timer_button.png") no-repeat 0 0;
+}
+
+input.form-timer_control_reset_only {
+  background: url("images/reset_timer_button_full.png") no-repeat 0 0;
 }
 
 input.form-timer_control_resume {
