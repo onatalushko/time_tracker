@@ -34,6 +34,56 @@ function time_tracker_perm() {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function time_tracker_help($section, $arg) {
+  switch ($section) {
+    case 'admin/help#time_tracker':
+      return t("<h2>Time Tracker</h2>
+        <p>To begin tracking time go to the edit content type screen for any content type (admin/content/node-type/%content-type-name) and scroll to the 'Time Tracker Settings' fieldset. There, you can choose to track time either on this content type's nodes or this content type's comments. Tracking time on nodes will give you a time entry sheet and a table of time entries at the bottom of a node's content, but before the comments. Tracking time on comments will add a time entry sheet to the comment form. Keep in mind that if you choose to track time on a content type's nodes as well as comments, you will only ever see comment time entries in the comment thread, and node time entries in the time entry table. However, if you were to use views to view the time entries, you could see them all with no distinction.</p>
+        <p>We recommend deciding ahead of time whether or not you would like to track time on comments or nodes. We've found that people who just want to jot down time entries with minimal notes prefer to track time on nodes. However
+        people who like extensive notes along with their time entires, as well as the ability to thread conversations based on time entries, prefer to use comments as their vessel for tracking time.</p>
+        <p>Settings for Time Tracker can be found at admin/settings/time_tracker. They should be mostly self explanatory. We recommend, however, deciding beforehand if you wish to track time using durations (e.g. 2 hours) or time intervals (e.g. 1:00pm to 2:00pm).</p>
+        <h3>Optional Fields</h3>
+        <p>Some fields are optional. They can be enabled /disabled on the time tracker settings page:</p>
+        <ul>
+        <li>Billable:   A simple checkbox to flag the time entry as billable</li>
+        <li>Billed:     A simple checkbox to flag the time entry as billed</li>
+        <li>Deductions: This field can be used to log deductions from the total time</li>
+        </ul>
+        <h3>Activities</h3>
+        <p>Activities are specific classifications for time entries. You can administer activities at admin/settings/time_tracker/activity/list.</p>
+        <p>Disabling an activity just makes it so you can't choose it anymore. Past time entries can still reference it will display the activity name.</p>
+        <p>Deleting an activity deletes it completely from the db, thus orphaning any 
+        past time entries that are referencing it.</p>
+        <h3>Permissions</h3>
+        <p>Double check your permissions before getting started:</p>
+        <ul>
+        <li><em>add time tracker entries</em><br/>
+        	  Permission to allow users to track time</li>
+        <li><em>view all time tracker entries, view own time tracker entries</em><br/>
+            Allow users to view time entries</li>
+        <li><em>edit time entries</em>	<br/>
+        	  Allow users to edit time entries</li>
+        <li><em>delete time entries</em>	<br/>
+        	  Allow users to delete time entries</li>
+        <li><em>administer time tracker</em><br/>
+        	Access the administration pages</li>
+        <li><em>administer time entries</em>	<br/>
+        	  Gives access to additional options when editing a time entry:
+        	  <ul>
+        	    <li>Allows locking of time entires (if that particular setting is on)</li>
+        	    <li>Allows editing of locked time entries</li>
+        	    <li>Allows changing of username associated with a time entry</li>
+        	 </ul>
+        </li>
+        </ul>
+        ");
+      break;
+  }
+}
+
+/**
  * Implementation of hook_menu().
  *
  */

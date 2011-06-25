@@ -14,6 +14,19 @@ function time_estimate_perm() {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function time_estimate_help($section, $arg) {
+  switch ($section) {
+    case 'admin/help#time_estimate':
+      return t("<h2>Time Tracker Timer</h2>
+        <p>Adds a time estimate field to content types that are tracking time. This module is very simple and has no settings page.</p>
+        ");
+      break;
+  }
+}
+
+/**
  * Implementation of hook_menu().
  *
  */

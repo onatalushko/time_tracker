@@ -176,6 +176,7 @@ function time_tracker_update_6106() {
 function time_tracker_install() {
   drupal_install_schema('time_tracker');
   db_query("UPDATE {system} SET weight = %d WHERE name = '%s'", -1, 'time_tracker');
+  drupal_set_message(t("Time Tracker has been installed successfully. To begin tracking time, you first must enable time tracking on at least one content type. You can do so on any content type's edit page at admin/content/node-type/%content-type-name"));
 }
 
 function time_tracker_uninstall() {

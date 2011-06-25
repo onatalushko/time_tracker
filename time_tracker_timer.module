@@ -21,6 +21,25 @@ function time_tracker_timer_perm() {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function time_tracker_timer_help($section, $arg) {
+  switch ($section) {
+    case 'admin/help#time_tracker_timer':
+      return t("<h2>Time Tracker Timer</h2>
+        <p>This module adds a simple timer for tracking time. Users can start the timer before beginning work and stop the timer when finished. The time entry form fields are then automatically updated with the timer results for easy time logging.</p>
+        <p>This module also comes with an (current user's) Active Timers block as well as Page which will show all active timers throughout the site (needs permission 'view all timers')</p>
+        <h3>Resuming the timer</h3>
+        <p>The timer can also be resumed once stopped. For duration based time entries this works as expected, however in order to be able to resume the timer for interval based time entries, you must enable the deductions field. The time in which the timer is stopped is logged in the deductions field and the start and end times are the first time the timer is started, and the last time it was stopped, respectively.</p>
+        <h3>Permissions</h3>
+        <p>The time tracker timer by default disables manual time entry. Manual time entry can be re-enabled using the permission 'manually enter time'.</p>
+        <p>You can also separately enable or disable manual time entry for the deductions field using the permission 'manually enter deductions'</p>
+        ");
+      break;
+  }
+}
+
+/**
  * Implementation of hook_menu().
  *
  */

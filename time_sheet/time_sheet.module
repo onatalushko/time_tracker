@@ -23,6 +23,20 @@ function time_sheet_perm() {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function time_sheet_help($section, $arg) {
+  switch ($section) {
+    case 'admin/help#time_sheet':
+      return t("<h2>Time Sheet</h2>
+        <p>The time sheet provides a simple weekly summary of time entries for a give user. It can be found at (user/%user_id/time_sheet). There will also be a link as a local task (tab) on the user profile page.</p>
+        <p>Settings for the Time Sheet can be found at admin/settings/time_tracker/time_sheets</p>
+        ");
+      break;
+  }
+}
+
+/**
  * Custom Access Control
  */
 function time_sheet_view_access($account) {
@@ -138,6 +152,17 @@ function time_sheet_forms($form_id, $args) {
  *    Can be a $user object, a $uid or left out entirely to load the current user
  */
 function time_sheet_page($user = NULL) {
+  // Display a message if no nodes are set up to track time on
+  $tracking_time = FALSE;
+  foreach (node_get_types() as $key => $value) {
+    if (time_tracker_is_tracking_time($key)) {
+      $tracking_time = TRUE;
+      break;
+    }
+  }
+  if (!$tracking_time) {
+    drupal_set_message("No content types have been set up to track time on. This sheet will not be useful until you've set up at least one content type on which to track time. To begin tracking time, you first must enable time tracking on at least one content type. You can do so on any content type's edit page at admin/content/node-type/%content-type-name");
+  }
   return theme('time_sheet_user_page', $user);
 }
 
@@ -164,6 +189,7 @@ function time_sheet_theme() {
  *    A themed table of time entry data
  */
 function theme_time_sheet_user_page($user = NULL) {
+  
   //Validates the user being passed in the path is a number (uid)
   if (is_numeric($user)) {
     $user = user_load($user); 
