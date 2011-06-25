@@ -151,6 +151,22 @@ function time_tracker_settings_form(&$form_state) {
     '#default_value' => variable_get('time_entry_table_default_collapsed', 0),
   );
   
+  // Default settings for time tracker time entry and time display fieldsets
+  $form['time_tracker_userfield_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t("User Selection Field Settings"),
+  );
+  $form['time_tracker_userfield_settings']['time_tracker_user_field_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('User field type'),
+    '#description' => t('The type of field for the "user" field when logging time. Only users with the "administer time tracker" permission can view the user field'),
+    '#options' => array(
+      'textfield' => t('Autocomplete textfield'),
+      'select' => t('Select box'),
+    ),
+    '#default_value' => variable_get('time_tracker_user_field_type', 'textfield'),
+  );
+  
   // Time entry settings (duration or interval)
   $form['time_entry_settings'] = array(
     '#type' => 'fieldset',
@@ -769,16 +785,27 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
   
   $user_submit = user_load($time_tracker_data->uid);
 
-  // Auto complete user reference but only if you have permission
+  // Auto complete/select user reference but only if you have permission
   $form['time_tracker']['username'] = array(
     '#title' => t('User'),
     '#access' => user_access('administer time entries'),
-    '#size' => '15',
-    '#type' => $lock ? 'value' : 'textfield',
+    '#type' => $lock ? 'value' : variable_get('time_tracker_user_field_type', 'textfield'),
     '#weight' => 0,
     '#default_value' => $user_submit->name ? $user_submit->name : $user->name,
-    '#autocomplete_path' => 'user/autocomplete',
   );
+
+  if(variable_get('time_tracker_user_field_type', 'textfield') == 'select'){
+    $options = drupal_map_assoc(casetracker_user_options());
+    array_shift($options);
+    $form['time_tracker']['username'] += array('#options' => $options);
+    $form['time_tracker']['username']['#weight'] -= 1;
+  }
+  else {
+    $form['time_tracker']['username'] += array(
+      '#autocomplete_path' => 'user/autocomplete',
+      '#size' => '15',
+    );
+  }
   
   // The activity choser
   $form['time_tracker']['activity'] = array(
