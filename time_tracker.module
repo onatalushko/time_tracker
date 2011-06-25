@@ -549,6 +549,8 @@ function time_tracker_nodeapi(&$node, $op) {
   switch ($op) {
     case 'view':
       if (user_access('view all time tracker entries') || user_access('view own time tracker entries')) {
+        // init total time
+        $total_time = 0;
         // If case tracker exists then we can check if it's a project
         if (module_exists('casetracker') && casetracker_is_project($node->type)) {
           $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
@@ -572,7 +574,7 @@ function time_tracker_nodeapi(&$node, $op) {
           // if this is a node form display the time tracker
           $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
         
-          while ($time_entry = db_fetch_object($resource)) {
+          while ($time = db_fetch_object($resource)) {
             $total_time = $total_time + ($time->duration - $time->deductions);
           }
           
