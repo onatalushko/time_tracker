@@ -1379,8 +1379,8 @@ function theme_time_tracker_comment($time_entry) {
         '!deductions' => format_hours_to_hours_and_minutes($time_entry->deductions),
         '!time' => format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
         '!activity' => $activity,
-        '!billable' => $time_entry->billable ? 'Billable: Yes. ' : 'Billable: No. ',
-        '!billed' => $time_entry->billed ? 'Billed: Yes.' : 'Billed: No.',
+        '!billable' => variable_get('enable_billable_field', 0) ? ($time_entry->billable ? 'Billable: Yes. ' : 'Billable: No. ') : '',
+        '!billed' => variable_get('enable_billed_field', 0) ? ($time_entry->billed ? 'Billed: Yes.' : 'Billed: No.') : '',
       )));
 
       return theme('table', NULL, $rows, array('class' => 'time_tracker_entry_comment'));
