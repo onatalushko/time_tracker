@@ -571,12 +571,8 @@ function time_tracker_nodeapi(&$node, $op) {
         
         } 
         else {
-          // if this is a node form display the time tracker
-          $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
-        
-          while ($time = db_fetch_object($resource)) {
-            $total_time = $total_time + ($time->duration - $time->deductions);
-          }
+          
+          $total_time = time_tracker_get_total_logged_time($node->nid);
           
           if ($total_time > 0) {
             $node->content['time_tracker_summary'] = array(
@@ -1541,6 +1537,48 @@ function time_tracker_is_tracking_time($node_type) {
   return $tracking;
 }
 
+/**
+ * Returns the activity name for a givent activity id
+ * 
+ * @param $activity_id
+ *    The id of the activity
+ * 
+ * @return
+ *    The name of the activity
+ */
+function get_activity_name($activity_id) {
+  $result = db_query("SELECT name FROM {time_tracker_activity} WHERE taid = '". $activity_id ."'");
+  $activity = db_fetch_object($result);
+
+  return $activity->name;
+}
+
+/**
+ * Calculates the total logged time for a particular node
+ * 
+ * @param $nid
+ *    The nid of the node to calculate the total logged time
+ * 
+ * @return
+ *    Returns the total logged time ona node. Includes both
+ *    comment and node based time entries
+ */
+function time_tracker_get_total_logged_time($nid) {
+  
+  // Initialize the $total_time variable to 0
+  $total_time = 0;
+  
+  // if this is a node form display the time tracker
+  $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $nid);
+
+  while ($time_entry = db_fetch_object($resource)) {
+    $total_time = $total_time + $time_entry->duration;
+  }
+  
+  return $total_time;
+}
+
+
 /***********************************************************************
  * HELPER FUNCTIONS -- Public
  ***********************************************************************/
@@ -1602,9 +1640,16 @@ function format_hours_to_hours_and_minutes($hours, $clock_time = FALSE, $abbrev_
   }
 }
 
+
 /**
  * A function to calculate the difference between a start time
  * and a stop time and return a duration in the hh:mm format
+ * 
+ * @param $start
+ *    The start time, in seconds
+ * 
+ * @param $stop
+ *    The end time, in seconds
  */
 function convert_phptime_to_duration($start, $stop = 0) {
   if ($stop == 0) {
@@ -1688,17 +1733,6 @@ function get_active_activities_options() {
     $activities[$result->taid] = $result->name;
   }
   return $activities;
-}
-
-
-/**
- * Helper function for turning activity id into name.
- */
-function get_activity_name($activity_id) {
-  $result = db_query("SELECT name FROM {time_tracker_activity} WHERE taid = '". $activity_id ."'");
-  $activity = db_fetch_object($result);
-
-  return $activity->name;
 }
 
 /***********************************************************************

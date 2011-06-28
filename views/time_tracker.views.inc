@@ -259,6 +259,18 @@ function time_tracker_views_data() {
       'label' => t('Time Tracker'),
     ),
   );
+  
+  // Access Time Tracker Data from the node base table
+  $data['node']['nid'] = array(
+    'relationship' => array(
+      'title' => t('Time Tracker'),
+      'help' => t('Access time tracker data for nodes.'),
+      'handler' => 'views_handler_relationship',
+      'base' => 'time_tracker_entry',
+      'base field' => 'nid',
+      'label' => t('Time Tracker'),
+    ),
+  );
 
   // Define a "table" called 'time_tracker_totals', which will actually be
   // a subquery that will add up all the time tracked on the node.
