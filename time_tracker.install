@@ -154,7 +154,7 @@ function time_tracker_update_6104() {
 }
 
 /**
- * Adds locked field to time_tracker_entry
+ * Adds status field to time_tracker_entry
  */
 function time_tracker_update_6105() {
   $return = array();
@@ -164,7 +164,7 @@ function time_tracker_update_6105() {
 }
 
 /**
- * Adds locked field to time_tracker_entry
+ * Adds deductions and billed fields to time_tracker_entry
  */
 function time_tracker_update_6106() {
   $return = array();
