@@ -740,7 +740,6 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     '#title' => t('Time Tracker'),
     '#collapsible' => TRUE,
     '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
-    '#description' => $msg,
     '#weight' => -9,
   );
   
@@ -1369,15 +1368,23 @@ function theme_time_tracker_comment($time_entry) {
       return theme('table', $header, $rows, array('class' => 'time_tracker_entry_comment'));
     }
     else {
-      $rows[] = array(t('Time: !total (!duration - !deductions) !activity on !time. !billable !billed', array(
-        '!total' => format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions),
-        '!duration' => format_hours_to_hours_and_minutes($time_entry->duration),
-        '!deductions' => format_hours_to_hours_and_minutes($time_entry->deductions),
-        '!time' => format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y')),
-        '!activity' => $activity,
-        '!billable' => variable_get('enable_billable_field', 0) ? ($time_entry->billable ? 'Billable: Yes. ' : 'Billable: No. ') : '',
-        '!billed' => variable_get('enable_billed_field', 0) ? ($time_entry->billed ? 'Billed: Yes.' : 'Billed: No.') : '',
-      )));
+      $time_string = array();
+      $time_string['total'] = format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions);
+      if (variable_get('enable_deductions_field', 0)) {
+        $time_string['total_details'] = '(' . format_hours_to_hours_and_minutes($time_entry->duration) . ' - ' . format_hours_to_hours_and_minutes($time_entry->deductions) . ')';
+      }
+      $time_string['activity'] = $activity;
+      $time_string['on'] = t('on');
+      $time_string['time'] = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y'));
+      if (variable_get('enable_billable_field', 0)) {
+        $time_string['billable'] = $time_entry->billable ? t('Billable: Yes.') : t('Billable: No.');
+      }
+      if (variable_get('enable_billed_field', 0)) {
+        $time_string['billed'] = $time_entry->billed ? t('Billed: Yes.') : t('Billed: No.');
+      }
+
+      $rows[] = array(t('Time') . ': ' . implode(' ', $time_string));
+
 
       return theme('table', NULL, $rows, array('class' => 'time_tracker_entry_comment'));
     }
