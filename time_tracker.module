@@ -722,6 +722,7 @@ function time_tracker_comment(&$comment, $op) {
  * 
  */
 function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
+  drupal_add_js(drupal_get_path('module', 'time_tracker') . '/js/time_tracker.js');
   // Current user
   global $user;
   
@@ -1133,7 +1134,7 @@ function time_tracker_theme() {
  *      $obj->nid: The node id this time entry is attached to
  *      $obj->uid: The user id to whom this time entry belongs
  *      $obj->cid: If applicable, the comment id for this time entry
- *      $obj->pid: If applicable, the casetracker project id for this time entry (deprecated)
+ *      $obj->pid: If applicable, the casetracker project id for this time entry (removed)
  *      $obj->activity: The time entry Activity
  *      $obj->timestamp: The unix timestamp of when this time entry was dated
  *      $obj->start: If tracking time by interval, the start time of the entry

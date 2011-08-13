@@ -24,49 +24,48 @@ function time_tracker_schema() {
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
-      ),
-      'pid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
+        'default' => 0,
       ),
       'activity' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'timestamp' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'default' => 0,
       ),
       'start' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'end' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'deductions' => array(
         'type' => 'float',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'duration' => array(
         'type' => 'float',
         'not null' => TRUE,
         'unsigned' => FALSE,
+        'default' => 0,
       ),
       'note' => array(
         'type' => 'text',
-        'not null' => TRUE,
+        'default' => '',
       ),
       'locked' => array(
         'type' => 'int',
@@ -172,6 +171,71 @@ function time_tracker_update_6106() {
   db_add_field($return, 'time_tracker_entry', 'billed', array('type' => 'int', 'size' => 'tiny'));
   return $return;
 }
+
+/**
+ * Adds deductions and billed fields to time_tracker_entry
+ */
+function time_tracker_update_6107() {
+  $return = array();
+  db_drop_field($return, 'time_tracker_entry', 'pid');
+  return $return;
+}
+
+/**
+ * Adds default values to columns
+ */
+function time_tracker_update_6108() {
+  $return = array();
+  db_change_field($return, 'time_tracker_entry', 'cid', 'cid', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'uid', 'uid', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'activity', 'activity', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'timestamp', 'timestamp', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'start', 'start', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'end', 'end', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'deductions', 'deductions', array(
+    'type' => 'float',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'duration', 'duration', array(
+    'type' => 'float',
+    'not null' => TRUE,
+    'unsigned' => FALSE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_entry', 'note', 'note', array(
+    'type' => 'text',
+    'default' => '',
+  ));
+  return $return;
+}
+
 
 function time_tracker_install() {
   drupal_install_schema('time_tracker');

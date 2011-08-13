@@ -244,13 +244,12 @@ function time_tracker_timer_startstop_form_start_submit($form, &$form_state) {
     //Object must match Schema
     $timerObj        = new stdClass();
     $timerObj->nid   = $form_state['values']['nid']; // may need to use clicked_button?
-    //$timerObj->pid   = $form_state['values']['pid'];
     $timerObj->uid   = $form_state['values']['uid'];
     $timerObj->start = time();
     //Write the new record
     $success = drupal_write_record('time_tracker_timer', $timerObj);
     //Let the user know if the write was successful (Timer was started)
-    if($success) {
+    if ($success) {
       drupal_set_message(t('Timer started'), 'message');
     } else {
       drupal_set_message(t('Could not start timer'), 'error');
@@ -314,7 +313,7 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
   // if this is a time tracking form...
   // Note: The time entry form and the comment form should have the same
   // form structure even though they have different ids because we merged them
-  if (($form_id == 'comment_form' || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries') && arg(0) == 'node' && is_numeric(arg(1))) {
+  if (($form_id == 'comment_form' || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries') && !empty($form['nid'])) {
     global $user;
     $node = node_load($form['nid']['#value']);
     if (time_tracker_is_tracking_time($node->type)) {
