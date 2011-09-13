@@ -524,7 +524,7 @@ function time_sheet_form_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
   
   // Redirect to current week view
-  $form_state['redirect'] = drupal_get_destination();
+  $form_state['redirect'] = $_SERVER['REQUEST_URI'];
 }
 
 /**
@@ -585,7 +585,7 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
     $comment['revision_id'] = $case->vid;
     
     $comment['cid'] = comment_save($comment);
-    
+    preg_replace('/-.*-\d+/', '', $string);
     //casetracker_comment($comment, 'update');
     
     $time['cid'] = $comment['cid'];
@@ -606,6 +606,14 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
   $time['activity'] = $form_state['clicked_button']['#post']['activity'];
   $time['uid'] = $user->uid;
   $time['nid'] = $form_state['clicked_button']['#post']['case_list'];
+  
+  // Get the current path for redirection
+  $destination = explode('?', str_replace('destination=', '', urldecode(drupal_get_destination())));
+  $url = $destination[0];
+  $query = $destination[1];
+  
+  // Redirect to current week view
+  $form_state['redirect'] = array($url, $query);
 
   drupal_write_record('time_tracker_entry', $time);
 
@@ -626,20 +634,40 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
  */
 function _time_sheet_case_list_options($user) {
   // Our Query
+  // A little special love for Atrium.
   if (module_exists('atrium')) {
-    $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
-                       cc.case_status_id, cc.pid, ccs.case_state_name, 
-                       no.title AS groupname
-                FROM {casetracker_case} AS cc
-                JOIN {node} AS n ON n.nid = cc.nid
-                JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
-                JOIN {og_ancestry} AS oa ON oa.nid = n.nid
-                JOIN {node} AS no ON no.nid = oa.group_nid
-                WHERE cc.assign_to = %d 
-                AND cc.case_status_id NOT IN (6, 7, 8)
-                ORDER BY cc.case_status_id ASC, n.created DESC";
-    // grab all cases that the user is assigned to
-    $case_results = db_query($sql, $user->uid);
+    $group = spaces_get_space();
+    if ($gid = $group->group->nid) {
+      $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
+                         cc.case_status_id, cc.pid, ccs.case_state_name, 
+                         no.title AS groupname
+                  FROM {casetracker_case} AS cc
+                  JOIN {node} AS n ON n.nid = cc.nid
+                  JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
+                  JOIN {og_ancestry} AS oa ON oa.nid = n.nid
+                  JOIN {node} AS no ON no.nid = oa.group_nid
+                  WHERE cc.assign_to = %d 
+                  AND oa.group_nid = %d
+                  AND cc.case_status_id NOT IN (6, 7, 8)
+                  ORDER BY cc.case_status_id ASC, n.created DESC";
+      // grab all cases that the user is assigned to and limit to current group
+      $case_results = db_query($sql, $user->uid, $gid);
+    }    
+    else {
+      $sql = "SELECT cc.nid, n.title, n.created, cc.assign_to, 
+                         cc.case_status_id, cc.pid, ccs.case_state_name, 
+                         no.title AS groupname
+                  FROM {casetracker_case} AS cc
+                  JOIN {node} AS n ON n.nid = cc.nid
+                  JOIN {casetracker_case_states} AS ccs ON cc.case_status_id = ccs.csid
+                  JOIN {og_ancestry} AS oa ON oa.nid = n.nid
+                  JOIN {node} AS no ON no.nid = oa.group_nid
+                  WHERE cc.assign_to = %d 
+                  AND cc.case_status_id NOT IN (6, 7, 8)
+                  ORDER BY cc.case_status_id ASC, n.created DESC";
+      // grab all cases that the user is assigned to
+      $case_results = db_query($sql, $user->uid);
+    }
 
     // cycle through cases to create the select options array
     $case_options = array('' => t('Select a case...'));
