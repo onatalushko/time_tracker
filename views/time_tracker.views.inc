@@ -123,7 +123,7 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_boolean',
+      'handler' => 'views_handler_filter_boolean_operator',
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
@@ -139,7 +139,7 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_boolean',
+      'handler' => 'views_handler_filter_boolean_operator',
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',

@@ -22,31 +22,27 @@ function time_tracker_timer_schema() {
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
-      ),
-      'pid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
+        'default' => 0,
       ),
       'start' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => FALSE,
+        'default' => 0,
       ),
       'stop' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'total' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
       'deductions' => array(
         'type' => 'int',
-        'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
     ),
     'primary key' => array('ttid'),
@@ -78,5 +74,41 @@ function time_tracker_timer_update_6100() {
 function time_tracker_timer_update_6101() {
   $return = array();
   db_add_field($return, 'time_tracker_timer', 'deductions', array('type' => 'int', 'not_null' => TRUE, 'unsigned' => TRUE));
+  return $return;
+}
+
+/**
+ * Remove the pid field
+ * Re-configure the database columns
+ */
+function time_tracker_timer_update_6102() {
+  $return = array();
+  db_drop_field($return, 'time_tracker_timer', 'pid');
+  db_change_field($return, 'time_tracker_timer', 'uid', 'uid', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_timer', 'start', 'start', array(
+    'type' => 'int',
+    'unsigned' => FALSE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_timer', 'stop', 'stop', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_timer', 'total', 'total', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field($return, 'time_tracker_timer', 'deductions', 'deductions', array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'default' => 0,
+  ));
   return $return;
 }
