@@ -597,7 +597,9 @@ function time_tracker_nodeapi(&$node, $op) {
           }
           $node->content['time_tracker'] = array(
             '#value' => theme('time_tracker_time_entry_table', $node_time_entries) . 
-                        drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid),
+                        ( user_access('add time tracker entries') 
+                          ? drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid) 
+                          : '' ),
             '#weight' => 51,
           );
         }
