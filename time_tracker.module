@@ -722,7 +722,6 @@ function time_tracker_comment(&$comment, $op) {
  *
  */
 function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
-  drupal_add_js(drupal_get_path('module', 'time_tracker') . '/js/time_tracker.js');
   // Current user
   global $user;
 
