@@ -112,6 +112,22 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
+  $data['time_tracker_entry']['deductions'] = array(
+    'title' => t('Deductions'),
+    'help' => t('Time Entry Deductions.'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
+  );
   // This isn't being used right now so I'm de-exposing it to views
   $data['time_tracker_entry']['billable'] = array(
     'title' => t('Billable'),
