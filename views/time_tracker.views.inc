@@ -46,7 +46,7 @@ function time_tracker_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
-    ), 
+    ),
   );
   $data['time_tracker_entry']['start'] = array(
     'title' => t('Start Time'),
@@ -263,7 +263,7 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument_numeric',
     ),
   );
-  
+
   // Access Time Tracker Data from the comments base table
   $data['comments']['cid'] = array(
     'relationship' => array(
@@ -275,7 +275,7 @@ function time_tracker_views_data() {
       'label' => t('Time Tracker'),
     ),
   );
-  
+
   // Access Time Tracker Data from the node base table
   $data['node']['nid'] = array(
     'relationship' => array(
@@ -347,7 +347,7 @@ function time_tracker_views_handlers() {
 
 
 function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
-  
+
   if ($form['form_id']['#id'] == 'edit-views-exposed-form') {
     if(module_exists('jquery_ui')) {
       jquery_ui_add(array('ui.datepicker'));
@@ -356,12 +356,12 @@ function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
       drupal_add_css(drupal_get_path('module', 'time_tracker') . '/views/css/time_tracker_views.css');
     }
   }
-  
+
   if (isset($form['timestamp']['min']) && isset($form['timestamp']['max']) && arg(0) != 'admin') {
-    
+
     $start_date = urlencode($form['timestamp']['min']['#default_value']);
     $end_date = urlencode($form['timestamp']['max']['#default_value']);
-    
+
     // Whaaaaa-aaaat?
     // This is a simple redirect if there is no ? in the file path
     // It's a hack, I know, but it works...
@@ -393,11 +393,11 @@ function time_tracker_date_api_fields($field) {
     'related_fields' => array(),
     'granularity' => array('year', 'month', 'day', 'hour', 'minute', 'second'),
   );
-  
+
   switch($field) {
     case 'time_tracker_entry.timestamp':
     case 'time_tracker_entry.start':
-    case 'time_tracker_entry.end': 
+    case 'time_tracker_entry.end':
       return $values;
   }
 }
@@ -425,5 +425,47 @@ class time_tracker_node_join_handler extends views_join {
 
     $output = $this->type . " JOIN (SELECT SUM(`duration`) as total_time, `nid` FROM {time_tracker_entry} GROUP BY nid) as $alias ON $left_field = $alias.nid";
     return $output;
+  }
+}
+
+/**
+ * Implementation of hook_views_bulk_operations_object_info().
+ */
+function time_tracker_views_bulk_operations_object_info() {
+  $object_info = array(
+    'time_tracker_entry' => array(
+      'type' => 'time_tracker',
+      'base_table' => 'time_tracker_entry',
+      'load' => '_time_tracker_entry_load',
+      'oid' => 'teid',
+      'title' => 'title',
+    ),
+  );
+  return $object_info;
+}
+
+function _time_tracker_entry_load($teid) {
+  return db_fetch_object(db_query("SELECT *, n.title FROM {time_tracker_entry} AS te JOIN {node} AS n ON te.nid = n.nid WHERE teid = %d", $teid));
+}
+
+/**
+ * Implementation of hook_action_info().
+ */
+function time_tracker_action_info() {
+  return array(
+    'time_tracker_time_tracker_billed_action' => array(
+      'description' => t('Mark entries as billed'),
+      'type' => 'time_tracker',
+      'configurable' => FALSE,
+      'hooks' => array(
+        'time_tracker' => array('billed'),
+      ),
+    ),
+  );
+}
+
+function time_tracker_time_tracker_billed_action($teids, $context) {
+  foreach ($teids as $teid) {
+    db_query("UPDATE time_tracker_entry SET billed = 1 WHERE teid = %d", $teid);
   }
 }
