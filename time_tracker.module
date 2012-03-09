@@ -845,7 +845,7 @@ function time_tracker_time_entry_form($form_state, $type = 'node', $id = 0) {
     if (module_exists('casetracker')) {
       $options = drupal_map_assoc(casetracker_user_options());
     } else {
-      $users = db_query("SELECT uid, name FROM users WHERE uid > 0");
+      $users = db_query("SELECT uid, name FROM {users} WHERE uid > 0");
 
       while ($user_info = db_fetch_array($users)) {
         $options[$user_info['uid']] = $user_info['name'];
