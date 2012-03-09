@@ -606,6 +606,7 @@ function time_tracker_nodeapi(&$node, $op) {
 
     case 'delete':
       db_query("DELETE FROM {time_tracker_entry} WHERE nid = %d", $node->nid);
+      db_query("DELETE FROM {time_tracker_timer} WHERE nid = %d", $node->nid);
     break;
 
     case 'insert':
