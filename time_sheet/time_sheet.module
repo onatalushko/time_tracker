@@ -535,14 +535,14 @@ function time_sheet_form_submit($form, &$form_state) {
  */
 function time_sheet_add_time_submit_handler_validate($form, &$form_state) {
   if (variable_get('time_entry_method', 'duration') == 'duration') {
-    if ($form_state['clicked_button']['#post']['duration'] && !is_numeric($form_state['clicked_button']['#post']['duration'])) {
-      form_set_error('duration', t('Duration must be a number'));
+    if (strlen($form_state['clicked_button']['#post']['duration']) && _time_tracker_parse_duration($form_state['clicked_button']['#post']['duration']) === FALSE) {
+      form_set_error('duration', t('Invalid duration value. You may enter time fractions such as 1.25 or hour and minute values such as 2:30.'));
     }
   }
   else {
-    if ($form_state['clicked_button']['#post']['start'] && !preg_match('/^[0-9]{2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['start'])) {
+    if ($form_state['clicked_button']['#post']['start'] && !preg_match('/^[0-9]{1,2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['start'])) {
       form_set_error('start', t('Start time must be in the format hh:mmAM/PM e.g. 12:30PM'));
-    } elseif ($form_state['clicked_button']['#post']['end'] && !preg_match('/^[0-9]{2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['end'])) {
+    } elseif ($form_state['clicked_button']['#post']['end'] && !preg_match('/^[0-9]{1,2}:[0-9]{2}(AM|PM)$/', $form_state['clicked_button']['#post']['end'])) {
       form_set_error('end', t('End time must be in the format hh:mmAM/PM e.g. 12:30PM'));
     }
   }
@@ -597,15 +597,33 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
     $time['note'] = $form_state['clicked_button']['#post']['comment'];
   }
 
+  // Set the timestamp
   $time['timestamp'] = $form_state['clicked_button']['#post']['timestamp'];
+
+  // Pull the rounding data
+  $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
+  $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
+
+  // Special handling based on the time entry method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
-    $time['duration'] = $form_state['clicked_button']['#post']['duration'];
+    $time['start'] = 0;
+    $time['end'] = 0;
+    $time['duration'] = time_tracker_round(_time_tracker_parse_duration($form_state['clicked_button']['#post']['duration']), $rounding_interval / 60, $rounding_operation);
   }
-  else {
-    $time['start'] = $form_state['clicked_button']['#post']['start'];
-    $time['end'] = $form_state['clicked_button']['#post']['end'];
+  elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+    $time['start'] = time_tracker_round(strtotime($form_state['clicked_button']['#post']['start']), $rounding_interval * 60, $rounding_operation);
+    $time['end'] = time_tracker_round(strtotime($form_state['clicked_button']['#post']['end']), $rounding_interval * 60, $rounding_operation);
     $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
   }
+
+  // if (variable_get('time_entry_method', 'duration') == 'duration') {
+
+  // }
+  // else {
+  //   $time['start'] = $form_state['clicked_button']['#post']['start'];
+  //   $time['end'] = $form_state['clicked_button']['#post']['end'];
+  //   $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
+  // }
   $time['activity'] = $form_state['clicked_button']['#post']['activity'];
   $time['uid'] = $user->uid;
   $time['nid'] = $form_state['clicked_button']['#post']['case_list'];
