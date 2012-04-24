@@ -1589,7 +1589,7 @@ function time_tracker_get_total_logged_time($nid) {
   $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $nid);
 
   while ($time_entry = db_fetch_object($resource)) {
-    $total_time = $total_time + $time_entry->duration;
+    $total_time = $total_time + ($time_entry->duration - $time_entry->deductions);
   }
 
   return $total_time;
