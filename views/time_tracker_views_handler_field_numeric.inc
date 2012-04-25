@@ -29,7 +29,7 @@ class time_tracker_views_handler_field_numeric extends views_handler_field_numer
   }
 
   function render($values) {
-    $saved_values = $values;
+    $saved_values = new stdClass();
     $value = $values->{$this->field_alias};
     if ($this->options['output_format'] == 'clock') {
       return format_hours_to_hours_and_minutes($value, TRUE);
@@ -39,13 +39,16 @@ class time_tracker_views_handler_field_numeric extends views_handler_field_numer
     }
     else {
       // Convert number to proper unit -- Database value is in hours
+      if ($this->options['output_format'] == 'hours') {
+        $saved_values->{$this->field_alias} = $value;
+      }
       if ($this->options['output_format'] == 'minutes') {
-        $saved_values->{$this->field_alias} = $value * 60;
+        $saved_values->{$this->field_alias} = round($value * 60);
       }
       elseif ($this->options['output_format'] == 'seconds') {
-         $saved_values->{$this->field_alias} = $value * 60 * 60;
+         $saved_values->{$this->field_alias} = round($value * 60 * 60);
       }
-      return parent::render($values);
+      return parent::render($saved_values);
     }
   }
 }
