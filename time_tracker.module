@@ -1606,6 +1606,9 @@ function time_tracker_get_total_logged_time($nid) {
  * @param $hours
  *    The amount of time to format in hours
  *
+ * @param $clock_time
+ *    Optional Parameter to format the output as clock time (hh:mm)
+ *
  * @param $abbrev_hrs
  *    Optional parameter to abbreviate the text for 'hours' to 'hrs'
  *    Default is set to un-abbreviated

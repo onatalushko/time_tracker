@@ -1,5 +1,5 @@
 <?php
-// $Id: time_tracker.views.inc,v 1.10 2010/06/11 23:10:08 codi Exp $
+
 /**
  * @file
  *   Views integration for time_tracker
@@ -82,9 +82,10 @@ function time_tracker_views_data() {
   );
   $data['time_tracker_entry']['duration'] = array(
     'title' => t('Duration'),
-    'help' => t('Time Entry Duration.'),
+    'help' => t('The Raw Time Entry Duration (without deductions).'),
     'field' => array(
-      'handler' => 'views_handler_field_numeric',
+      'handler' => 'time_tracker_views_handler_field_numeric',
+      'float' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -116,7 +117,8 @@ function time_tracker_views_data() {
     'title' => t('Deductions'),
     'help' => t('Time Entry Deductions.'),
     'field' => array(
-      'handler' => 'views_handler_field_numeric',
+      'handler' => 'time_tracker_views_handler_field_numeric',
+      'float' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -128,6 +130,23 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
+  // $data['time_tracker_entry']['total_duration'] = array(
+  //   'title' => t('Total Duration'),
+  //   'help' => t('Time Entry Total Duration, minus the deductions'),
+  //   'field' => array(
+  //     'handler' => 'time_tracker_views_handler_field_total_duration',
+  //     'float' => TRUE,
+  //   ),
+  //   'sort' => array(
+  //     'handler' => 'views_handler_sort',
+  //   ),
+  //   'filter' => array(
+  //     'handler' => 'views_handler_filter_numeric',
+  //   ),
+  //   'argument' => array(
+  //     'handler' => 'views_handler_argument',
+  //   ),
+  // );
   // This isn't being used right now so I'm de-exposing it to views
   $data['time_tracker_entry']['billable'] = array(
     'title' => t('Billable'),
@@ -310,7 +329,7 @@ function time_tracker_views_data() {
     // a node. Allow it to be used as a numeric Field, Filter, and Sort.
     'total_time' => array(
       'title' => t('Total time'),
-      'help' => t('The total time tracked on the node (not including time tracked on comments)'),
+      'help' => t('The total time tracked on the node (minus deductions)'),
       'field' => array(
         'handler' => 'views_handler_field_numeric',
         'click sortable' => TRUE,
@@ -321,6 +340,47 @@ function time_tracker_views_data() {
       ),
       'sort' => array(
         'handler' => 'views_handler_sort',
+      ),
+    ),
+  );
+
+  // Define another "table" called 'time_tracker_total_duration'.
+  // This one creates a compound field "total_duration" (duration - deduction)
+  // and joins it back into the time_tracker_entry table.
+  $data['time_tracker_total_duration'] = array(
+    'table' => array(
+      'group' => t('Time Tracker'),
+      // Join this "table" to the Node table, so this can be used in node views,
+      // which is the whole point.
+      'join' => array(
+        'time_tracker_entry' => array(
+          'left_field' => 'teid',
+          'field' => 'teid',
+          // Use a custom join handler, which constructs the query. This is
+          // defined below.
+          'handler' => 'time_tracker_total_duration_join_handler',
+        ),
+      ),
+    ),
+
+    // Create a field called total_duration, which is the duration minus the
+    // deductions. This belongs to the pseudo table "time_tracker_total_duration"
+    'total_duration' => array(
+      'title' => t('Total Duration'),
+      'help' => t('Time Entry Total Duration, minus the deductions'),
+      'field' => array(
+        'handler' => 'time_tracker_views_handler_field_numeric',
+        'click sortable' => TRUE,
+        'float' => TRUE,
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_numeric',
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument',
       ),
     ),
   );
@@ -336,11 +396,17 @@ function time_tracker_views_handlers() {
   return array(
     'info' => array(
       'path' => drupal_get_path('module', 'time_tracker') .'/views',
-      ),
+     ),
     'handlers' => array(
       'time_tracker_views_handler_filter_date' => array(
         'parent' => 'views_handler_filter_numeric',
       ),
+      'time_tracker_views_handler_field_numeric' => array(
+        'parent' => 'views_handler_field_numeric',
+      ),
+      // 'time_tracker_views_handler_field_total_duration' => array(
+      //   'parent' => 'time_tracker_views_handler_field_numeric',
+      // ),
     ),
   );
 }
@@ -402,6 +468,60 @@ function time_tracker_date_api_fields($field) {
   }
 }
 
+/**
+ * Implementation of hook_views_bulk_operations_object_info().
+ */
+function time_tracker_views_bulk_operations_object_info() {
+  $object_info = array(
+    'time_tracker_entry' => array(
+      'type' => 'time_tracker',
+      'base_table' => 'time_tracker_entry',
+      'load' => '_time_tracker_entry_load',
+      'oid' => 'teid',
+      'title' => 'title',
+    ),
+  );
+  return $object_info;
+}
+
+
+/**
+ * Implementation of hook_action_info().
+ */
+function time_tracker_action_info() {
+  return array(
+    'time_tracker_time_tracker_billed_action' => array(
+      'description' => t('Mark entries as billed'),
+      'type' => 'time_tracker',
+      'configurable' => FALSE,
+      'hooks' => array(
+        'time_tracker' => array('billed'),
+      ),
+    ),
+  );
+}
+
+
+/***********************************************************************
+ * HELPER FUNCTIONS
+ ***********************************************************************/
+
+
+function time_tracker_time_tracker_billed_action($teids, $context) {
+  foreach ($teids as $teid) {
+    db_query("UPDATE time_tracker_entry SET billed = 1 WHERE teid = %d", $teid);
+  }
+}
+
+function _time_tracker_entry_load($teid) {
+  return db_fetch_object(db_query("SELECT *, n.title FROM {time_tracker_entry} AS te JOIN {node} AS n ON te.nid = n.nid WHERE teid = %d", $teid));
+}
+
+
+/***********************************************************************
+ * VIEWS CUSTOM JOIN HANDLERS
+ ***********************************************************************/
+
 
 /**
  * Handles the join between the node table and the time information.
@@ -423,49 +543,34 @@ class time_tracker_node_join_handler extends views_join {
     $left = $query->get_table_info('node');
     $left_field = $left['alias'] . ".nid";
 
-    $output = $this->type . " JOIN (SELECT SUM(`duration`) as total_time, `nid` FROM {time_tracker_entry} GROUP BY nid) as $alias ON $left_field = $alias.nid";
+    $output = $this->type . " JOIN (SELECT SUM(`duration`) - SUM(`deductions`) as total_time, `nid` FROM {time_tracker_entry} GROUP BY nid) as $alias ON $left_field = $alias.nid";
     return $output;
   }
 }
 
 /**
- * Implementation of hook_views_bulk_operations_object_info().
+ * Handles the join between the time entry table and itself. Wait, what?
+ *
+ * We do this to create a new "Table" that defines the "total_duration" field
+ * which is the duration minus the deductions. It's probably not the best
+ * solution performance-wise, but it's compatible with views calc, and that's
+ * more important for now. My original solution was a custom field handler
+ * that overrode the query method. I kept it for now in:
+ *   time_tracker_views_handler_field_total_duration.inc
  */
-function time_tracker_views_bulk_operations_object_info() {
-  $object_info = array(
-    'time_tracker_entry' => array(
-      'type' => 'time_tracker',
-      'base_table' => 'time_tracker_entry',
-      'load' => '_time_tracker_entry_load',
-      'oid' => 'teid',
-      'title' => 'title',
-    ),
-  );
-  return $object_info;
-}
+class time_tracker_total_duration_join_handler extends views_join {
 
-function _time_tracker_entry_load($teid) {
-  return db_fetch_object(db_query("SELECT *, n.title FROM {time_tracker_entry} AS te JOIN {node} AS n ON te.nid = n.nid WHERE teid = %d", $teid));
-}
+  /**
+   * Overrides the views_join::join() method.
+   *
+   * Custom join that makes a sub-query.
+   */
+  function join($table, &$query) {
+    $alias = $table['alias'];
+    $left = $query->get_table_info('time_tracker_entry');
+    $left_field = $left['alias'] . ".teid";
 
-/**
- * Implementation of hook_action_info().
- */
-function time_tracker_action_info() {
-  return array(
-    'time_tracker_time_tracker_billed_action' => array(
-      'description' => t('Mark entries as billed'),
-      'type' => 'time_tracker',
-      'configurable' => FALSE,
-      'hooks' => array(
-        'time_tracker' => array('billed'),
-      ),
-    ),
-  );
-}
-
-function time_tracker_time_tracker_billed_action($teids, $context) {
-  foreach ($teids as $teid) {
-    db_query("UPDATE time_tracker_entry SET billed = 1 WHERE teid = %d", $teid);
+    $output = $this->type . " JOIN (SELECT duration - deductions as total_duration, teid FROM {time_tracker_entry}) as $alias ON $left_field = $alias.teid";
+    return $output;
   }
 }
