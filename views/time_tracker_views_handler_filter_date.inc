@@ -14,7 +14,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
   }
 
   /**
-   * Add a type selector to the value form
+   * Add a type selector to the value format
    */
   function value_form(&$form, &$form_state) {
     if (empty($form_state['exposed'])) {
@@ -39,15 +39,31 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
       );
       $form['value']['accepted_relative']['info'] = array(
         '#type' => 'markup',
-        '#value' => "All expressions are case insensitive. <br/>" . 
-                    "'<strong>First Of This Month</strong>' = First Day of this Month<br/>" . 
-                    "'<strong>Last Of This Month</strong>' = Last Day of this Month<br/>" . 
-                    "'<strong>(<i>n</i>)th/(<i>n</i>)st Of This Month</strong>' =  <i>n</i> being a numbered day, this expression will represent that numbered day of this month. e.g. 21st Of This Month or 14th Of This Month<br/>" . 
+        '#value' => "All expressions are case insensitive. <br/>" .
+                    "'<strong>First Of This Month</strong>' = First Day of this Month<br/>" .
+                    "'<strong>Last Of This Month</strong>' = Last Day of this Month<br/>" .
+                    "'<strong>(<i>n</i>)th/(<i>n</i>)st Of This Month</strong>' =  <i>n</i> being a numbered day, this expression will represent that numbered day of this month. e.g. 21st Of This Month or 14th Of This Month<br/>" .
                     "'<strong>Bimonthly</strong>' = Put in both Min and Max to dynamically generate a date range based on the current date. e.g. if it is the 3rd of the month, it will return a range of the 1st to the 15th. If it is after the 15th, it will return the 16th to the end of the month.",
         '#attributes' => array('class' => 'accepted-relative-values'),
       );
     }
     parent::value_form($form, $form_state);
+  }
+
+  /**
+   * Override the exposed form to use a date_popup if enabled
+   */
+  function exposed_form(&$form, &$form_state) {
+    parent::exposed_form($form, $form_state);
+    if (module_exists('date_popup')) {
+      if (isset($form['timestamp']['#type'])) {
+        $form['timestamp']['#type'] = 'date_popup';
+      }
+      elseif (isset($form['timestamp']['min']) && isset($form['timestamp']['max'])) {
+        $form['timestamp']['min']['#type'] = 'date_popup';
+        $form['timestamp']['max']['#type'] = 'date_popup';
+      }
+    }
   }
 
   function options_validate(&$form, &$form_state) {
@@ -128,7 +144,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     else {
       $operator = $this->operator;
     }
-    
+
     if ($operators[$operator]['values'] == 1) {
       if ($this->value['value'] == '') {
         return FALSE;
@@ -146,7 +162,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
   }
 
   function op_between($field) {
-    
+
     if ($this->operator == 'between') {
       $a = intval(strtotime($this->value['min'], 0));
       $b = intval(strtotime($this->value['max'], 0));
@@ -160,12 +176,12 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
       $a = '***CURRENT_TIME***' . sprintf('%+d', $a); // keep sign
       $b = '***CURRENT_TIME***' . sprintf('%+d', $b); // keep sign
     }
-    
+
     if ($this->value['type'] == 'relative') {
       $a = $this->process_relative_time_frame($this->value['min'], 'min');
       $b = $this->process_relative_time_frame($this->value['max'], 'max');
     }
-    
+
     //dpm($a);
     // %s is safe here because strtotime scrubbed the input and we might
     // have a string if using offset.
@@ -180,7 +196,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     }
     $this->query->add_where($this->options['group'], "$field $this->operator %s", $value);
   }
-  
+
   function process_relative_time_frame($value, $limit = 'min') {
     $timestamp = 0;
     $value = strtolower($value);
@@ -223,7 +239,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
         else {
           $timestamp = $convert;
         }
-        
+
     }
     return $timestamp;
   }
