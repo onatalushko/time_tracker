@@ -55,13 +55,26 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
    */
   function exposed_form(&$form, &$form_state) {
     parent::exposed_form($form, $form_state);
+    // Get the filter identifier. This is defined in views in the filter settings
+    // so it could vary from the usual 'timestamp', 'start', and 'end'
+    $filter_identifier = $this->options['expose']['identifier'];
+    // Check if the date popup module is enabled
     if (module_exists('date_popup')) {
-      if (isset($form['timestamp']['#type'])) {
-        $form['timestamp']['#type'] = 'date_popup';
+      if (variable_get('time_entry_method', 'duration') == 'duration' || $filter_identifier == 'timestamp') {
+        $format = variable_get('timestamp_date_format', 'F d, Y');
+      }
+      else {
+        $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
+      }
+      if (isset($form[$filter_identifier]['#type'])) {
+        $form[$filter_identifier]['#type'] = 'date_popup';
+        $form[$filter_identifier]['#date_format'] = $format;
       }
       elseif (isset($form['timestamp']['min']) && isset($form['timestamp']['max'])) {
-        $form['timestamp']['min']['#type'] = 'date_popup';
-        $form['timestamp']['max']['#type'] = 'date_popup';
+        $form[$filter_identifier]['min']['#type'] = 'date_popup';
+        $form[$filter_identifier]['min']['#date_format'] = $format;
+        $form[$filter_identifier]['max']['#type'] = 'date_popup';
+        $form[$filter_identifier]['max']['#date_format'] = $format;
       }
     }
   }
@@ -104,8 +117,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
    */
   function validate_valid_time(&$form, $operator, $value) {
     $operators = $this->operators();
-
-    if ($operators[$operator]['values'] == 1) {
+    if ($operators[$operator]['values'] == 1 && $value['value']) {
       $convert = strtotime($value['value']);
       if ($convert == -1 || $convert === FALSE) {
         form_error($form['value'], t('Invalid date format.'));
