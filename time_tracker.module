@@ -1625,6 +1625,10 @@ function time_tracker_get_total_logged_time($nid) {
 function format_hours_to_hours_and_minutes($hours, $clock_time = FALSE, $abbrev_hrs = FALSE, $abbrev_mins = TRUE, $sep = ', ') {
   $hrs = floor($hours);
   $mins = round(($hours - $hrs) * 60);
+  if ($mins == 60) {
+    $mins = 0;
+    $hrs++;
+  }
   if ($clock_time) {
     if ($mins < 10) {
       $mins = '0' . $mins;
