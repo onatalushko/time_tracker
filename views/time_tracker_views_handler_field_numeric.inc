@@ -29,7 +29,7 @@ class time_tracker_views_handler_field_numeric extends views_handler_field_numer
   }
 
   function render($values) {
-    $saved_values = new stdClass();
+    $saved_values = unserialize(serialize($values));
     $value = $values->{$this->field_alias};
     if ($this->options['output_format'] == 'clock') {
       return format_hours_to_hours_and_minutes($value, TRUE);
