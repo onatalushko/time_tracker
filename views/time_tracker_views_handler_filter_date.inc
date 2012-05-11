@@ -28,6 +28,9 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
         ),
         '#default_value' => !empty($this->value['type']) ? $this->value['type'] : 'relative',
       );
+      if (module_exists('date_popup')) {
+        $form['value']['type']['#options']['date_popup'] = t('Use a date popup field for date entry. Relative values can be used for the default value of the field, but won\'t be accepted on the exposed form.');
+      }
       $form['value']['accepted_relative'] = array(
         '#title' => t('Accepted Relative Values'),
         '#type' => 'fieldset',
@@ -59,7 +62,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     // so it could vary from the usual 'timestamp', 'start', and 'end'
     $filter_identifier = $this->options['expose']['identifier'];
     // Check if the date popup module is enabled
-    if (module_exists('date_popup')) {
+    if (module_exists('date_popup') && $this->options['value']['type'] == 'date_popup') {
       if (variable_get('time_entry_method', 'duration') == 'duration' || $filter_identifier == 'timestamp') {
         $format = variable_get('timestamp_date_format', 'F d, Y');
       }
@@ -69,12 +72,29 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
       if (isset($form[$filter_identifier]['#type'])) {
         $form[$filter_identifier]['#type'] = 'date_popup';
         $form[$filter_identifier]['#date_format'] = $format;
+        // Process the value for relative timeframes
+        // I don't know why but the datepopup widget won't take our format
+        // for the default value so we have to use one it understands
+        $form[$filter_identifier]['#default_value'] = date(
+          'Y-M-d H:i:s',
+          $this->process_relative_time_frame($form[$filter_identifier]['min']['#default_value'], 'min')
+        );
       }
       elseif (isset($form['timestamp']['min']) && isset($form['timestamp']['max'])) {
         $form[$filter_identifier]['min']['#type'] = 'date_popup';
         $form[$filter_identifier]['min']['#date_format'] = $format;
+        // Check if the default value is relative
+        $form[$filter_identifier]['min']['#default_value'] = date(
+          'Y-m-d H:i:s',
+          $this->process_relative_time_frame($form[$filter_identifier]['min']['#default_value'], 'min')
+        );
         $form[$filter_identifier]['max']['#type'] = 'date_popup';
         $form[$filter_identifier]['max']['#date_format'] = $format;
+        // Check if the default value is relative
+        $form[$filter_identifier]['max']['#default_value'] = date(
+          'Y-m-d H:i:s',
+          $this->process_relative_time_frame($form[$filter_identifier]['max']['#default_value'], 'max')
+        );
       }
     }
   }
@@ -209,6 +229,10 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     $this->query->add_where($this->options['group'], "$field $this->operator %s", $value);
   }
 
+  /**
+   * Checks the value to see if a relative time value has been passed in
+   * If it has, we convert it to an actual timestamp
+   */
   function process_relative_time_frame($value, $limit = 'min') {
     $timestamp = 0;
     $value = strtolower($value);
@@ -256,4 +280,3 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     return $timestamp;
   }
 }
-
