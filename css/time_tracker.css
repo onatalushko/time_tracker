@@ -27,28 +27,30 @@
   padding: 0px;
 }
 
-#edit-username-wrapper,
+
+.form-item-username,
 #edit-time-wrapper,
-#edit-duration-wrapper,
-#edit-activity-wrapper,
+
+.form-item-duration,
+.form-item-activity,
 #edit-deductions-wrapper {
   float:left;
 }
 
-#edit-duration-wrapper input {
+.form-item-duration input {
   width: 60px;
 }
 
-#edit-username-wrapper {
+.form-item-username {
   /*margin-right: 20px;*/
 /*  width: 200px;*/
 }
 
-#edit-username-wrapper input {
+.form-item-username input {
   /*width: 200px;*/
 }
 
-#edit-activity-wrapper select {
+.form-item-activity select {
 /*  min-width: 200px;*/
 }
 
@@ -109,7 +111,7 @@
 #edit-deductions-1-wrapper {
   float:left;
 }
-
+#comment-form .form-item,
 #edit-locked-1-wrapper,
 #edit-billable-1-wrapper,
 #edit-billed-1-wrapper {

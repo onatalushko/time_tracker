@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Implementation of hook_views_default_views().
+ * Implements hook_views_default_views().
  */
 function time_tracker_views_default_views() {
   $list = array(
@@ -10,7 +10,7 @@ function time_tracker_views_default_views() {
   );
   $views = array();
   foreach ($list as $view_name) {
-    $view = call_user_func('_view_'. $view_name);
+    $view = call_user_func('_view_' . $view_name);
     $views[$view->name] = $view;
   }
   return $views;
@@ -756,6 +756,6 @@ function _view_time_tracker_reporting() {
     t('Page'),
     t('Page w/Casetracker'),
   );
-  
+
   return $view;
 }

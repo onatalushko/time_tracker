@@ -32,6 +32,7 @@ function time_tracker_views_data() {
       'handler' => 'views_handler_argument',
     ),
   );
+
   $data['time_tracker_entry']['timestamp'] = array(
     'title' => t('Timestamp'),
     'help' => t('Timestamp of the Entry.'),
@@ -388,28 +389,7 @@ function time_tracker_views_data() {
   return $data;
 }
 
-/**
- * Implementation of hook_views_handlers() to register all of the basic handlers
- * views uses.
- */
-function time_tracker_views_handlers() {
-  return array(
-    'info' => array(
-      'path' => drupal_get_path('module', 'time_tracker') .'/views',
-     ),
-    'handlers' => array(
-      'time_tracker_views_handler_filter_date' => array(
-        'parent' => 'views_handler_filter_numeric',
-      ),
-      'time_tracker_views_handler_field_numeric' => array(
-        'parent' => 'views_handler_field_numeric',
-      ),
-      // 'time_tracker_views_handler_field_total_duration' => array(
-      //   'parent' => 'time_tracker_views_handler_field_numeric',
-      // ),
-    ),
-  );
-}
+
 
 
 function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
@@ -439,14 +419,15 @@ function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
 }
 
 /**
- * Implementation of hook_date_api_tables
+ * Implements of hook_date_api_tables().
  */
 function time_tracker_date_api_tables() {
   return array('time_tracker_entry');
 }
 
 /**
- * Implementation of hook_date_api_fields
+ * Implements hook_date_api_fields().
+ *
  * This is required to allow timetracker timestamp
  * as a date argument in views.
  */
@@ -460,7 +441,7 @@ function time_tracker_date_api_fields($field) {
     'granularity' => array('year', 'month', 'day', 'hour', 'minute', 'second'),
   );
 
-  switch($field) {
+  switch ($field) {
     case 'time_tracker_entry.timestamp':
     case 'time_tracker_entry.start':
     case 'time_tracker_entry.end':
@@ -469,7 +450,7 @@ function time_tracker_date_api_fields($field) {
 }
 
 /**
- * Implementation of hook_views_bulk_operations_object_info().
+ * Implements hook_views_bulk_operations_object_info().
  */
 function time_tracker_views_bulk_operations_object_info() {
   $object_info = array(
@@ -484,45 +465,9 @@ function time_tracker_views_bulk_operations_object_info() {
   return $object_info;
 }
 
-
-/**
- * Implementation of hook_action_info().
- */
-function time_tracker_action_info() {
-  return array(
-    'time_tracker_time_tracker_billed_action' => array(
-      'description' => t('Mark entries as billed'),
-      'type' => 'time_tracker',
-      'configurable' => FALSE,
-      'hooks' => array(
-        'time_tracker' => array('billed'),
-      ),
-    ),
-  );
-}
-
-
-/***********************************************************************
- * HELPER FUNCTIONS
- ***********************************************************************/
-
-
-function time_tracker_time_tracker_billed_action($teids, $context) {
-  foreach ($teids as $teid) {
-    db_query("UPDATE time_tracker_entry SET billed = 1 WHERE teid = %d", $teid);
-  }
-}
-
-function _time_tracker_entry_load($teid) {
-  return db_fetch_object(db_query("SELECT *, n.title FROM {time_tracker_entry} AS te JOIN {node} AS n ON te.nid = n.nid WHERE teid = %d", $teid));
-}
-
-
 /***********************************************************************
  * VIEWS CUSTOM JOIN HANDLERS
  ***********************************************************************/
-
-
 /**
  * Handles the join between the node table and the time information.
  *

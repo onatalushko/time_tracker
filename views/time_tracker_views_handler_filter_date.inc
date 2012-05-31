@@ -238,26 +238,26 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     $value = strtolower($value);
     switch ($value) {
       case 'first of this month':
-        $timestamp = strtotime(date('m').'/01/'.date('Y'));
+        $timestamp = strtotime(date('m') . '/01/' . date('Y'));
         break;
       case 'last of this month':
-        $timestamp = strtotime('-1 hour',strtotime('+1 month',strtotime(date('m').'/01/'.date('Y'))));;
+        $timestamp = strtotime('-1 hour',strtotime('+1 month',strtotime(date('m') . '/01/' . date('Y'))));;
         break;
       case 'bimonthly':
         if ($limit == 'min') {
           if (date('j') < 16) {
-            $timestamp = strtotime(date('m').'/01/'.date('Y'));
+            $timestamp = strtotime(date('m') . '/01/' . date('Y'));
           }
           else {
-            $timestamp = strtotime(date('m').'/16/'.date('Y'));
+            $timestamp = strtotime(date('m') . '/16/' . date('Y'));
           }
         }
         else {
           if (date('j') < 16) {
-            $timestamp = strtotime(date('m').'/15/'.date('Y'));
+            $timestamp = strtotime(date('m') . '/15/' . date('Y'));
           }
           else {
-            $timestamp = strtotime('-1 hour',strtotime('+1 month',strtotime(date('m').'/01/'.date('Y'))));
+            $timestamp = strtotime('-1 hour',strtotime('+1 month',strtotime(date('m') . '/01/' . date('Y'))));
           }
         }
         break;
@@ -268,7 +268,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
           preg_match('/[0-9]+/', $value, $matches);
           if (isset($matches[0]) && is_numeric($matches[0])) {
             if (preg_match('/this month/', $value)) {
-              $timestamp = strtotime(date('m').'/'.$matches[0].'/'.date('Y'));
+              $timestamp = strtotime(date('m') . '/' . $matches[0] . '/' . date('Y'));
             }
           }
         }

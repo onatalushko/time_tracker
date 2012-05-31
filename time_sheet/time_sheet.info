@@ -1,5 +1,5 @@
 name = Time Sheet
 description = Provides time sheet functionality for extra accountability.
 package = Time Tracker
-core = 6.x
+core = 7.x
 dependencies[] = time_tracker

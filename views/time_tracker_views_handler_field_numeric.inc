@@ -46,7 +46,7 @@ class time_tracker_views_handler_field_numeric extends views_handler_field_numer
         $saved_values->{$this->field_alias} = round($value * 60);
       }
       elseif ($this->options['output_format'] == 'seconds') {
-         $saved_values->{$this->field_alias} = round($value * 60 * 60);
+        $saved_values->{$this->field_alias} = round($value * 60 * 60);
       }
       return parent::render($saved_values);
     }

@@ -1,8 +1,15 @@
-; $Id: time_tracker.info,v 1.6 2010/05/28 16:30:29 codi Exp $
 name = Time Tracker
 description = Provides time tracking functionality nodes and comments.
 package = Time Tracker
-core = 6.x
+core = 7.x
 dependencies[] = views
 dependencies[] = views_calc
 dependencies[] = date_popup
+dependencies[] = field
+files[] = time_tracker.admin.inc
+files[] = time_tracker.theme.inc
+files[] = time_tracker.inc
+
+files[] = views/time_tracker_views_handler_field_numeric.inc
+files[] = views/time_tracker_views_handler_field_total_duration.inc
+files[] = views/time_tracker_views_handler_filter_date.inc
