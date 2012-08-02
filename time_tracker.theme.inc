@@ -1,8 +1,9 @@
 <?php
-
-/***********************************************************************
- * THEME FUNCTIONS
- ***********************************************************************/
+/**
+ * @file
+ * Theme functions for time_tracker.
+ *
+ */
 
 /**
  * Theme the activity table as a sortable list of activities.
@@ -11,48 +12,51 @@
  * @see time_tracker_activity_table()
  */
 function theme_time_tracker_activity_table($form) {
-  // The table headers
-  $header = array(
-    t('Activity Name'),
-    t('Enabled'),
-    t('Delete'),
-    t('Weight')
-  );
-
   // For some reason form comes in an empty array...
   $form = $form['form'];
 
-  // Take all the form elements and format theme for theme_table
-  foreach (element_children($form['activities']) as $key) {
-    if (isset($form['activities'][$key]['name'])) {
-      // Add the table drag functionality
-      drupal_add_tabledrag('activity-table', 'order', 'sibling', 'activity-weight');
-      // Add class to group weight fields for drag and drop.
-      $form['activities'][$key]['weight']['#attributes']['class'] = array('activity-weight');
-      // array to store row data
-
-      $rows[] = array(
-        'data' => array(
-          drupal_render($form['activities'][$key]['name']),
-          drupal_render($form['activities'][$key]['status']),
-          drupal_render($form['activities'][$key]['delete']),
-          drupal_render($form['activities'][$key]['weight']),
-        ),
-        'class' => array('draggable'),
-      );
+  if(!empty($form['activities'])){
+    // Take all the form elements and format theme for theme_table
+    foreach (element_children($form['activities']) as $key) {
+      if (isset($form['activities'][$key]['name'])) {
+        // Add the table drag functionality
+        drupal_add_tabledrag('activity-table', 'order', 'sibling', 'activity-weight');
+        // Add class to group weight fields for drag and drop.
+        $form['activities'][$key]['weight']['#attributes']['class'] = array('activity-weight');
+        // array to store row data
+        $rows[] = array(
+          'data' => array(
+            drupal_render($form['activities'][$key]['name']),
+            drupal_render($form['activities'][$key]['status']),
+            drupal_render($form['activities'][$key]['delete']),
+            drupal_render($form['activities'][$key]['weight']),
+          ),
+          'class' => array('draggable'),
+        );
+      }
     }
+    // The table headers
+    $header = array(
+      t('Activity Name'),
+      t('Enabled'),
+      t('Delete'),
+      t('Weight')
+    );
+
+    $table = array(
+      'header' => $header,
+      'rows' => $rows,
+      'attributes' => array('id' => array('activity-table')),
+    );
+    // Theme it as a table
+    $output = theme('table', $table);
+
+    // Render the form
+    $output .= drupal_render_children($form);
   }
-  $table = array(
-    'header' => $header,
-    'rows' => $rows,
-    'attributes' => array('id' => array('activity-table')),
-  );
-
-  // Theme it as a table
-  $output = theme('table', $table);
-
-  // Render the form
-  $output .= drupal_render_children($form);
+  else {
+    $output = drupal_render_children($form);
+  }
 
   // Return the themed activities table
   return $output;
@@ -186,8 +190,10 @@ function theme_time_tracker_time_entry_table($time_entries) {
           );
         }
         else {
+          $destination = drupal_get_destination();
+          $destination = $destination['destination'];
           $row['data'][] = array( //Cell6
-            'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid),
+            'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid, array('query' => array('destination' => $destination))),
             'class' => 'time_entry_edit',
           );
         }
@@ -237,18 +243,18 @@ function theme_time_tracker_time_entry_table($time_entries) {
  *      $obj->locked: Whether this entry has been locked, requires extra permissions
  */
 function theme_time_tracker_comment($time_entry) {
-$time_entry = $time_entry['data'];
+  $time_entry = $time_entry['data'];
   if ($time_entry) {
     $rows = array();
     $time = '';
 
-    $activity = _time_tracker_get_activity_name($time_entry['activity']);
+    $activity = _time_tracker_get_activity_name($time_entry->activity);
     if ($activity) {
       $activity = '(' . $activity . ') ';
     }
 
     // If there is a time start and end, it's a time entry that was logged as an interval
-    if ($time_entry['start'] && $time_entry['end']) {
+    if ($time_entry->start && $time_entry->end) {
       //Setting up the table headers
       $header[] = array('data' => t('Duration'));
       if (variable_get('enable_deductions_field', 0)) {
@@ -268,7 +274,7 @@ $time_entry = $time_entry['data'];
       $row = array(//row
         'data' => array( //row data
           array( //Cell3
-            'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry['duration']),
+            'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry->duration),
             'class' => 'time_entry_duration',
           ),
         ),
@@ -276,35 +282,35 @@ $time_entry = $time_entry['data'];
       );//endrow
       if (variable_get('enable_deductions_field', 0)) {
         $row['data'][] = array(
-          'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry['deductions']),
+          'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry->deductions),
           'class' => 'time_entry_deductions',
         );
         $row['data'][] = array(
-          'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry['duration'] - $time_entry['deductions']),
+          'data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions),
           'class' => 'time_entry_total',
         );
       }
       $row['data'][] = array(
-        'data' => _time_tracker_get_activity_name($time_entry['activity']),
+        'data' => _time_tracker_get_activity_name($time_entry->activity),
         'class' => 'time_entry_activity',
       );
       $row['data'][] = array(
-        'data' => format_date($time_entry['start'], 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
+        'data' => format_date($time_entry->start, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
         'class' => 'time_entry_start',
       );
       $row['data'][] = array(
-        'data' => format_date($time_entry['end'], 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
+        'data' => format_date($time_entry->end, 'custom', variable_get('time_interval_date_format', 'h:i A - M d, Y')),
         'class' => 'time_entry_end',
        );
       if (variable_get('enable_billable_field', 0)) {
         $row['data'][] = array( //Cell6
-          'data' => $time_entry['billable'] ? t('Yes') : t('No'),
+          'data' => $time_entry->billable ? t('Yes') : t('No'),
           'class' => 'time_entry_billable',
         );
       }
       if (variable_get('enable_billed_field', 0)) {
         $row['data'][] = array( //Cell6
-          'data' => $time_entry['billed'] ? t('Yes') : t('No'),
+          'data' => $time_entry->billed ? t('Yes') : t('No'),
           'class' => 'time_entry_billed',
         );
       }
@@ -318,18 +324,18 @@ $time_entry = $time_entry['data'];
     }
     else {
       $time_string = array();
-      $time_string['total'] = _time_tracker_format_hours_to_hours_and_minutes($time_entry['duration'] - $time_entry['deductions']);
+      $time_string['total'] = _time_tracker_format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions);
       if (variable_get('enable_deductions_field', 0)) {
-        $time_string['total_details'] = '(' . _time_tracker_format_hours_to_hours_and_minutes($time_entry['duration']) . ' - ' . _time_tracker_format_hours_to_hours_and_minutes($time_entry['deductions']) . ')';
+        $time_string['total_details'] = '(' . _time_tracker_format_hours_to_hours_and_minutes($time_entry->duration) . ' - ' . _time_tracker_format_hours_to_hours_and_minutes($time_entry->deductions) . ')';
       }
       $time_string['activity'] = $activity;
       $time_string['on'] = t('on');
-      $time_string['time'] = format_date($time_entry['timestamp'], 'custom', variable_get('timestamp_date_format', 'F d, Y'));
+      $time_string['time'] = format_date($time_entry->timestamp, 'custom', variable_get('timestamp_date_format', 'F d, Y'));
       if (variable_get('enable_billable_field', 0)) {
-        $time_string['billable'] = $time_entry['billable'] ? t('Billable: Yes.') : t('Billable: No.');
+        $time_string['billable'] = $time_entry->billable ? t('Billable: Yes.') : t('Billable: No.');
       }
       if (variable_get('enable_billed_field', 0)) {
-        $time_string['billed'] = $time_entry['billed'] ? t('Billed: Yes.') : t('Billed: No.');
+        $time_string['billed'] = $time_entry->billed ? t('Billed: Yes.') : t('Billed: No.');
       }
 
       $rows[] = array(t('Time') . ': ' . implode(' ', $time_string));

@@ -1,10 +1,7 @@
 <?php
 /**
  * @file
- * Install for a basic entity - need to create the base table for our entity.
- * This table can have as many columns as you need to keep track of
- * entity-specific data that will not be added via attached fields.
- * The minimum information for the entity to work is an id and an entity name.
+ * Install file for time_tracker.
  */
 /**
  * Implements hook_schema().
@@ -19,12 +16,21 @@ function time_tracker_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
-      'nid' => array(
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 100,
+      ),
+      'entity_bundle' => array(
+        'type' => 'varchar',
+        'length' => 100,
+      ),
+      'entity_id' => array(
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
+        'default' => 0,
       ),
-      'cid' => array(
+      'comment_id' => array(
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
@@ -136,4 +142,5 @@ function time_tracker_install() {
  */
 function time_tracker_uninstall() {
   field_attach_delete_bundle('time_tracker_entry' , 'time_entry' );
+  field_attach_delete_bundle('time_tracker_activity' , 'activity' );
 }

@@ -1,9 +1,7 @@
 <?php
-
 /**
  * @file
- * Implements the basic functionality required to create and display an entity.
- *
+ * Main module file for time_tracker.
  */
 
 /*
@@ -107,35 +105,61 @@ function time_tracker_help($path, $arg) {
  * Implements hook_menu().
  */
 function time_tracker_menu() {
-$items = array();
 
-  $items['admin/config/people/time_tracker'] = array(
+   // Service settings.
+  $items['admin/config/time_tracker'] = array(
     'title' => 'Time Tracker',
-    'description' => 'Adjust time tracker settings.',
+    'description' => 'Time Tracker Module Settings.',
+    'position' => 'right',
+    'weight' => 0,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('access administration pages'),
+    'file path' => drupal_get_path('module', 'system'),
+    'file' => 'system.admin.inc',
+  );
+  $items['admin/config/time_tracker/global_settings'] = array(
+    'title' => 'Global Settings',
+    'description' => 'Time Tracker form global settings.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_settings_form'),
     'access arguments' => array('administer time tracker'),
     'file' => 'time_tracker.admin.inc',
   );
-  $items['admin/config/people/time_tracker/settings'] = array(
-    'title' => 'Time Tracker',
+  $items['admin/config/time_tracker/global_settings/manage'] = array(
+    'title' => 'Global Settings',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
-  $items['admin/config/people/time_tracker/activity/list'] = array(
+  $items['admin/config/time_tracker/entity_settings'] = array(
+    'title' => 'Entity Settings',
+    'description' => 'Configure time tracking per entity.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('time_tracker_entity_settings_form'),
+    'access arguments' => array('administer time tracker'),
+    'file' => 'time_tracker.admin.inc',
+  );
+  $items['admin/config/time_tracker/entity_settings/manage'] = array(
+    'title' => 'Entity Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/config/time_tracker/activities'] = array(
     'title' => 'Activities',
-    'description' => 'Adjust time tracker settings.',
+    'description' => 'Manage Time Tracker Activity Entities',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_activity_table_form'),
     'access arguments' => array('administer time tracker'),
-    'type' => MENU_LOCAL_TASK,
-    'parent' => 'admin/config/people/time_tracker',
     'file' => 'time_tracker.admin.inc',
   );
-  $items['admin/config/people/time_tracker/activity/delete/%'] = array(
+  $items['admin/config/time_tracker/activities/list'] = array(
+    'title' => 'Activities',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/config/time_tracker/activity/delete/%'] = array(
     'title' => 'Delete Activity',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('time_tracker_delete_activity_confirm', 6),
+    'page arguments' => array('time_tracker_delete_activity_confirm', 5),
     'access arguments' => array('administer time tracker'),
     'file' => 'time_tracker.admin.inc',
   );
@@ -176,7 +200,7 @@ function time_tracker_entity_info() {
     'label' => t('Time Entry'),
 
     // The controller for our Entity, extending the Drupal core controller.
-    'controller class' => 'TimeTrackerController',
+    'controller class' => 'TimeTrackerEntryController',
 
     // The table for this entity defined in hook_schema()
     'base table' => 'time_tracker_entry',
@@ -192,10 +216,9 @@ function time_tracker_entity_info() {
     // Here we do not support a revision, so that entity key is omitted.
     'entity keys' => array(
       'id' => 'teid' , // The 'id' (basic_id here) is the unique id.
-      'bundle' => 'bundle_type' // Bundle will be determined by the 'bundle_type' field
     ),
     'bundle keys' => array(
-      'bundle' => 'bundle_type',
+      'bundle' => 'time_entry',
     ),
 
     // FALSE disables caching. Caching functionality is handled by Drupal core.
@@ -206,7 +229,49 @@ function time_tracker_entity_info() {
         // 'admin' key is used by the Field UI to provide field and
         // display UI pages.
         'admin' => array(
-          'path' => 'admin/config/people/time_tracker',
+          'path' => 'admin/config/time_tracker/settings',
+          'access arguments' => array('administer time tracker'),
+        ),
+      ),
+    ),
+  );
+
+  $info['time_tracker_activity'] = array(
+    // A human readable label to identify our entity.
+    'label' => t('Time Tracker Activities'),
+
+    // The controller for our Entity, extending the Drupal core controller.
+    'controller class' => 'TimeTrackerActivityController',
+
+    // The table for this entity defined in hook_schema()
+    'base table' => 'time_tracker_activity',
+
+    // Returns the uri elements of an entity
+    'uri callback' => 'time_tracker_activity_uri',
+
+    // IF fieldable == FALSE, we can't attach fields.
+    'fieldable' => TRUE,
+
+    // entity_keys tells the controller what database fields are used for key
+    // functions. It is not required if we don't have bundles or revisions.
+    // Here we do not support a revision, so that entity key is omitted.
+    'entity keys' => array(
+      'id' => 'taid' , // The 'id' (basic_id here) is the unique id.
+    ),
+    'bundle keys' => array(
+      'bundle' => 'activity',
+    ),
+
+    // FALSE disables caching. Caching functionality is handled by Drupal core.
+    'static cache' => TRUE,
+    'bundles' => array(
+      'activity' => array(
+        'label' => 'Activity',
+        // 'admin' key is used by the Field UI to provide field and
+        // display UI pages.
+        'admin' => array(
+          'path' => 'admin/config/time_tracker/activities',
+          'file' => 'time_tracker_activity.admin.inc',
           'access arguments' => array('administer time tracker'),
         ),
       ),
@@ -214,6 +279,15 @@ function time_tracker_entity_info() {
   );
 
   return $info;
+}
+
+/**
+ * Implements the uri callback.
+ */
+function time_tracker_activity_uri($activity) {
+  return array(
+    'path' => 'time_tracker/activity/' . $activity->taid,
+  );
 }
 
 /**
@@ -280,98 +354,277 @@ function time_tracker_entry_uri($basic) {
   );
 }
 
-/**
- * Implements hook_form_FORM_ID_alter().
- *
- * Adds the options for tracking time to the
- */
-function time_tracker_form_node_type_form_alter(&$form, &$form_state, $form_id) {
-  // what are we tracking time on?
-  if (isset($form['type'])) {
-    $form['time_tracker'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Time Tracker settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'additional_settings',
-    );
-    $form['time_tracker']['time_tracker_nodes'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Track time on this content types nodes'),
-      '#default_value' => variable_get('time_tracker_nodes_' . $form['#node_type']->type, 0),
-      '#description' => t('Track time on this content types nodes.'),
-    );
-    $form['time_tracker']['time_tracker_comments'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Track time on this content types comments'),
-      '#default_value' => variable_get('time_tracker_comments_' . $form['#node_type']->type, 0),
-      '#description' => t('Track time on this content types comments.'),
-    );
-  }
+function time_tracker_get_types($type_name = NULL) {
+  // entity_load will get the Entity controller for our model entity and call the load
+  // function of that object - we are loading entities by name here.
+  $types = entity_load_multiple_by_name('time_tracker_activiy', isset($type_name) ? array($type_name) : FALSE);
+  return isset($type_name) ? reset($types) : $types;
 }
+
+
 
 /**
  * Implements hook_node_view().
  */
-function time_tracker_node_view($node, $view_mode, $langcode) {
-  if ($view_mode == 'full') {
-    if (user_access('view time tracker entries')) {
-      // if this is a node form display the time tracker
-      $resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $node->nid));
-      $total_time = 0;
-      while ($time_entry = $resource->fetchObject()) {
-        $total_time = $total_time + $time_entry->duration;
+function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
+  global $user;
+  $info = entity_extract_ids($type, $entity);
+  $bundle = $info[2];
+  $entity_id = $info[0];
+  // Redefine our info array.
+  $info = array(
+    'entity_id' => $entity_id,
+    'bundle' => $bundle,
+    'entity_type' => $type,
+    'entity' => $entity,
+  );
+
+
+  $enabled_entity = variable_get('time_tracker-' . $type . '-' . $bundle);
+  $enabled_entity_comments = variable_get('time_tracker_comment-' . $type . '-' . $bundle);
+
+  if ($view_mode == 'full' && ($enabled_entity || $enabled_entity_comments)) {
+
+    $entity->content['time_tracker'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Time Tracker'),
+      '#collapsible' => TRUE,
+      '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
+      '#weight' => 50,
+    );
+
+    if (user_access('view own time tracker entries')) {
+      //$resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $node->nid));
+      $query = new EntityFieldQuery();
+
+      $query->entityCondition('entity_type', 'time_tracker_entry')
+        ->propertyCondition('entity_type', $type)
+        ->propertyCondition('entity_id', $entity_id)
+        ->propertyCondition('entity_bundle', $bundle)
+        ->propertyCondition('uid', $user->uid);
+      $result = $query->execute();
+
+      if (isset($result['time_tracker_entry'])) {
+        $entry_ids = array_keys($result['time_tracker_entry']);
+        $entries = entity_load('time_tracker_entry', $entry_ids);
       }
+    }
+    if (user_access('view all time tracker entries')) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'time_tracker_entry')
+        ->propertyCondition('entity_type', $type)
+        ->propertyCondition('entity_id', $entity_id)
+        ->propertyCondition('entity_bundle', $bundle);
+      $result = $query->execute();
 
-      $node->content['time_tracker'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Time Tracker'),
-        '#collapsible' => TRUE,
-        '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
-        '#weight' => 50,
-      );
+      if (isset($result['time_tracker_entry'])) {
+        $entry_ids = array_keys($result['time_tracker_entry']);
+        $entries = entity_load('time_tracker_entry', $entry_ids);
 
-      if ($total_time > 0) {
-
-        $node->content['time_tracker']['time_tracker_summary'] = array(
-          '#markup' => theme('time_tracker_summary', $total_time),
-          //'#weight' => -5,
-        );
-      }
-
-      // display the time tracking form for nodes here.
-      if (variable_get('time_tracker_nodes_' . $node->type, 0)) {
-        // Store time entries from nodes
-        $node_time_entries = array();
-        $sql = "SELECT * FROM {time_tracker_entry} AS t
-                WHERE nid = :nid AND cid = 0
-                ORDER BY t.timestamp DESC, t.start DESC, t.teid DESC";
-        // Get the entries associated with this node
-        $resource = db_query($sql, array(':nid' => $node->nid));
-        // Store the db objects in an array for theme function
-        while ($time_entry = $resource->fetchObject()) {
-          $node_time_entries[] = $time_entry;
+        foreach ($entries as $entry) {
+          $totals[] = $entry->duration;
         }
-        $node->content['time_tracker']['entries'] = array(
-          '#markup' => theme('time_tracker_time_entry_table', $node_time_entries),
-         // '#weight' => 50,
-        );
-        $entity = entity_get_controller('time_tracker_entry')->create();
-        $node->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', 'node', $node->nid, $entity);
+        $total_time = array_sum($totals);
+
+        if ($total_time > 0) {
+          $entity->content['time_tracker']['time_tracker_summary'] = array(
+            '#markup' => theme('time_tracker_summary', $total_time),
+            //'#weight' => -5,
+          );
+
+        }
       }
+    }
+
+    // display the time tracking form for nodes here.
+    if (isset($entries)) {
+      $entity->content['time_tracker']['entries'] = array(
+        '#markup' => theme('time_tracker_time_entry_table', $entries),
+        // '#weight' => 50,
+      );
+    }
+
+    $time_entity = entity_get_controller('time_tracker_entry')->create();
+    $entity->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', $info, $time_entity);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function time_tracker_form_comment_form_alter(&$form, &$form_state, $form_id) {
+  $node = $form['#node'];
+
+  $info = array(
+    'entity_id' => $node->nid,
+    'bundle' => $node->type,
+    'entity_type' => 'node',
+    'entity' => $node,
+    'comment_node' => $node->nid,
+  );
+
+  if (variable_get('time_tracker_comments-node-' . $node->type)) {
+    // If this a comment edit form check for associated time trackings.
+    if (isset($form['cid']['#value'])) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'time_tracker_entry')
+        ->propertyCondition('entity_type', 'node')
+        ->propertyCondition('comment_id', $form['cid']['#value']);
+      $result = $query->execute();
+
+      if (isset($result['time_tracker_entry'])) {
+        $entry_ids = array_keys($result['time_tracker_entry']);
+        $entries = entity_load('time_tracker_entry', $entry_ids);
+      }
+    }
+    if (isset($entries)) {
+      $time_entity = $entries[$entry_ids[0]];
+    }
+    // Otherwise create a new time entry entity.
+    else {
+      $time_entity = entity_get_controller('time_tracker_entry')->create();
+    }
+    // Merge in time entry form.
+    $form = array_merge($form, time_tracker_time_entry_form($form, $form_state, $info, $time_entity));
+  }
+}
+
+/**
+ * Implements hook_comment_view().
+ */
+function time_tracker_comment_view($comment, $view_mode, $langcode) {
+  if (user_access('view all time tracker entries') || (user_access('view own time tracker entries')
+      && $GLOBALS['user']->uid == $comment->uid)) {
+
+    // If this is a preview we won't have a cid yet.
+    if (empty($comment->cid)) {
+      $time_tracker_data = (object)$comment->time_tracker;
+      $node = node_load($comment->nid);
+    }
+    else {
+      //$results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = %d", $comment->cid);
+
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'time_tracker_entry')
+        ->propertyCondition('entity_type', 'node')
+        ->propertyCondition('comment_id', $comment->cid);
+      $result = $query->execute();
+
+      if (isset($result['time_tracker_entry'])) {
+        $entry_ids = array_keys($result['time_tracker_entry']);
+        $entries = entity_load('time_tracker_entry', $entry_ids);
+        $time_tracker_data = $entries[$entry_ids[0]];
+      }
+    }
+    if (isset($time_tracker_data) && is_object($time_tracker_data)) {
+      // This will flag the comment so it can be hidden
+      // hide flag is triggered in the preprocess function below
+      $comment->status = 2;
+      $variables['data'] = $time_tracker_data;
+      $table = theme('time_tracker_comment', $variables);
+      $comment->content['comment_body'][0]['#markup'] =  $table . $comment->content['comment_body'][0]['#markup'];
     }
   }
 }
+
 /**
- * Implements hook_node_delete().
+ * Implements hook_comment_update().
  */
-function time_tracker_node_delete($node) {
-  db_delete('time_tracker_entry')
-    ->condition('nid', $node->nid)
-    ->execute();
-  db_delete('time_tracker_timer')
-    ->condition('nid', $node->nid)
-    ->execute();
+function time_tracker_comment_update($comment) {
+  return time_tracker_comment_insert($comment);
+}
+
+/**
+ * Implements hook_comment_insert().
+ */
+function time_tracker_comment_insert($comment) {
+  $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
+  $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
+  // Round the deductions if necessary
+  $entity->deductions = isset($comment->deductions) ? _time_tracker_round(_time_tracker_parse_duration($comment->deductions), $rounding_interval / 60, $rounding_operation) : NULL;
+  // Check First if we are tracking by duration or time interval
+  if (variable_get('time_entry_method', 'duration') == 'duration') {
+    $duration = _time_tracker_round(_time_tracker_parse_duration($comment->duration), $rounding_interval / 60, $rounding_operation);
+    if ($duration > 0) {
+      $entity->duration = $duration;
+      $entity->timestamp = strtotime($comment->time);
+      unset($comment->time);
+      // Update or create the time entry
+      //$entity = time_tracker_time_entry_save($entity);
+      //return drupal_write_record('time_tracker_entry', $comment, $comment['teid'] ? 'teid' : array());
+    }
+  }
+  elseif (variable_get('time_entry_method', 'duration') == 'interval') {
+    if (strlen($comment->start) && strlen($comment->end)) {
+      $entity->start = _time_tracker_round(strtotime($comment->start), $rounding_interval * 60, $rounding_operation);
+      $entity->end = _time_tracker_round(strtotime($comment->end), $rounding_interval * 60, $rounding_operation);
+      $entity->duration = _time_tracker_parse_duration(_time_tracker_convert_phptime_to_duration($comment->start, $comment->end));
+    }
+  }
+  if (!empty($comment->username)) {
+    $user = user_load_by_name($comment->username);
+  }
+  else {
+    global $user;
+  }
+
+  // The rest of the time entry
+  $entity->activity = $comment->activity;
+  $entity->uid = $user->uid;
+  $entity->entity_id = $comment->entity_info['entity_id'];
+  $entity->entity_type = $comment->entity_info['entity_type'];
+  $entity->entity_bundle = $comment->entity_info['bundle'];
+  $entity->comment_id = $comment->cid;
+  if (!empty($comment->teid)) {
+    $entity->teid = $comment->teid;
+  }
+  // If locked was in the form use it
+  $entity->locked = isset($values['locked']) ? $values['locked'] : 0;
+  // If billable was in the form use it
+  $entity->billable = isset($values['billable']) ? $values['billable'] : NULL;
+  // If billed was in the form use it
+  $entity->billed = isset($values['billed']) ? $values['billed'] : NULL;
+  // If billed was in the form use it
+  $entity = time_tracker_time_entry_save($entity);
+}
+
+
+/**
+ * Implements hook_entity_delete().
+ */
+function time_tracker_entity_delete($entity, $type) {
+  if ($type == 'comment') {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'time_tracker_entry')
+      ->propertyCondition('entity_type', 'node')
+      ->propertyCondition('comment_id', $entity->cid);
+    $result = $query->execute();
+
+    if (isset($result['time_tracker_entry'])) {
+      $entry_ids = array_keys($result['time_tracker_entry']);
+      $entries = entity_load('time_tracker_entry', $entry_ids);
+
+      time_tracker_entry_delete_multiple($entries);
+    }
+  }
+  else {
+    $info = entity_extract_ids($type, $entity);
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'time_tracker_entry')
+      ->propertyCondition('entity_type', $type)
+      ->propertyCondition('entity_id', $info[0])
+      ->propertyCondition('entity_bundle', $info[2]);
+
+    $result = $query->execute();
+
+    if (isset($result['time_tracker_entry'])) {
+      $entry_ids = array_keys($result['time_tracker_entry']);
+      $entries = entity_load('time_tracker_entry', $entry_ids);
+
+      time_tracker_entry_delete_multiple($entries);
+    }
+  }
 }
 
 /**
@@ -383,10 +636,26 @@ function time_tracker_node_delete($node) {
  * - Call on the Field API to pull in the form elements
  *   for fields attached to the entity.
  */
-function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 0, $entity) {
+function time_tracker_time_entry_form($form, $form_state, $info = array(), $time_entity) {
    // Current user
   global $user;
 
+  $time_tracker_data = $time_entity;
+
+  // If we are editing a time entry, we need to define our info array.
+  if ($info == 'edit') {
+    $type = 'edit';
+    $entity = entity_load('time_tracker_entry', array($time_entity));
+
+    $entity = $entity[$time_entity];
+    $info = array(
+      'entity_id' => $entity->entity_id,
+      'bundle' => $entity->entity_bundle,
+      'entity_type' => $entity->entity_type,
+      'entity' => $entity,
+      'comment_id' => $entity->comment_id,
+    );
+  }
   // Our base css for the form to put form elements side by side
   drupal_add_css(drupal_get_path('module', 'time_tracker') . '/css/time_tracker.css');
 
@@ -396,13 +665,22 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
   // Assume it isn't locked for now.
   $lock = FALSE;
 
+  if (isset($info['comment_node']) || isset($type)) {
+    $form['time_tracker'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Time Tracker'),
+      '#collapsible' => TRUE,
+      '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
+      '#weight' => 50,
+    );
+  }
   // set up the entity
-  $form['time_tracker']['time_tracker_entry'] = array(
+  $form['time_tracker']['entity_info'] = array(
     '#type' => 'value',
-    '#value' => $entity,
+    '#value' => $info,
   );
 
-  field_attach_form('time_tracker_entry', $entity, $form, $form_state);
+  field_attach_form('time_tracker_entry', $time_entity, $form, $form_state);
 
   // Display a message about the rounding if it's on and messages are set to display
   if (variable_get('time_tracker_rounding_message', 0) && variable_get('time_tracker_rounding_interval', 0)) {
@@ -420,24 +698,18 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
   }
 
   // If we are editing a comment...
-  if ($type == 'comment' && $id) {
+  //if ($type == 'comment' && $id) {
     // Gotta grab the comment's info if we're editing an old comment
-    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = :cid", array(':cid' => $id));
-    $time_tracker_data = $results->fetchObject();
+  //  $results = db_query("SELECT * FROM {time_tracker_entry} WHERE cid = :cid", array(':cid' => $id));
+  //  $time_tracker_data = $results->fetchObject();
     // Need a comment id for comment tracking
-    $form['cid'] = array(
-      '#type' => 'value',
-      '#value' => $time_tracker_data->cid ? $time_tracker_data->cid : $id,
-    );
-  }
-  elseif ($type == 'edit' && $id) {
-    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE teid = :teid", array(':teid' => $id));
-    $time_tracker_data = $results->fetchObject();
-    // The node this time entry belongs to
-    $form['nid'] = array(
-      '#type' => 'value',
-      '#value' => $time_tracker_data->nid,
-    );
+  //  $form['cid'] = array(
+  //    '#type' => 'value',
+  //    '#value' => $time_tracker_data->cid ? $time_tracker_data->cid : $id,
+  //  );
+  //}
+  if (isset($type) && $type == 'edit') {
+    $time_tracker_data = $info['entity'];
     if (user_access('delete time tracker entries') || user_access('administer time entries')) {
       // A delete button
       $form['time_tracker']['delete'] = array(
@@ -448,25 +720,25 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       );
     }
     // We will redirect to the node this time entry belongs to once edited
-    $form['#redirect']['redirect'] = 'node/' . $time_tracker_data->nid;
+    //$form['#redirect']['redirect'] = 'node/' . $time_tracker_data->nid;
   }
-  elseif ($type == 'node' && $id) {
-    $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $id));
-    $time_tracker_data = $results->fetchObject();
+  //elseif ($type == 'node' && $id) {
+  //  $results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $id));
+  //  $time_tracker_data = $results->fetchObject();
 
     // Just need the nid for node time entries
-    $form['nid'] = array(
-      '#type' => 'value',
-      '#value' => $id,
-    );
-  }
+  //  $form['nid'] = array(
+  //    '#type' => 'value',
+  //    '#value' => $id,
+  //  );
+  //}
 
   // If there is a time tracker entry data object
   if (isset($time_tracker_data)) {
     // If it's an existing time entry, we need the teid
     $form['teid'] = array(
       '#type' => 'value',
-      //'#value' => $time_tracker_data->teid,
+      '#value' => isset($time_tracker_data->teid) ? $time_tracker_data->teid : '',
     );
     if (variable_get('allow_locked_time_entries', 0)) {
       if (user_access('administer time entries')) {
@@ -474,7 +746,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
           '#title' => t('Locked'),
           '#type' => 'checkbox',
           '#description' => 'Lock this time entry, preventing further editing',
-          //'#default_value' => $time_tracker_data->locked ? TRUE : FALSE,
+          '#default_value' => isset($time_tracker_data->locked) ? TRUE : FALSE,
           '#weight' => 6,
         );
       }
@@ -493,16 +765,16 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       }
     }
   }
-  //if (isset($time_tracker_data)) {
-  //  $user_submit = user_load($time_tracker_data->uid);
-  //}
+  if (isset($time_tracker_data->uid)) {
+    $user_submit = user_load($time_tracker_data->uid);
+  }
   // Auto complete/select user reference but only if you have permission
   $form['time_tracker']['username'] = array(
     '#title' => t('User'),
     '#access' => user_access('administer time entries'),
     '#type' => $lock ? 'value' : variable_get('time_tracker_user_field_type', 'textfield'),
     '#weight' => 0,
-    //'#default_value' => $user_submit->name ? $user_submit->name : $user->name,
+    '#default_value' => isset($user_submit->name) ? $user_submit->name : $user->name,
   );
 
   if (variable_get('time_tracker_user_field_type', 'textfield') == 'select') {
@@ -531,7 +803,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
     '#weight' => 0,
     '#options' => $activities,
     '#required' => TRUE,
-    //'#default_value' => $time_tracker_data->activity,
+    '#default_value' => isset($time_tracker_data->activity) ? $time_tracker_data->activity : '',
   );
 
   // Add some javascript and css for the datepicker
@@ -549,7 +821,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       '#size' => 20,
       '#weight' => 0,
       '#required' => TRUE,
-      //'#default_value' => empty($time_tracker_data->timestamp) ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, time()) : date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->timestamp),
+      '#default_value' => isset($time_tracker_data->timestamp) ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->timestamp) :date(TIME_TRACKER_DEFAULT_DATE_FORMAT, time()) ,
     );
     $form['time_tracker']['time_entry']['duration'] = array(
       '#title' => t('Hours'),
@@ -557,7 +829,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       '#size' => '10',
       '#weight' => 1,
       '#required' => TRUE,
-      //'#default_value' => $time_tracker_data->duration ? _time_tracker_format_hours_to_hours_and_minutes($time_tracker_data->duration, TRUE) : $time_tracker_data->duration,
+      '#default_value' => isset($time_tracker_data->duration) ? _time_tracker_format_hours_to_hours_and_minutes($time_tracker_data->duration, TRUE) : '',
       '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
     );
   }
@@ -570,7 +842,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
     $form['time_tracker']['time_entry']['start'] = array(
       '#title' => t('Start'),
       '#type' => $lock ? 'value' : 'date_popup',
-     // '#default_value' => $time_tracker_data->start ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->start) : '',
+      '#default_value' => isset($time_tracker_data->start) ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->start) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 1,
@@ -579,7 +851,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
     $form['time_tracker']['time_entry']['end'] = array(
       '#title' => t('End'),
       '#type' => $lock ? 'value' : 'date_popup',
-     // '#default_value' => $time_tracker_data->end ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->end) : '',
+      '#default_value' => isset($time_tracker_data->end) ? date(TIME_TRACKER_DEFAULT_DATE_FORMAT, $time_tracker_data->end) : '',
       '#date_format' => $format,
       '#date_label_position' => 'within',
       '#weight' => 2,
@@ -609,7 +881,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       '#type' => $lock ? 'value' : 'textfield',
       '#size' => '10',
       '#weight' => 3,
-      //'#default_value' => $time_tracker_data->deductions ? _time_tracker_format_hours_to_hours_and_minutes($time_tracker_data->deductions, TRUE) : $time_tracker_data->deductions,
+      '#default_value' => isset($time_tracker_data->deductions) ? _time_tracker_format_hours_to_hours_and_minutes($time_tracker_data->deductions, TRUE) : '',
       '#description' => t('eg. 2.5 or 2:30 for two and a half hours'),
     );
   }
@@ -621,7 +893,7 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       '#type' => $lock ? 'value' : 'checkbox',
       '#size' => '10',
       '#weight' => 6,
-      //'#default_value' => $time_tracker_data->billable,
+      '#default_value' => isset($time_tracker_data->billable) ? $time_tracker_data->billable : '',
     );
   }
   if (variable_get('enable_billed_field', 0)) {
@@ -630,19 +902,19 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       '#type' => $lock ? 'value' : 'checkbox',
       '#size' => '10',
       '#weight' => 6,
-      //'#default_value' => $time_tracker_data->billed,
+      '#default_value' => isset($time_tracker_data->billed) ? $time_tracker_data->billed : '',
     );
   }
 
   // If this isn't meant to track time on a comment, we need a submit button and notes field
-  if ($type != 'comment') {
+  if (!isset($info['comment_node'])) {
     $form['time_tracker']['note'] = array(
       '#title' => t('Note'),
       '#type' => $lock ? 'value' : 'textarea',
       '#weight' => 7,
       '#rows' => 2,
       '#resizable' => FALSE,
-      //'#default_value' => $time_tracker_data->note,
+      '#default_value' => isset($time_tracker_data->note) ? $time_tracker_data->note : '',
     );
     if (!$lock) {
       $form['time_tracker']['submit'] = array(
@@ -652,8 +924,8 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
       );
     }
   }
-    $form['#validate'][] = array('time_tracker_time_entry_form_validate');
-    $form['#submit'][] = array('time_tracker_time_entry_form_submit');
+    //$form['#validate'][] = array('time_tracker_time_entry_form_validate');
+    //$form['#submit'][] = array('time_tracker_time_entry_form_submit');
 
   return $form;
 }
@@ -665,8 +937,8 @@ function time_tracker_time_entry_form($form, $form_state, $type = 'node', $id = 
  * of the attached fields.
  */
 function time_tracker_time_entry_form_validate($form, &$form_state) {
-
-  field_attach_form_validate('time_tracker_entry', $form_state['values']['time_tracker_entry'], $form, $form_state);
+  $info = $form_state['values']['entity_info'];
+  field_attach_form_validate('time_tracker_entry', $info['entity'], $form, $form_state);
   $values = $form_state['values'];
   // Check First if we are tracking by duration or time interval
   if (variable_get('time_entry_method', 'duration') == 'duration') {
@@ -711,14 +983,18 @@ function time_tracker_time_entry_form_validate($form, &$form_state) {
  * Form submit handler: submits basic_add_form information
  */
 function time_tracker_time_entry_form_submit($form, &$form_state) {
-  // Our array for drupal_write_record
-  $time = array();
   // Our submitted form values
   $values = $form_state['values'];
-  $entity = $form_state['values']['time_tracker_entry'];
+  $entity = $form_state['values']['entity_info']['entity'];
+  $info = $form_state['values']['entity_info'];
   field_attach_submit('time_tracker_entry', $entity, $form, $form_state);
   // Need a user
-  $user = user_load_by_name($values['username']);
+  if (!empty($values['username'])) {
+    $user = user_load_by_name($values['username']);
+  }
+  else {
+    global $user;
+  }
 
   // Store the rounding data
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
@@ -741,10 +1017,14 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
   // The rest of the time entry
   $entity->activity = $values['activity'];
   $entity->uid = $user->uid;
-  $entity->nid = $values['nid'];
+  $entity->entity_id = $info['entity_id'];
+  $entity->entity_type = $info['entity_type'];
+  $entity->entity_bundle = $info['bundle'];
+  if (isset($info['comment_id'])) {
+    $entity->comment_id = $info['comment_id'];
+  }
   // For comments, notes are not displayed. So we need to check if it exists.
   $entity->note = isset($values['note']) ? $values['note'] : NULL;
-  $entity->cid = isset($values['cid']) ? $values['cid'] : NULL;
 
   // If locked was in the form use it
   $entity->locked = isset($values['locked']) ? $values['locked'] : 0;
@@ -786,6 +1066,13 @@ function time_tracker_time_entry_save(&$entity) {
  */
 function time_tracker_entry_delete($entity) {
   entity_get_controller('time_tracker_entry')->delete($entity);
+}
+
+/**
+ * Use the controller to delete multiple entries.
+ */
+function time_tracker_entry_delete_multiple($entities) {
+  entity_get_controller('time_tracker_entry')->delete_multiple($entities);
 }
 
 
@@ -901,10 +1188,13 @@ function time_tracker_is_tracking_time($node_type) {
  *    The name of the activity
  */
 function _time_tracker_get_activity_name($activity_id) {
-  $result = db_query("SELECT name FROM {time_tracker_activity} WHERE taid = :taid", array(':taid' => $activity_id));
-  $activity = $result->fetchObject();
+  $result = db_select('time_tracker_activity', 'tta')
+      ->fields('tta')
+      ->condition('taid', $activity_id, '=')
+      ->execute()
+      ->fetchAssoc();
 
-  return $activity->name;
+  return $result['name'];
 }
 
 /**
@@ -936,7 +1226,6 @@ function _time_tracker_get_total_logged_time($nid) {
 /***********************************************************************
  * HELPER FUNCTIONS -- Public
  ***********************************************************************/
-
 /**
  * Formats hours (e.g. 4.5 hours) into an hours and minutes string
  *
@@ -1090,10 +1379,22 @@ function _time_tracker_round($value, $interval, $operation = 'auto') {
 function _time_tracker_get_active_activities_options() {
   $activities = array();
 
-  $results = db_query("SELECT * FROM {time_tracker_activity} WHERE status = 1 ORDER BY weight ASC");
-  while ($result = $results->fetchObject()) {
-    $activities[$result->taid] = $result->name;
+
+  $query = new EntityFieldQuery();
+
+  $query->entityCondition('entity_type', 'time_tracker_activity')
+    ->propertyCondition('status', 1);
+  $result = $query->execute();
+
+  if (isset($result['time_tracker_activity'])) {
+    $activity_ids = array_keys($result['time_tracker_activity']);
+    $active_activities = entity_load('time_tracker_activity', $activity_ids);
+
+    foreach ($active_activities as $activity) {
+      $activities[$activity->taid] = $activity->name;
+    }
   }
+
   return $activities;
 }
 
@@ -1169,6 +1470,7 @@ function time_tracker_theme() {
     ),
     'time_tracker_comment' => array(
       'variables' => array('data' => NULL),
+      'file' => 'time_tracker.theme.inc',
     ),
     'time_tracker_project_summary' => array(), // not in use
     'time_tracker_summary' => array(

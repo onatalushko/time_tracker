@@ -4,8 +4,10 @@ package = Time Tracker
 core = 7.x
 dependencies[] = views
 dependencies[] = views_calc
+dependencies[] = entity
 dependencies[] = date_popup
 dependencies[] = field
+
 files[] = time_tracker.admin.inc
 files[] = time_tracker.theme.inc
 files[] = time_tracker.inc

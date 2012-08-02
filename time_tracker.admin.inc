@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Admin file
+ * Admin file for time_tracker.
  */
 /**
  * Form builder function for time tracker settings.
@@ -169,6 +169,61 @@ function time_tracker_settings_form($form, &$form_state) {
 }
 
 /************************************************************************
+ * BEGIN ENTITY SETUP FORM
+*************************************************************************/
+
+/**
+ * Form builder function for time tracker settings.
+ */
+function time_tracker_entity_settings_form($form, &$form_state) {
+  $entity_types = entity_get_info();
+
+  $form['description'] = array(
+    '#markup' => '<p>Foreach entity select the bundles that you want to track time on.</p>',
+  );
+  foreach($entity_types as $key => $type) {
+    // We dont want the ability to track time on time tracker activities,
+    // entries, or comments.
+    if (!in_array($key, array('time_tracker_activity', 'time_tracker_entry', 'comment'))){
+      // Basic Settings
+      $form[$key] = array(
+        '#type' => 'fieldset',
+        '#title' => t(":label Settings", array(':label'=> $type['label'])),
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      );
+      foreach($type['bundles'] as $bkey => $bundle){
+        $form[$key][$bkey] = array(
+          '#type' => 'fieldset',
+          '#title' => t(":label", array(':label'=> $bundle['label'])),
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE,
+        );
+        
+        $form[$key][$bkey]['time_tracker-' . $key . '-' . $bkey] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Track time on this bundle.'),
+          '#default_value' => variable_get('time_tracker-' . $key . '-' . $bkey),
+          //'#description' => t("Track time on this bundle."),
+        );
+        
+        if ($type['label'] == 'Node') {
+          $form[$key][$bkey]['time_tracker_comments-' . $key . '-' . $bkey] = array(
+            '#type' => 'checkbox',
+            '#title' => t("Track time on this bundle's comments."),
+            '#default_value' => variable_get('time_tracker_comments-' . $key . '-' . $bkey),
+            //'#description' => t("Track time on this bundle's comments."),
+          );
+        }
+      }
+    }
+  }
+
+  return system_settings_form($form);
+}
+
+
+/************************************************************************
  * BEGIN TIME TRACKER ACTIVITY CONFIG
 *************************************************************************/
 
@@ -184,18 +239,9 @@ function time_tracker_settings_form($form, &$form_state) {
  */
 function time_tracker_activity_table_form() {
 
-  // Grab all the activities ordered by weight
- 
-  $results = db_select('time_tracker_activity', 'tta')
-    ->fields('tta')
-    ->orderBy('weight', 'ASC')
-    ->execute()->fetchAllAssoc('taid');
-  // Put activities in an array
-
-  foreach ($results as $result) {
-    $activities[$result->taid] = $result;
-  }
-
+  // Grab all the activities ordered by weight  
+  $activities = entity_load('time_tracker_activity');
+  
   // Setup the form
   $form = array(
     '#tree' => TRUE,
@@ -217,7 +263,7 @@ function time_tracker_activity_table_form() {
   );
 
   // Loop through the activites and add them to the form.
-  if (count($activities) > 0) {
+  if (!empty($activities)) {
     foreach ($activities as $activity) {
       $form['activities'][$activity->taid]['#activity'] = (array)$activity;
       // The activity name
@@ -239,7 +285,7 @@ function time_tracker_activity_table_form() {
       );
       // The Edit link to edit the activity
       $form['activities'][$activity->taid]['delete'] = array(
-        '#value' => l(t('delete'), "admin/settings/time_tracker/activity/delete/$activity->taid")
+        '#markup' => l(t('delete'), "admin/config/time_tracker/activity/delete/$activity->taid")
       );
     }
   }
@@ -268,34 +314,33 @@ function time_tracker_activity_table_form() {
 function time_tracker_activity_table_form_submit($form, &$form_state) {
   // If we're adding a new one
   if ($form_state['values']['add_new_activity']['new_activity_name']) {
-    $activity = array();
-    $activity['name'] = $form_state['values']['add_new_activity']['new_activity_name'];
-    $activity['weight'] = count($form_state['values']['activities']) + 1;
-    $activity['status'] = 1;
-    db_insert('time_tracker_activity')
-      ->fields(array(
-        'name' => $form_state['values']['add_new_activity']['new_activity_name'],
-        'weight' => count($form_state['values']['activities']) + 1,
-        'status' => 1,
-      ))
-    ->execute();
+    $entity = new stdClass();
+    $entity->name = $form_state['values']['add_new_activity']['new_activity_name'];
+    
+    if (isset($form_state['values']['activities'])) {
+      $entity->weight = count($form_state['values']['activities']) + 1;
+    }
+    else {
+      $entity->weight = 1;
+    }
+    $entity->status = 1;
+
+    $entity = time_tracker_activity_save($entity);
   }
-  if (count($form_state['values']['activities']) > 0) {
+  if (isset($form_state['values']['activities']) && count($form_state['values']['activities']) > 0) {
     foreach ($form_state['values']['activities'] as $taid => $activity) {
 
       // If anything has changed...
       if (is_numeric($taid) && ($form['activities'][$taid]['#activity']['weight'] != $activity['weight'] ||
                                 $form['activities'][$taid]['#activity']['status'] != $activity['status'] ||
                                 $form['activities'][$taid]['#activity']['name'] != $activity['name'])) {
+        $entity = new stdClass();
+        $entity->taid = $taid;
+        $entity->name = $activity['name'];
+        $entity->weight = $activity['weight'];
+        $entity->status = $activity['status'];
 
-        db_update('time_tracker_activity')
-          ->fields(array(
-            'name' => $activity['name'],
-            'weight' => $activity['weight'],
-            'status' => $activity['status'],
-          ))
-          ->condition('taid', $taid, '=')
-          ->execute();
+        $entity = time_tracker_activity_save($entity);
       }
     }
   }
@@ -307,15 +352,13 @@ function time_tracker_activity_table_form_submit($form, &$form_state) {
  */
 function time_tracker_delete_activity_confirm($form, &$form_state, $taid) {
 
-  $form = array();
-
   if ($taid) {
     $form['taid'] = array(
       '#type' => 'value',
       '#default_value' => $taid,
     );
     $question = t('Are you sure you want to delete the activity: !activity_name', array('!activity_name' => _time_tracker_get_activity_name($taid)));
-    return confirm_form($form, $question, 'admin/settings/time_tracker/activity/list');
+    return confirm_form($form, $question, 'admin/config/time_tracker/activities');
   }
   else {
     return $form['msg']['#value'] = 'No Activity ID passed in.';
@@ -329,13 +372,25 @@ function time_tracker_delete_activity_confirm($form, &$form_state, $taid) {
  * @param $form_state
  */
 function time_tracker_delete_activity_confirm_submit($form, &$form_state) {
-  $form_state['redirect'] = 'admin/settings/time_tracker/activity/list';
-  db_delete('time_tracker_activity')
-    ->condition('taid', $form_state['values']['taid'], '=')
-    ->execute();
-  drupal_set_message(t('Activity %name Deleted', array('%name' => $form_state['values']['name'])));
+  $form_state['redirect'] = 'admin/config/time_tracker/activities';
+  $taid = $form_state['values']['taid'];
+  $activity = entity_load('time_tracker_activity', array($taid));
+  $activity = $activity[$taid];
+  time_tracker_activity_delete($activity);
+  drupal_set_message(t('Activity %name Deleted', array('%name' => $activity->name)));
 }
 
+/**
+ * We save the entity by calling the controller.
+ */
+function time_tracker_activity_save(&$entity) {
+  return entity_get_controller('time_tracker_activity')->save($entity);
+}
 
-
+/**
+ * Use the controller to delete the entity.
+ */
+function time_tracker_activity_delete($entity) {
+  entity_get_controller('time_tracker_activity')->delete($entity);
+}
 

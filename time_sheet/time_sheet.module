@@ -101,14 +101,18 @@ function time_sheet_menu() {
     'access arguments' => array(2),
     'type' => MENU_CALLBACK,
   );
-  $items['admin/config/people/time_tracker/time_sheets'] = array(
+  $items['admin/config/time_tracker/time_sheets'] = array(
     'title' => 'Time Sheet',
     'description' => 'Configuration settings for the time tracker time sheets.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_sheet_settings_form'),
     'access arguments' => array('administer time sheet'),
-    'type' => MENU_LOCAL_TASK,
-    'parent' => 'admin/config/people/time_tracker',
+
+  );
+  $items['admin/config/time_tracker/time_sheets/manage'] = array(
+    'title' => 'Time Sheet',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
   );
   return $items;
 }
@@ -146,6 +150,26 @@ function time_sheet_settings_form() {
       'friday' => t('Friday'),
       'saturday' => t('Saturday'),
     ),
+  );
+
+  $form['time_sheet_project'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Project Settings'),
+    '#collapsed' => TRUE,
+    '#collapsible' => TRUE,
+  );
+  $form['time_sheet_project']['description'] = array(
+    '#markup' => '<p>As there are many uses for a time tracking system, one of the most popular is in the project management industry.</p><p>As such most project management time tracking setups include tracking time on a "task" which is part of a larger "project". To accomodate this, please select which entity/bundle is considered your "task" and which entity/bundle is considered your "project". For the module to work as expected, there should be either a node reference or entity reference from the "task" to the "project."</p>',
+  );
+  $form['time_sheet_project']['project_bundle'] = array(
+    '#type' => 'select',
+    '#title' => t('Project Bundle'),
+    '#options' => $options,
+  );
+  $form['time_sheet_project']['task_bundle'] = array(
+    '#type' => 'select',
+    '#title' => t('Task Bundle'),
+    '#options' => $options,
   );
 
   return system_settings_form($form);
@@ -233,12 +257,12 @@ function theme_time_sheet_user_page($user = NULL) {
   $date_lookup = array(
 	        'sunday' => strtotime(date("Y\WW0", $start)),
 	        'monday' => strtotime(date("Y\WW1", $start)),
-                'tuesday' => strtotime(date("Y\WW2", $start)),
-                'wednesday' => strtotime(date("Y\WW3", $start)),
-                'thursday' => strtotime(date("Y\WW4", $start)),
-                'friday' => strtotime(date("Y\WW5", $start)),
-                'saturday' => strtotime(date("Y\WW6", $start))
-                );
+          'tuesday' => strtotime(date("Y\WW2", $start)),
+          'wednesday' => strtotime(date("Y\WW3", $start)),
+          'thursday' => strtotime(date("Y\WW4", $start)),
+          'friday' => strtotime(date("Y\WW5", $start)),
+          'saturday' => strtotime(date("Y\WW6", $start))
+          );
 
   // Get the configured days of the week
   $days_of_week = variable_get('time_sheet_days_of_week', array('monday', 'tuesday', 'wednesday', 'thursday', 'friday'));
@@ -445,8 +469,8 @@ function time_sheet_add_time() {
 
   $form = array();
 
-  $task = node_load($form_state['post']['case_list']);
-  $project = node_load($task->field_task_project['und'][0]['nid']);
+  //$task = node_load($form_state['post']['case_list']);
+  //$project = node_load($task->field_task_project['und'][0]['nid']);
 
   // Grab the total time spent on this ticket
   $case_results = db_select('time_tracker_entry', 'tte')
@@ -688,20 +712,20 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
 function _time_sheet_case_list_options($user) {
     $case_options = array('' => t('Select a task...'));
     $sql = new EntityFieldQuery();
-    $sql->entityCondition('entity_type', 'node')
-        ->entityCondition('bundle', 'task')
-        ->propertyCondition('status', 1)
-        ->fieldCondition('field_task_assigned', 'uid', $user->uid,'=')
-        ->fieldCondition('field_task_status', 'tid', 42,'!=');
+   // $sql->entityCondition('entity_type', 'node')
+   //     ->entityCondition('bundle', 'task')
+   //     ->propertyCondition('status', 1)
+   //     ->fieldCondition('field_task_assigned', 'uid', $user->uid,'=')
+   //     ->fieldCondition('field_task_status', 'tid', 42,'!=');
 
-  $result = $sql->execute();
+  //$result = $sql->execute();
    
   if(isset($result['node'])) {
     // cycle through cases to create the select options array
     foreach($result['node'] as $task) {
-      $task = node_load($task->nid);
-      $project = node_load($task->field_task_project['und'][0]['nid']);
-      $case_options[$project->title][$task->nid] = $task->title;
+     // $task = node_load($task->nid);
+     // $project = node_load($task->field_task_project['und'][0]['nid']);
+     // $case_options[$project->title][$task->nid] = $task->title;
     }
   }
 
