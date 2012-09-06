@@ -364,7 +364,7 @@ function time_tracker_get_types($type_name = NULL) {
 
 
 /**
- * Implements hook_node_view().
+ * Implements hook_entity_view().
  */
 function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
   global $user;
@@ -440,12 +440,13 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
     if (isset($entries)) {
       $entity->content['time_tracker']['entries'] = array(
         '#markup' => theme('time_tracker_time_entry_table', $entries),
-        // '#weight' => 50,
+        '#weight' => 2,
       );
     }
 
     $time_entity = entity_get_controller('time_tracker_entry')->create();
     $entity->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', $info, $time_entity);
+    $entity->content['time_tracker']['entry_form']['#weight'] = 5;
   }
 }
 

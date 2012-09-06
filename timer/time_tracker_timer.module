@@ -161,7 +161,7 @@ function time_tracker_timer_entity_view($entity, $type, $view_mode, $langcode) {
     }
     // Theme the timers and add them to the content of the node
     $variable = array('timers' => $timers, 'type' => $type, 'bundle' => $bundle, 'entity' => $entity);
-    $entity->content['time_tracker_timer'] = array(
+    $entity->content['time_tracker']['time_tracker_timer'] = array(
       '#markup' => theme('time_tracker_timer', $variable),
       '#prefix' => '<div class="time-tracker-timer-form-wrapper">',
       '#suffix' => '</div>',

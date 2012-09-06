@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Implementation of hook_install().
+ * Implementation of hook_schema().
  */
 function time_estimate_schema() {
   $schema = array();
@@ -14,9 +14,19 @@ function time_estimate_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
-      'nid' => array(
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 100,
+      ),
+      'entity_bundle' => array(
+        'type' => 'varchar',
+        'length' => 100,
+      ),
+      'entity_id' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
       ),
       'uid' => array(
         'type' => 'int',
@@ -37,12 +47,4 @@ function time_estimate_schema() {
   );
 
   return $schema;
-}
-
-function time_estimate_install() {
-  drupal_install_schema('time_estimate');
-}
-
-function time_estimate_uninstall() {
-  drupal_uninstall_schema('time_estimate');
 }
