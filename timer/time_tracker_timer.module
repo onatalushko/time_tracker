@@ -800,16 +800,16 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
     $entity = $entity[$timer->entity_id];
     $uri = entity_uri($timer->entity_type, $entity);
 
-    if (module_exists('casetracker') && casetracker_is_case($node->type)) {
+    //if (module_exists('casetracker') && casetracker_is_case($node->type)) {
     //  $project = node_load($node->casetracker->pid);
     //  $timer_links = t('!case-link in !project-link', array(
     //    '!case-link' => l($node->title, 'node/' . $node->nid),
     //    '!project-link' => l($project->title, 'node/' . $project->nid),
     //  ));
-    }
-    else {
-      $timer_links = l($entity->title, $uri['path']);
-    }
+    //}
+    //else {
+    $timer_links = l($entity->title, $uri['path']);
+    //}
     // If the timer doesn't have a stop value, it's still running
     if($timer->stop == 0) {
       //Change the timer state to be in "active" state
@@ -924,16 +924,16 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
     $entity = entity_load($timer->entity_type, array($timer->entity_id));
     $entity = $entity[$timer->entity_id];
     $uri = entity_uri($timer->entity_type, $entity);
-    if (module_exists('casetracker') && casetracker_is_case($node->type)) {
+    //if (module_exists('casetracker') && casetracker_is_case($node->type)) {
     //  $project = node_load($node->casetracker->pid);
     //  $timer_links = t('!case in !project', array(
     //    '!case' => l($node->title, 'node/' . $node->nid),
     //    '!project' => l($project->title, 'node/' . $project->nid),
     //  ));
-    }
-    else {
-      $timer_links = l($entity->title, $uri['path']);
-    }
+    //}
+    //else {
+    $timer_links = l($entity->title, $uri['path']);
+    //}
     // If the timer entry user id matches the current user then we process normally
     if ($timer->uid == $user->uid) {
       // If the timer doesn't have a stop value, it's still running
@@ -943,12 +943,12 @@ function theme_time_tracker_timer_active_timers_block($active_timers) {
         $start_time = $timer->start;
         $timer_msg = t('You have an active timer on !links', array('!links' => $timer_links));
         // Format the rows for eventual theme_table
-      $path = drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_white.png';
-      $image = array(
-        'path' => $path,
-        'alt' => t('Time Tracker Timer Icon'),
-        'title' => 'timer icon',
-      );
+        $path = drupal_get_path('module', 'time_tracker') . '/css/images/time_tracker_stopwatch_icon_white.png';
+        $image = array(
+          'path' => $path,
+          'alt' => t('Time Tracker Timer Icon'),
+          'title' => 'timer icon',
+        );
         $rows[] = array(
           'data' => array(
             array(
