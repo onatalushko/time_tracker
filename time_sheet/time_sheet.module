@@ -1,6 +1,4 @@
 <?php
-// $Id: time_sheet.module,v 1.5 2010/07/14 23:46:17 codi Exp $
-
 /**
  * @file
  * Enables time sheet entry for users.
@@ -32,7 +30,7 @@ function time_sheet_permission() {
         'description' => t('TODO: Add descriptions'),
       ),
     );
-     
+
  // }
 }
 
@@ -107,76 +105,46 @@ function time_sheet_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_sheet_settings_form'),
     'access arguments' => array('administer time sheet'),
-
+    'file' => 'time_sheet.admin.inc',
   );
   $items['admin/config/time_tracker/time_sheets/manage'] = array(
     'title' => 'Time Sheet',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
+    'file' => 'time_sheet.admin.inc',
   );
   return $items;
 }
 
 /**
- * Implementation of hook_form().
+ * Implements hook_entity_presave().
  */
-function time_sheet_settings_form() {
-  $form = array();
-  $form['time_sheet_settings']['time_sheet_week_start'] = array(
-    '#type' => 'select',
-    '#title' => t('First day of week'),
-    '#default_value' => variable_get('time_sheet_week_start', 'monday'),
-    '#options' => array(
-      'sunday' => t('Sunday'),
-      'monday' => t('Monday'),
-      'tuesday' => t('Tuesday'),
-      'wednesday' => t('Wednesday'),
-      'thursday' => t('Thursday'),
-      'friday' => t('Friday'),
-      'saturday' => t('Saturday'),
-    ),
-  );
-
-  $form['time_sheet_settings']['time_sheet_days_of_week'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Days of the week'),
-    '#default_value' => variable_get('time_sheet_days_of_week', array('monday', 'tuesday', 'wednesday', 'thursday', 'friday')),
-    '#options' => array(
-      'sunday' => t('Sunday'),
-      'monday' => t('Monday'),
-      'tuesday' => t('Tuesday'),
-      'wednesday' => t('Wednesday'),
-      'thursday' => t('Thursday'),
-      'friday' => t('Friday'),
-      'saturday' => t('Saturday'),
-    ),
-  );
-
-  $form['time_sheet_project'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Project Settings'),
-    '#collapsed' => TRUE,
-    '#collapsible' => TRUE,
-  );
-  $form['time_sheet_project']['description'] = array(
-    '#markup' => '<p>As there are many uses for a time tracking system, one of the most popular is in the project management industry.</p><p>As such most project management time tracking setups include tracking time on a "task" which is part of a larger "project". To accomodate this, please select which entity/bundle is considered your "task" and which entity/bundle is considered your "project". For the module to work as expected, there should be either a node reference or entity reference from the "task" to the "project."</p>',
-  );
-  $form['time_sheet_project']['project_bundle'] = array(
-    '#type' => 'select',
-    '#title' => t('Project Bundle'),
-    '#options' => $options,
-  );
-  $form['time_sheet_project']['task_bundle'] = array(
-    '#type' => 'select',
-    '#title' => t('Task Bundle'),
-    '#options' => $options,
-  );
-
-  return system_settings_form($form);
+function time_sheet_entity_presave($entity, $type){
+  if($type == 'time_tracker_entry'){
+    $task_bundle = variable_get('time_sheet_task_bundle');
+    if ((variable_get('time_sheet_project') == TRUE) && ($entity->entity_bundle == $task_bundle)){
+      $field = variable_get('time_sheet_task_ref_field');
+      $field_info = field_info_field($field);
+      // If the reference is a Node Reference field, we can make certain
+      // assumptions about the "project".
+      if($field_info['type'] == 'node_reference'){
+        $project = $entity->{$field}['und'][0]['node'];
+        $entity->project_type = 'node';
+        $entity->project_bundle = $project->type;
+        $entity->project_id = $project->nid;
+      }
+      elseif($field_info['type'] == 'entityreference'){
+        $project = $entity->{$field}['und'][0]['entity'];
+        $entity->project_type = $field_info['settings']['target_type'];
+        $entity->project_bundle = variable_get('time_sheet_project_bundle');
+        $entity->project_id = $entity->{$field}['und'][0]['target_id'];
+      }
+    }
+  }
 }
 
 /**
- * Implementation of hook_forms()
+ * Implements hook_forms().
  */
 function time_sheet_forms($form_id, $args) {
   if (strpos($form_id, 'time_sheet_case_list_form') !== FALSE) {
@@ -199,10 +167,13 @@ function time_sheet_forms($form_id, $args) {
 function time_sheet_page($user = NULL) {
   // Display a message if no nodes are set up to track time on
   $tracking_time = FALSE;
-  foreach (node_type_get_types() as $key => $value) {
-    if (time_tracker_is_tracking_time($key)) {
-      $tracking_time = TRUE;
-      break;
+  $entity_types = entity_get_info();
+  foreach($entity_types as $key => $type) {
+    foreach($type['bundles'] as $bkey => $bundle){
+      if (time_tracker_is_tracking_time($key, $bkey)) {
+        $tracking_time = TRUE;
+        break;
+      }
     }
   }
   if (!$tracking_time) {
@@ -238,7 +209,7 @@ function time_sheet_theme() {
 function theme_time_sheet_user_page($user = NULL) {
   $user = $user['user'];
   //Validates the user being passed in the path is a number (uid)
-  
+
   if (is_numeric($user)) {
     $user = user_load($user);
   } // Load current user if it's null
@@ -279,13 +250,13 @@ function theme_time_sheet_user_page($user = NULL) {
 
   // Put the days from the beginning at the end
   foreach($days_at_end as $day) {
-    $days_of_week[$day] = $day;	
+    $days_of_week[$day] = $day;
   }
   // If we started the week after sunday, the days that we move to the end
   // should be for next week, not week before.
   foreach($days_of_week as $key => $value){
     if(!in_array($value, $days_at_end)){
-      $days[$value] = $date_lookup[$key];	
+      $days[$value] = $date_lookup[$key];
     }
     else{
       $days[$value] = strtotime('+ 1 week', $date_lookup[$key]);
@@ -313,47 +284,53 @@ function theme_time_sheet_user_page($user = NULL) {
     // Rows Variable for later theme_table-ing
     $rows = array();
     // Get the all the time tracker entries for the date we're on
-    
+
     if(user_access('view all time tracker entries')){
-      $time_entry_results = db_select('time_tracker_entry', 'tte')
-             ->fields('tte')
-             ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
-             ->orderBy('teid')
-             ->execute();
+      $time_entrys = db_select('time_tracker_entry', 'tte')
+        ->fields('tte')
+        ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
+        ->orderBy('teid')
+        ->execute();
     }
     else {
-      $time_entry_results = db_select('time_tracker_entry', 'tte')
-             ->fields('tte')
-             ->condition('uid', $user->uid, '=')
-             ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
-             ->orderBy('teid')
-             ->execute();	
+      $time_entrys = db_select('time_tracker_entry', 'tte')
+        ->fields('tte')
+        ->condition('uid', $user->uid, '=')
+        ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
+        ->orderBy('teid')
+        ->execute();
     }
+
     $total_duration = 0;
     // Loop throug each
-    while ($time_entry_result = $time_entry_results->fetchObject()) {
+    while ($time_entry = $time_entrys->fetchObject()) {
       // Container for row data to display a time entry
       $row = array();
       // Load the time entry node object
-      $time_entry = node_load($time_entry_result->nid);
-      $time_user = user_load($time_entry_result->uid);
-      // Little extra love for casetracker
-      //if (module_exists('casetracker')) {
-          // Load the casetracker project node object
-      //  $project = node_load(array('nid' => $time_entry->casetracker->pid));
-      //  $project_link = ' in ' . l($project->title, 'node/' . $project->nid, array('attributes' => array('class' => 'time-sheet-project')));
-      //  $row[] = l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-node'))) . $project_link;
- 
-      //}
+      $time_user = user_load($time_entry->uid);
+      $task = entity_load($time_entry->entity_type, array($time_entry->entity_id));
+      $task = $task[$time_entry->entity_id];
+      $turi = entity_uri($time_entry->entity_type, $task);
+
+      // Check if we are using the project/task feature.
+      if(isset($time_entry->project_type)){
+        // Load the casetracker project node object
+        $project = entity_load($time_entry->project_type, array($time_entry->project_id));
+        $project = $project[$time_entry->project_id];
+        $puri = entity_uri($time_entry->project_type, $project);
+        $project_link = ' in ' . l($project->title, $puri['path'], array('attributes' => array('class' => 'time-sheet-project')));
+        $row[] = l($task->title, $turi['path'], array('attributes' => array('class' => 'time-sheet-task'))) . $project_link;
+      }
+      else{
+        $row[] = l($task->title, $turi['path'], array('attributes' => array('class' => 'time-sheet-task')));
+      }
       // The little colorful project icon next to time entries in the time_sheet
       // And the time_entry item name. Both linked
-      
-      $row[] = l($time_entry->title, 'node/' . $time_entry->nid, array('attributes' => array('class' => 'time-sheet-node')));
       $row[] = l($time_user->name, 'user/' . $time_user->uid, array('attributes' => array('class' => 'time-sheet-user')));
       // The amount of time logged for this item
-      $row[] = array('data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry_result->duration - $time_entry_result->deductions), 'align' => 'right');
+      $row[] = array('data' => _time_tracker_format_hours_to_hours_and_minutes($time_entry->duration - $time_entry->deductions), 'align' => 'right');
       // On going add-up of the total duration of time logged this week
-      $total_duration = $total_duration + ($time_entry_result->duration - $time_entry_result->deductions);
+      $total_duration = $total_duration + ($time_entry->duration - $time_entry->deductions);
       // Add the row to the rows
       $rows[] = array('data' => $row);
     }
@@ -363,7 +340,7 @@ function theme_time_sheet_user_page($user = NULL) {
     if (isset($row) && count($row) > 1) {
       $row = array();
       $row[] = array('data' => '<strong>' . t("Total hours for") . " " . date("l", $stamp) . '</strong>', 'colspan' => 2);
-      
+
       $row[] = array('data' => '<strong>' . _time_tracker_format_hours_to_hours_and_minutes($total_duration) . '</strong>', 'align' => 'right');
       $rows[] = array('data' => $row);
     } else {
@@ -416,7 +393,7 @@ function time_sheet_case_list_form($form, $form_state, $user, $day, $stamp) {
     '#value' => $stamp,
   );
 
-  $options = _time_sheet_case_list_options($user);
+  $options = _time_sheet_project_list_options($user);
 
   $form['time_sheet'][$day]['case_list'] = array(
     '#type' => 'select',
@@ -439,7 +416,7 @@ function time_sheet_case_list_form($form, $form_state, $user, $day, $stamp) {
     '#attributes' => array('class' => array('secret-submit')),
   );
 
-  //$form['time_sheet'][$day]['#validate'] = 'time_sheet_add_time_submit_handler_validate';
+  $form['time_sheet'][$day]['#validate'] = 'time_sheet_add_time_submit_handler_validate';
 
   $form['time_sheet'][$day]['case_form_wrapper'] = array(
     '#prefix' => '<div id="case-form-' . $day . '">',
@@ -458,52 +435,69 @@ function time_sheet_add_time() {
   global $user;
 
   // The usual AHAH stuff that needs to be here for this to work....
-  //$form_state = array('storage' => NULL, 'submitted' => FALSE);
-  //$form_build_id = $_POST['form_build_id'];
-  //$form = form_get_cache($form_build_id, $form_state);
-  //$args = $form['#parameters'];
-  //$form_id = array_shift($args);
+  $form_state = array('storage' => NULL, 'submitted' => FALSE);
+  $form_build_id = $_POST['form_build_id'];
+  $form = form_get_cache($form_build_id, $form_state);
+  $args = $form['#parameters'];
+  $form_id = $_POST['form_id'];
+  $form['#post'] = $_POST;
+  $form_state['post'] = $_POST;
 
-  //$form_state['post'] = $form['#post'] = $_POST;
-  //$form['#programmed'] = $form['#redirect'] = FALSE;
-
+  $form['#programmed'] = FALSE;
+  $form['#redirect'] = FALSE;
   $form = array();
+  drupal_process_form($form_id, $form, $form_state);
+  $project_settings = explode('-', variable_get('time_sheet_project_bundle'));
+  $task_settings = explode('-', variable_get('time_sheet_task_bundle'));
 
-  //$task = node_load($form_state['post']['case_list']);
-  //$project = node_load($task->field_task_project['und'][0]['nid']);
+  $form_state['time_tracker'] = array('project' => $project_settings, 'task' => $task_settings);
+
+  $field = variable_get('time_sheet_task_ref_field');
+  $field_info = field_info_field($field);
+
+  $task = entity_load($task_settings[0], array($form_state['post']['case_list']));
+  $task = $task[$form_state['post']['case_list']];
+  // If the reference is a Node Reference field, we can make certain
+  // assumptions about the "project".
+
+  if($field_info['type'] == 'node_reference'){
+    $project = entity_load($project_settings[0], array($task->{$field}['und'][0]['nid']));
+    $project = $project[$task->{$field}['und'][0]['nid']];
+  }
+  elseif($field_info['type'] == 'entityreference'){
+    $project = entity_load($project_settings[0], array($task->{$field}['und'][0]['target_id']));
+    $project = $project[$task->{$field}['und'][0]['target_id']];
+  }
 
   // Grab the total time spent on this ticket
   $case_results = db_select('time_tracker_entry', 'tte')
                     ->fields('tte')
-                    ->condition('nid', $task->nid, '=')
+                    ->condition('entity_id', $task->nid, '=')
                     ->condition('uid', $user->uid, '=')
                     ->execute();
   $total_time = 0;
   while ($result_case = $case_results->fetchObject()) {
     $total_time = $total_time + $result_case->duration;
   }
+
   // Grab the total time estimate for this ticket
   //$total_estimate = db_query("SELECT estimate FROM {time_estimate_entry} WHERE nid = :nid", array(':nid' => $task->nid))->execute()->fetchField();
-                   dsm($project);
-                   dsm($task);
+
   // add some case details so we know what we're dealing with
-  /*$form['time_sheet']['case_details'] = array(
-    
-    '#markup' => '<h3>' . dsm($project) .
-                   dsm($task) . '</h3><p>' . $task->teaser . '</p><p><em>' . t('Time spent by you on this case so far: ') . format_plural($total_time, '1 hour', '@count hours') . '</em></p>',
+  $form['time_sheet']['case_details'] = array(
+    '#markup' => '<h3>'. $project->title . '</h3><p>' . $task->title . '</p><p><em>' . t('Time spent by you on this case so far: ') . format_plural($total_time, '1 hour', '@count hours') . '</em></p>',
     '#prefix' => '<div class="case-details">',
     '#suffix' => '</div>',
     '#weight' => -10,
-  );*/
+  );
 
   //$case_status_options = casetracker_realm_load('status');
   //$default_status = !empty($case->casetracker->case_status_id) ? $case->casetracker->case_status_id : variable_get('casetracker_default_case_status', key($case_status_options));
 
-
   // We need to know what to track the time on (nodes or comments)
   // But only if for some reason this person is tracking time on
   // both nodes and comments
-  /*if (time_tracker_is_tracking_time($task->type) == 'both') {
+  if (time_tracker_is_tracking_time($task_settings[0], $task_settings[1])  == 'both') {
     $track_time_on_options = array(
       'node' => 'Node',
       'comment' => 'Comment',
@@ -514,16 +508,16 @@ function time_sheet_add_time() {
       '#default_value' => 'comment',
       '#options' => $track_time_on_options,
     );
-  }*/
- // elseif (time_tracker_is_tracking_time($task->type) == 'node') {
-  /*  $form['time_sheet']['track_time_on_what'] = array(
+  }
+  elseif (time_tracker_is_tracking_time($task_settings[0], $task_settings[1])  == 'node') {
+    $form['time_sheet']['track_time_on_what'] = array(
       '#type' => 'select',
       '#title' => t('Track Time On'),
       '#default_value' => 'node',
       '#options' => array('node' => 'Node'),
-    );*/
- /* }
-  elseif (time_tracker_is_tracking_time($task->type) == 'comment') {
+    );
+  }
+  elseif (time_tracker_is_tracking_time($task_settings[0], $task_settings[1])  == 'comment') {
     $form['time_sheet']['track_time_on_what'] = array(
       '#type' => 'select',
       '#title' => t('Track Time On'),
@@ -532,13 +526,13 @@ function time_sheet_add_time() {
     );
   }
 
-  $form['time_sheet']['case_status_id'] = array(
-    '#type' => 'select',
-    '#title' => t('Status'),
-    '#default_value' => $default_status,
-    '#options' => $case_status_options,
-  );
-*/
+  //$form['time_sheet']['case_status_id'] = array(
+  //  '#type' => 'select',
+  //  '#title' => t('Status'),
+  //  '#default_value' => $default_status,
+  //  '#options' => $case_status_options,
+  //);
+
   // Insert different form elements depending on the time_entry_method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
     $form['time_sheet']['duration'] = array(
@@ -547,7 +541,7 @@ function time_sheet_add_time() {
         '#size' => '10',
         '#required' => TRUE,
         '#description' => t('eg. 2.5 for two and a half hours'),
-      );
+    );
   }
   else {
     $form['time_sheet']['start'] = array(
@@ -566,13 +560,13 @@ function time_sheet_add_time() {
     );
   }
 
-    $activities = _time_tracker_get_active_activities_options();
+  $activities = _time_tracker_get_active_activities_options();
 
-    $form['time_sheet']['activity'] = array(
-      '#title' => t('Activity'),
-      '#type' => 'select',
-      '#options' => $activities,
-    );
+  $form['time_sheet']['activity'] = array(
+    '#title' => t('Activity'),
+    '#type' => 'select',
+    '#options' => $activities,
+  );
 
   $form['time_sheet']['comment'] = array(
     '#title' => 'Comment',
@@ -587,8 +581,8 @@ function time_sheet_add_time() {
     '#weight' => 99,
   );
 
-  drupal_process_form($form_id, $form, $form_state);
-  
+
+
   return  drupal_render($form);
 }
 
@@ -638,63 +632,71 @@ function time_sheet_add_time_submit_handler_validate($form, &$form_state) {
 */
 // TODO: this function needs cleaning up. leverage the comment api
 function time_sheet_add_time_submit_handler($form, &$form_state) {
-  // TODO: do i need to get rid of this call for user object
   global $user;
+  dsm($form);
+  dsm($form_state);
 
-  //Some Variables for us to use
-  $time = array();
-  
-    $time['note'] = $form_state['input']['comment'];
-  
+  $entity = entity_get_controller('time_tracker_entry')->create();
+  field_attach_submit('time_tracker_entry', $entity, $form, $form_state);
 
-  // Set the timestamp
-  $time['timestamp'] = $form_state['input']['timestamp'];
+  // Our submitted form values
+  $values = $form_state['input'];
 
-  // Pull the rounding data
+  // Store the rounding data
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
 
   // Special handling based on the time entry method
   if (variable_get('time_entry_method', 'duration') == 'duration') {
-    $time['start'] = 0;
-    $time['end'] = 0;
-    $time['duration'] = _time_tracker_round(_time_tracker_parse_duration($form_state['input']['duration']), $rounding_interval / 60, $rounding_operation);
+    $entity->start = 0;
+    $entity->end = 0;
+    $entity->duration = _time_tracker_round(_time_tracker_parse_duration($values['duration']), $rounding_interval / 60, $rounding_operation);
+    $entity->timestamp = strtotime($values['time']);
   }
   elseif (variable_get('time_entry_method', 'duration') == 'interval') {
-    $time['start'] = _time_tracker_round(strtotime($form_state['input']['start']), $rounding_interval * 60, $rounding_operation);
-    $time['end'] = _time_tracker_round(strtotime($form_state['input']['end']), $rounding_interval * 60, $rounding_operation);
-    $time['duration'] = _time_tracker_parse_duration(_time_tracker_convert_phptime_to_duration($time['start'], $time['end']));
+    $entity->start = _time_tracker_round(strtotime($values['start']), $rounding_interval * 60, $rounding_operation);
+    $$entity->end = _time_tracker_round(strtotime($values['end']), $rounding_interval * 60, $rounding_operation);
+    $entity->timestamp = $time['start'];
+    $entity->duration = _time_tracker_parse_duration(_time_tracker_convert_phptime_to_duration($time['start'], $time['end']));
   }
 
-  // if (variable_get('time_entry_method', 'duration') == 'duration') {
+  // The rest of the time entry
+  $entity->activity = $values['activity'];
+  $entity->uid = $user->uid;
+  $entity->entity_id = $values['case_list'];
+  $entity->entity_type = $info['entity_type'];
+  $entity->entity_bundle = $info['bundle'];
+  if (isset($info['comment_id'])) {
+    $entity->comment_id = $info['comment_id'];
+  }
+  // For comments, notes are not displayed. So we need to check if it exists.
+  $entity->note = isset($values['note']) ? $values['note'] : NULL;
 
-  // }
-  // else {
-  //   $time['start'] = $form_state['clicked_button']['#post']['start'];
-  //   $time['end'] = $form_state['clicked_button']['#post']['end'];
-  //   $time['duration'] = _time_tracker_parse_duration(convert_phptime_to_duration($time['start'], $time['end']));
-  // }
-  $time['activity'] = $form_state['input']['activity'];
-  $time['uid'] = $user->uid;
-  $time['nid'] = $form_state['input']['case_list'];
+  // If locked was in the form use it
+  $entity->locked = isset($values['locked']) ? $values['locked'] : 0;
+  // If billable was in the form use it
+  $entity->billable = isset($values['billable']) ? $values['billable'] : NULL;
+  // If billed was in the form use it
+  $entity->billed = isset($values['billed']) ? $values['billed'] : NULL;
+  // If billed was in the form use it
+  $entity->deductions = isset($values['deductions']) ? _time_tracker_round(_time_tracker_parse_duration($values['deductions']), $rounding_interval / 60, $rounding_operation) : NULL;
 
+  //$entity = time_tracker_time_entry_save($entity);
+    drupal_set_message(t('Time Entry Recorded'));
+    // Redirect to current week view
+    //
   // Get the current path for redirection
   $destination = drupal_get_destination();
   $destination = $destination['destination'];
 
   $destination = explode('=', $destination);
   $path = explode('?', $destination[0]);
- 
-  // Redirect to current week view
   if (isset($destination[1])){
     $form_state['redirect'] = array($path[0],array('query' => array('start' => $destination[1])));
   }
   else{
-    $form_state['redirect'] = array($path[0]);	
+    $form_state['redirect'] = array($path[0]);
   }
-  drupal_write_record('time_tracker_entry', $time);
-
-  drupal_set_message(t('Time Entry Recorded'));
 }
 
 
@@ -709,23 +711,37 @@ function time_sheet_add_time_submit_handler($form, &$form_state) {
  * @param $user
  *    The user for whom to retrieve the cases for
  */
-function _time_sheet_case_list_options($user) {
-    $case_options = array('' => t('Select a task...'));
-    $sql = new EntityFieldQuery();
-   // $sql->entityCondition('entity_type', 'node')
-   //     ->entityCondition('bundle', 'task')
-   //     ->propertyCondition('status', 1)
-   //     ->fieldCondition('field_task_assigned', 'uid', $user->uid,'=')
-   //     ->fieldCondition('field_task_status', 'tid', 42,'!=');
+function _time_sheet_project_list_options($user) {
 
-  //$result = $sql->execute();
-   
-  if(isset($result['node'])) {
+  $project_settings = explode('-', variable_get('time_sheet_project_bundle'));
+  $task_settings = explode('-', variable_get('time_sheet_task_bundle'));
+
+  $case_options = array('' => t('Select a task...'));
+  $sql = new EntityFieldQuery();
+  $sql->entityCondition('entity_type', $task_settings[0])
+      ->entityCondition('bundle', $task_settings[1])
+      ->propertyCondition('status', 1);
+  $result = $sql->execute();
+
+  if(isset($result[$task_settings[0]])) {
     // cycle through cases to create the select options array
-    foreach($result['node'] as $task) {
-     // $task = node_load($task->nid);
-     // $project = node_load($task->field_task_project['und'][0]['nid']);
-     // $case_options[$project->title][$task->nid] = $task->title;
+    $field = variable_get('time_sheet_task_ref_field');
+    $field_info = field_info_field($field);
+    foreach($result[$task_settings[0]] as $task_id) {
+      $task = entity_load($task_settings[0], array($task_id->nid));
+      $task = $task[$task_id->nid];
+      // If the reference is a Node Reference field, we can make certain
+      // assumptions about the "project".
+      if($field_info['type'] == 'node_reference'){
+        $project = entity_load($project_settings[0], array($task->{$field}['und'][0]['nid']));
+        $project = $project[$task->{$field}['und'][0]['nid']];
+      }
+      elseif($field_info['type'] == 'entityreference'){
+        $project = entity_load($project_settings[0], array($task->{$field}['und'][0]['target_id']));
+        $project = $project[$task->{$field}['und'][0]['target_id']];
+      }
+
+      $case_options[$project->title][$task->nid] = $task->title;
     }
   }
 

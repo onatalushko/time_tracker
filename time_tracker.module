@@ -13,7 +13,7 @@ define('TIME_TRACKER_DEFAULT_TIMESTAMP_FORMAT', 'F d, Y');
 define('TIME_TRACKER_DEFAULT_INTERVAL_FORMAT', 'h:i A - M d, Y');
 // Constants for what we are tracking time on
 define('TIME_TRACKER_BOTH', 'both');
-define('TIME_TRACKER_NODE', 'node');
+define('TIME_TRACKER_ENTITY', 'entity');
 define('TIME_TRACKER_COMMENT', 'comment');
 
 /**
@@ -1156,23 +1156,23 @@ function time_tracker_get_enabled_fields($type = 'node') {
  * Returns true if either we are tracking time on the case
  * either on the comments or the node
  *
- * @param $node_type
- *    The node type to check if we are tracking time on it
+ * @param $entity_type
+ *    The entity type to check if we are tracking time on it
  *
  * @return
  *    Returns FALSE if we're not tracking time on this node
  *    type, otherwise returns a string of either 'both' 'node'
  *    or 'comment'
  */
-function time_tracker_is_tracking_time($node_type) {
+function time_tracker_is_tracking_time($entity_type, $bundle) {
   $tracking = FALSE;
-  if (variable_get('time_tracker_nodes_' . $node_type, 0) && variable_get('time_tracker_comments_' . $node_type, 0)) {
+  if (variable_get('time_tracker-' . $entity_type . '-' . $bundle) && variable_get('time_tracker_comments-' . $entity_type . '-' . $bundle)) {
     $tracking = TIME_TRACKER_BOTH;
   }
-  elseif (variable_get('time_tracker_nodes_' . $node_type, 0)) {
-    $tracking = TIME_TRACKER_NODE;
+  elseif (variable_get('time_tracker-' . $entity_type . '-' . $bundle)) {
+    $tracking = TIME_TRACKER_ENTITY;
   }
-  elseif (variable_get('time_tracker_comments_' . $node_type, 0)) {
+  elseif (variable_get('time_tracker_comments-' . $entity_type . '-' . $bundle)) {
     $tracking = TIME_TRACKER_COMMENT;
   }
   return $tracking;

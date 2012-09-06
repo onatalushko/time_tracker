@@ -1,5 +1,5 @@
 name = Time Tracker Timer
 description = Provides a timer function for the time tracker module.
 package = Time Tracker
-core = 6.x
+core = 7.x
 dependencies[] = time_tracker

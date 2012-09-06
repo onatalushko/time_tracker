@@ -199,14 +199,14 @@ function time_tracker_entity_settings_form($form, &$form_state) {
           '#collapsible' => TRUE,
           '#collapsed' => TRUE,
         );
-        
+
         $form[$key][$bkey]['time_tracker-' . $key . '-' . $bkey] = array(
           '#type' => 'checkbox',
           '#title' => t('Track time on this bundle.'),
           '#default_value' => variable_get('time_tracker-' . $key . '-' . $bkey),
           //'#description' => t("Track time on this bundle."),
         );
-        
+
         if ($type['label'] == 'Node') {
           $form[$key][$bkey]['time_tracker_comments-' . $key . '-' . $bkey] = array(
             '#type' => 'checkbox',
@@ -239,9 +239,9 @@ function time_tracker_entity_settings_form($form, &$form_state) {
  */
 function time_tracker_activity_table_form() {
 
-  // Grab all the activities ordered by weight  
+  // Grab all the activities ordered by weight
   $activities = entity_load('time_tracker_activity');
-  
+
   // Setup the form
   $form = array(
     '#tree' => TRUE,
@@ -316,7 +316,7 @@ function time_tracker_activity_table_form_submit($form, &$form_state) {
   if ($form_state['values']['add_new_activity']['new_activity_name']) {
     $entity = new stdClass();
     $entity->name = $form_state['values']['add_new_activity']['new_activity_name'];
-    
+
     if (isset($form_state['values']['activities'])) {
       $entity->weight = count($form_state['values']['activities']) + 1;
     }

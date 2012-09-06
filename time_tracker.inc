@@ -57,7 +57,7 @@ class TimeTrackerEntryController
     //  $entity->created = time();
     //}
     // Invoke hook_entity_presave().
-    // module_invoke_all('entity_presave', 'time_tracker_entry', $entity);
+    module_invoke_all('entity_presave', $entity, 'time_tracker_entry');
     // The 'primary_keys' argument determines whether this will be an insert
     // or an update. So if the entity already has an ID, we'll specify
     // basic_id as the key.
@@ -81,7 +81,7 @@ class TimeTrackerEntryController
       $invocation = 'entity_update';
     }
     // Invoke either hook_entity_update() or hook_entity_insert().
-    // module_invoke_all($invocation, 'time_tracker_entry', $entity);
+    module_invoke_all($invocation, $entity, 'time_tracker_entry');
     return $entity;
   }
 
@@ -176,7 +176,7 @@ class TimeTrackerActivityController
 
 
     // Invoke hook_entity_presave().
-    module_invoke_all('entity_presave', 'time_tracker_activity', $entity);
+    module_invoke_all('entity_presave', $entity, 'time_tracker_activity');
     // The 'primary_keys' argument determines whether this will be an insert
     // or an update. So if the entity already has an ID, we'll specify
     // taid as the key.
@@ -201,7 +201,7 @@ class TimeTrackerActivityController
       $invocation = 'entity_update';
     }
     // Invoke either hook_entity_update() or hook_entity_insert().
-    module_invoke_all($invocation, 'time_tracker_activity', $entity);
+    module_invoke_all($invocation, $entity, 'time_tracker_activity');
     return $entity;
   }
 
