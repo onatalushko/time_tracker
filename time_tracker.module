@@ -780,12 +780,11 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
   if (variable_get('time_tracker_user_field_type', 'textfield') == 'select') {
     $users = db_query("SELECT uid, name FROM {users} WHERE uid > 0");
 
-    while ($user_info = db_fetch_array($users)) {
-      $options[$user_info['uid']] = $user_info['name'];
+    foreach ($users as $user_info) {
+
+      $options[$user_info->uid] = $user_info->name;
     }
 
-    //}
-    array_shift($options);
     $form['time_tracker']['username'] += array('#options' => $options);
     $form['time_tracker']['username']['#weight'] -= 1;
   }
