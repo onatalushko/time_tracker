@@ -116,8 +116,22 @@ class TimeTrackerEntryController
           $teids[] = $entity->teid;
         }
         db_delete('time_tracker_entry')
-          ->condition('teid', $teids, '=')
+          ->condition('teid', $teids, 'IN')
           ->execute();
+        // If timer and estimate are installed and have entries for this entity
+        // we need to delete them as well.
+        if (module_exists('time_tracker_timer')){
+          db_delete('time_tracker_timer')
+            ->condition('entity_id', $entity->entity_id, '=')
+            ->condition('entity_type', $entity->entity_type, '=')
+            ->execute();
+        }
+        elseif (module_exists('time_estimate')) {
+          db_delete('time_estimate_entry')
+            ->condition('entity_id', $entity->entity_id, '=')
+            ->condition('entity_type', $entity->entity_type, '=')
+            ->execute();
+        }
 
       }
       catch (Exception $e) {
