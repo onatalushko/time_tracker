@@ -265,7 +265,7 @@ function time_tracker_timer_startstop_form_start_submit($form, &$form_state) {
     $current_timers = db_query("SELECT * FROM {time_tracker_timer} WHERE uid = :uid",
                       array(':uid' => $form_state['values']['uid']))->fetchAll();
   }
-  if(isset($current_timers)) {
+  if(isset($current_timers) && !empty($current_timers)) {
     drupal_set_message(t('You already have an active timer. ') . l(t('Click here to view it.'), 'node/' . $current_timer->nid), 'error');
   }
   else {
