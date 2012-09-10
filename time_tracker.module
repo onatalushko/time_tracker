@@ -79,22 +79,22 @@ function time_tracker_help($path, $arg) {
         <p>Double check your permissions before getting started:</p>
         <ul>
         <li><em>add time tracker entries</em><br/>
-        	  Permission to allow users to track time</li>
+            Permission to allow users to track time</li>
         <li><em>view all time tracker entries, view own time tracker entries</em><br/>
             Allow users to view time entries</li>
-        <li><em>edit time entries</em>	<br/>
-        	  Allow users to edit time entries</li>
-        <li><em>delete time entries</em>	<br/>
-        	  Allow users to delete time entries</li>
+        <li><em>edit time entries</em>  <br/>
+            Allow users to edit time entries</li>
+        <li><em>delete time entries</em>  <br/>
+            Allow users to delete time entries</li>
         <li><em>administer time tracker</em><br/>
-        	Access the administration pages</li>
-        <li><em>administer time entries</em>	<br/>
-        	  Gives access to additional options when editing a time entry:
-        	  <ul>
-        	    <li>Allows locking of time entires (if that particular setting is on)</li>
-        	    <li>Allows editing of locked time entries</li>
-        	    <li>Allows changing of username associated with a time entry</li>
-        	 </ul>
+          Access the administration pages</li>
+        <li><em>administer time entries</em>  <br/>
+            Gives access to additional options when editing a time entry:
+            <ul>
+              <li>Allows locking of time entires (if that particular setting is on)</li>
+              <li>Allows editing of locked time entries</li>
+              <li>Allows changing of username associated with a time entry</li>
+           </ul>
         </li>
         </ul>
         ");
@@ -863,7 +863,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
     );
     // If duration data exists already we post a note to the user
     if (isset($time_tracker_data)) {
-      if ($time_tracker_data->duration && !($time_tracker_data->end) && !($time_tracker_data->start)) {
+      if (isset($time_tracker_data->duration) && !($time_tracker_data->end) && !($time_tracker_data->start)) {
         $form['time_tracker']['duration_msg'] = array(
           '#prefix' => '<div class="description"><em>',
           '#value' => t("A duration value exists for this time entry, but no Start and End time. <br/> Saving this entry with a Start and End time will overwrite the duration<br/> Logged Duration: <b>!duration</b>", array('!duration' => _time_tracker_format_hours_to_hours_and_minutes($time_tracker_data->duration))),
@@ -1009,9 +1009,9 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
   }
   elseif (variable_get('time_entry_method', 'duration') == 'interval') {
     $entity->start = _time_tracker_round(strtotime($values['start']), $rounding_interval * 60, $rounding_operation);
-    $$entity->end = _time_tracker_round(strtotime($values['end']), $rounding_interval * 60, $rounding_operation);
-    $entity->timestamp = $time['start'];
-    $entity->duration = _time_tracker_parse_duration(_time_tracker_convert_phptime_to_duration($time['start'], $time['end']));
+    $entity->end =_time_tracker_round(strtotime($values['end']), $rounding_interval * 60, $rounding_operation);
+    $entity->timestamp = $values['start'];
+    $entity->duration = _time_tracker_parse_duration(_time_tracker_convert_phptime_to_duration($values['start'], $values['end']));
   }
 
   // The rest of the time entry
