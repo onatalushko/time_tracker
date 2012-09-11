@@ -295,6 +295,7 @@ function time_tracker_entity_info() {
   return $info;
 }
 
+
 /**
  * Implements the uri callback.
  */
@@ -311,8 +312,19 @@ function time_tracker_field_extra_fields() {
   $form_elements['time_entry_form'] = array(
     'label' => t('Time Entry Form'),
     'description' => t('The base time entry form'),
-    'weight' => -5,
+    'weight' => 1,
   );
+
+  $entity_types = entity_get_info();
+  foreach($entity_types as $key => $type) {
+    foreach($type['bundles'] as $bkey => $bundle){
+    $enabled = variable_get('time_tracker-' . $key . '-' . $bkey);
+      if ($enabled) {
+        $extra_fields[$key][$bkey]['form'] = $form_elements;
+        $extra_fields[$key][$bkey]['display'] = $form_elements;
+      }
+    }
+  }
 
   // Since we have only one bundle type, we'll just provide the extra_fields
   // for it here.
@@ -404,7 +416,6 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
       '#title' => t('Time Tracker'),
       '#collapsible' => TRUE,
       '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
-      '#weight' => 50,
     );
 
     if (user_access('view own time tracker entries')) {
