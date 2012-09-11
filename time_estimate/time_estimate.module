@@ -64,7 +64,7 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
   $type = isset($form['#entity_type']) ? $form['#entity_type'] : FALSE;
   $bundle = isset($form['#bundle']) ? $form['#bundle'] :FALSE;
   //This is a hack for the time being. This limits time estimate to nodes.
-  if($form_id == $type . '_node_form'){
+  if($form_id == $bundle . '_node_form'){
     if ($type && time_tracker_is_tracking_time($type, $bundle)) {
       $entity = isset($form['#entity']) ? $form['#entity'] : FALSE;
       $info = entity_extract_ids($type, $entity);
