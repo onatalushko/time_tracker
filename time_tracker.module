@@ -37,8 +37,12 @@ function time_tracker_permission() {
       'title' => t('View Own Time Tracker Entries'),
       'description' => t('TODO: Add descriptions'),
     ),
-    'edit time tracker entries' => array(
-      'title' => t('Edit Time Tracker Entries'),
+    'edit all time tracker entries' => array(
+      'title' => t('Edit All Time Tracker Entries'),
+      'description' => t('TODO: Add descriptions'),
+    ),
+    'edit own time tracker entries' => array(
+      'title' => t('Edit Own Time Tracker Entries'),
       'description' => t('TODO: Add descriptions'),
     ),
     'delete time tracker entries' => array(
@@ -168,7 +172,7 @@ function time_tracker_menu() {
     'description' => 'Edit a Time Entry',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('time_tracker_time_entry_form', 1, 2),
-    'access arguments' => array('edit time tracker entries'),
+    'access callback' => 'time_tracker_edit_access',
   );
   $items['time_entry/add/%node'] = array(
     'title' => 'Time Entry',
@@ -179,6 +183,16 @@ function time_tracker_menu() {
   );
 
   return $items;
+}
+
+function time_tracker_edit_access(){
+  global $user;
+  if (user_access('edit all time tracker entries') || user_access('edit own time tracker entries')){
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
 }
 
 /**
@@ -775,7 +789,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
     '#access' => user_access('administer time entries'),
     '#type' => $lock ? 'value' : variable_get('time_tracker_user_field_type', 'textfield'),
     '#weight' => 0,
-    '#default_value' => isset($user_submit->name) ? $user_submit->name : $user->name,
+    '#default_value' => isset($user_submit->uid) ? $user_submit->uid : $user->uid,
   );
 
   if (variable_get('time_tracker_user_field_type', 'textfield') == 'select') {

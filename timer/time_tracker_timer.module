@@ -582,9 +582,9 @@ function time_tracker_timer_block_save($delta = '', $edit = array()) {
 }
 
 function time_tracker_timer_block_view($delta) {
-  switch ($delta) {
-    case 'time_tracker_active_timers':
-      if (user_access('add time tracker entries')) {
+  if (user_access('add time tracker entries')) {
+    switch ($delta) {
+      case 'time_tracker_active_timers':
         $active_timers = array();
         $block['subject'] = t('Your Active Timers');
         $resources = db_query("SELECT * FROM {time_tracker_timer}");
@@ -598,10 +598,10 @@ function time_tracker_timer_block_view($delta) {
         elseif(!empty($active_timers)){
             $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
         }
+        break;
       }
-      break;
-    }
-  return $block;
+    return $block;
+  }
 }
 
 /***********************************************************************
