@@ -559,6 +559,28 @@ function time_tracker_timer_block_info(){
   return $blocks;
 }
 
+/**
+ * Implements hook_block_configure()
+ */
+function time_tracker_timer_block_configure($delta = '') {
+  if ($delta == 'time_tracker_active_timers') {
+    $form['timer_show'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Show block only if there are active timers'),
+      '#default_value' => variable_get('time_tracker_timer_show_active', 1),
+    );
+    return $form;
+  }
+}
+/**
+ * Implements hook_block_configure()
+ */
+function time_tracker_timer_block_save($delta = '', $edit = array()) {
+  if ($delta == 'time_tracker_active_timers') {
+    variable_set('time_tracker_timer_show_active', $edit['timer_show']);
+  }
+}
+
 function time_tracker_timer_block_view($delta) {
   switch ($delta) {
     case 'time_tracker_active_timers':
@@ -569,7 +591,13 @@ function time_tracker_timer_block_view($delta) {
         foreach ($resources as $resource){
           $active_timers[] = $resource;
         }
-        $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
+        $show = variable_get('time_tracker_timer_show_active');
+        if($show == 0){
+          $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
+        }
+        elseif(!empty($active_timers)){
+            $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
+        }
       }
       break;
     }
