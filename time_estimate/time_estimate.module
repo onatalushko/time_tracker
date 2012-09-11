@@ -63,47 +63,50 @@ function time_estimate_form_alter(&$form, $form_state, $form_id) {
 
   $type = isset($form['#entity_type']) ? $form['#entity_type'] : FALSE;
   $bundle = isset($form['#bundle']) ? $form['#bundle'] :FALSE;
-  if ($type && time_tracker_is_tracking_time($type, $bundle)) {
-    $entity = isset($form['#entity']) ? $form['#entity'] : FALSE;
-    $info = entity_extract_ids($type, $entity);
-    $bundle = $info[2];
-    $entity_id = $info[0];
+  //This is a hack for the time being. This limits time estimate to nodes.
+  if($form_id == $type . '_node_form'){
+    if ($type && time_tracker_is_tracking_time($type, $bundle)) {
+      $entity = isset($form['#entity']) ? $form['#entity'] : FALSE;
+      $info = entity_extract_ids($type, $entity);
+      $bundle = $info[2];
+      $entity_id = $info[0];
 
-    global $user;
+      global $user;
 
-    if ($entity) {
-      $time_estimate_data = db_query("SELECT * FROM {time_estimate_entry} WHERE entity_id = :entity_id AND entity_type = :entity_type",
-        array(':entity_id' => $entity_id, ':entity_type' => $type))->fetchObject();
+      if ($entity) {
+        $time_estimate_data = db_query("SELECT * FROM {time_estimate_entry} WHERE entity_id = :entity_id AND entity_type = :entity_type",
+          array(':entity_id' => $entity_id, ':entity_type' => $type))->fetchObject();
+      }
+
+      $form['time_estimate'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Time Estimate'),
+        '#collapsible' => TRUE,
+        '#collapsed' => FALSE,
+        '#weight' => 0,
+      );
+      $form['time_estimate']['uid'] = array(
+        '#type' => 'value',
+        '#value' => $user->uid,
+      );
+      $form['time_estimate']['eid'] = array(
+        '#type' => 'value',
+        '#value' => isset($time_estimate_data->eid) ? $time_estimate_data->eid : NULL,
+      );
+      $form['time_estimate']['timestamp'] = array(
+        '#type' => 'value',
+        '#default_value' => time()
+      );
+      $form['time_estimate']['estimate'] = array(
+        '#title' => t('Estimated Time'),
+        '#type' => 'textfield',
+        '#size' => '4',
+        '#default_value' => isset($time_estimate_data->estimate) ? $time_estimate_data->estimate : NULL,
+        '#description' => t('eg. 2.5 for two and a half hours'),
+      );
+
+      return $form;
     }
-
-    $form['time_estimate'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Time Estimate'),
-      '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
-      '#weight' => 0,
-    );
-    $form['time_estimate']['uid'] = array(
-      '#type' => 'value',
-      '#value' => $user->uid,
-    );
-    $form['time_estimate']['eid'] = array(
-      '#type' => 'value',
-      '#value' => isset($time_estimate_data->eid) ? $time_estimate_data->eid : NULL,
-    );
-    $form['time_estimate']['timestamp'] = array(
-      '#type' => 'value',
-      '#default_value' => time()
-    );
-    $form['time_estimate']['estimate'] = array(
-      '#title' => t('Estimated Time'),
-      '#type' => 'textfield',
-      '#size' => '4',
-      '#default_value' => isset($time_estimate_data->estimate) ? $time_estimate_data->estimate : NULL,
-      '#description' => t('eg. 2.5 for two and a half hours'),
-    );
-
-    return $form;
   }
 }
 
