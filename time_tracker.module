@@ -789,7 +789,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
     '#access' => user_access('administer time entries'),
     '#type' => $lock ? 'value' : variable_get('time_tracker_user_field_type', 'textfield'),
     '#weight' => 0,
-    '#default_value' => isset($user_submit->uid) ? $user_submit->uid : $user->uid,
+    '#default_value' => isset($user_submit->name) ? $user_submit->name : $user->name,
   );
 
   if (variable_get('time_tracker_user_field_type', 'textfield') == 'select') {
@@ -1004,7 +1004,12 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
   field_attach_submit('time_tracker_entry', $entity, $form, $form_state);
   // Need a user
   if (!empty($values['uid'])) {
-    $user = user_load($values['uid']);
+    if(is_numeric($values['uid'])){
+      $user = user_load($values['uid']);
+    }
+    else{
+      $user = user_load_by_name($values['uid']);
+    }
   }
   else {
     global $user;
