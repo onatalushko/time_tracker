@@ -1352,8 +1352,14 @@ function _time_tracker_format_hours_to_hours_and_minutes($hours, $clock_time = F
  *    The end time, in seconds
  */
 function _time_tracker_convert_phptime_to_duration($start, $stop = 0) {
-  $start = strtotime($start);
-  $stop = strtotime($stop);
+  if (is_numeric($start) && is_numeric($stop)){
+    $start = $start;
+    $stop = $stop;
+  }
+  else{
+    $start = strtotime($start);
+    $stop = strtotime($stop);
+  }
   if ($stop == 0) {
     $duration = $start;
   }

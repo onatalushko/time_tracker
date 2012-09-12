@@ -417,7 +417,7 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
             // If we're logging time by Duration...
             if (variable_get('time_entry_method', 'duration') == 'duration') {
               $form['time_tracker']['time_entry']['time']['#default_value'] = date('Y-m-d', $start_time);
-              $form['time_tracker']['time_entry']['duration']['#default_value'] = _time_tracker_convert_phptime_to_duration($timer->total);
+              $form['time_tracker']['time_entry']['duration']['#default_value'] = _time_tracker_convert_phptime_to_duration($stop_time - $start_time);
             }
             // If we're logging time by interval
             else {
