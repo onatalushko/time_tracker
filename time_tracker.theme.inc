@@ -113,7 +113,7 @@ function theme_time_tracker_time_entry_table($time_entries) {
     $header[] = array('data' => t('Billed'));
   }
   // Need to add the operations column if permissions allow it
-  if (user_access('edit all time tracker entries') || user_access('edit own time tracker entries') || user_access('administer time entries')) {
+  if (user_access('edit any time tracker entry') || user_access('edit own time tracker entries') || user_access('administer time entries')) {
     $header[] = array('data' => t('Ops'));
   }
   //Loop through the time entries and add them to the table
@@ -182,7 +182,7 @@ function theme_time_tracker_time_entry_table($time_entries) {
           'class' => 'time_entry_billed',
         );
       }
-      if (user_access('edit all time tracker entries') || user_access('edit own time tracker entries') || user_access('administer time entries')) {
+      if (user_access('edit any time tracker entries') || user_access('edit own time tracker entries') || user_access('administer time entries')) {
         // If entry is locked and user does not have proper permissions
         if (variable_get('allow_locked_time_entries', 0) && $time_entry->locked && !user_access('administer time entries')) {
           $row['data'][] = array( //Cell6
@@ -195,7 +195,7 @@ function theme_time_tracker_time_entry_table($time_entries) {
             $destination = drupal_get_destination();
             $destination = $destination['destination'];
             $row['data'][] = array( //Cell6
-              'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid, array('query' => array('destination' => $destination))),
+              'data' => l(t('edit'), 'time_entry/edit/' . $time_entry->teid),
               'class' => 'time_entry_edit',
             );
           }
