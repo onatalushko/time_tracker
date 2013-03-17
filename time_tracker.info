@@ -15,3 +15,4 @@ files[] = time_tracker.inc
 files[] = views/time_tracker_views_handler_field_numeric.inc
 files[] = views/time_tracker_views_handler_field_total_duration.inc
 files[] = views/time_tracker_views_handler_filter_date.inc
+files[] = views/time_tracker_views_handler_relationship.inc

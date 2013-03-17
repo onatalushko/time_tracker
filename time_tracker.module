@@ -4,6 +4,7 @@
  * Main module file for time_tracker.
  */
 
+
 /*
  * Define some constants
  */
@@ -411,6 +412,7 @@ function time_tracker_entry_uri($time_tracker_entry) {
 function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
   global $user;
   $info = entity_extract_ids($type, $entity);
+  $entity_types = entity_get_info();
   $bundle = $info[2];
   $entity_id = $info[0];
   // Redefine our info array.
@@ -580,7 +582,7 @@ function time_tracker_comment_insert($comment) {
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
   // Round the deductions if necessary
-  $entity->deductions = isset($comment->deductions) ? _time_tracker_round(_time_tracker_parse_duration($comment->deductions), $rounding_interval / 60, $rounding_operation) : NULL;
+  $entity->deductions = isset($comment->deductions) ? _time_tracker_round(_time_tracker_parse_duration($comment->deductions), $rounding_interval / 60, $rounding_operation) : 0;
   // Check First if we are tracking by duration or time interval
   if (variable_get('time_entry_method', 'duration') == 'duration') {
     $duration = _time_tracker_round(_time_tracker_parse_duration($comment->duration), $rounding_interval / 60, $rounding_operation);
@@ -1017,7 +1019,7 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
     $entity->start = 0;
     $entity->end = 0;
     $entity->duration = _time_tracker_round(_time_tracker_parse_duration($values['duration']), $rounding_interval / 60, $rounding_operation);
-    $entity->timestamp = time();
+    $entity->timestamp = strtotime($values['time']);
   }
   elseif (variable_get('time_entry_method', 'duration') == 'interval') {
     $entity->start = _time_tracker_round(strtotime($values['start']), $rounding_interval * 60, $rounding_operation);
@@ -1045,7 +1047,7 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
   // If billed was in the form use it
   $entity->billed = isset($values['billed']) ? $values['billed'] : NULL;
   // If billed was in the form use it
-  $entity->deductions = isset($values['deductions']) ? _time_tracker_round(_time_tracker_parse_duration($values['deductions']), $rounding_interval / 60, $rounding_operation) : NULL;
+  $entity->deductions = isset($values['deductions']) ? _time_tracker_round(_time_tracker_parse_duration($values['deductions']), $rounding_interval / 60, $rounding_operation) : 0;
 
   $entity = time_tracker_time_entry_save($entity);
   //$form_state['redirect'] = 'examples/entity_example/basic/' . $entity->basic_id;

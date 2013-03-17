@@ -3,7 +3,7 @@
 /**
  * Filter to handle dates stored as a timestamp.
  */
-class time_tracker_views_handler_filter_date extends views_handler_filter_numeric {
+class time_tracker_views_handler_filter_date extends views_handler_filter_date {
   function option_definition() {
     $options = parent::option_definition();
 
@@ -17,40 +17,39 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
    * Add a type selector to the value format
    */
   function value_form(&$form, &$form_state) {
+    parent::value_form($form, $form_state);
     if (empty($form_state['exposed'])) {
       $form['value']['type'] = array(
         '#type' => 'radios',
         '#title' => t('Value type'),
         '#options' => array(
           'date' => t('A date in any machine readable format. CCYY-MM-DD HH:MM:SS is preferred.'),
-          'offset' => t('An offset from the current time such as "+1 day" or "-2 hours -30 minutes"'),
-          'relative' => t('A date in any machine readable format OR an expression representing a date relative to the current date. See Accepted Relative Values below for a list of supported expressions'),
+          'offset' => t('An offset from the current time such as "!example1" or "!example2"', array('!example1' => '+1 day', '!example2' => '-2 hours -30 minutes')),
         ),
-        '#default_value' => !empty($this->value['type']) ? $this->value['type'] : 'relative',
+        '#default_value' => !empty($this->value['type']) ? $this->value['type'] : 'date',
       );
       if (module_exists('date_popup')) {
-        $form['value']['type']['#options']['date_popup'] = t('Use a date popup field for date entry. Relative values can be used for the default value of the field, but won\'t be accepted on the exposed form.');
+        $form['value']['type']['#options']['date_popup'] = t('Use a date popup field for date entry.');
       }
-      $form['value']['accepted_relative'] = array(
+/*      $form['value']['accepted_relative'] = array(
         '#title' => t('Accepted Relative Values'),
         '#type' => 'fieldset',
-        '#tree' => TRUE,
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
         '#weight' => 20,
-        '#attributes' => array('class' => 'accepted-relative-values-fieldset'),
+        '#attributes' => array('class' => array('accepted-relative-values-fieldset')),
       );
       $form['value']['accepted_relative']['info'] = array(
         '#type' => 'markup',
-        '#value' => "All expressions are case insensitive. <br/>" .
+        '#markup' => "All expressions are case insensitive. <br/>" .
                     "'<strong>First Of This Month</strong>' = First Day of this Month<br/>" .
                     "'<strong>Last Of This Month</strong>' = Last Day of this Month<br/>" .
                     "'<strong>(<i>n</i>)th/(<i>n</i>)st Of This Month</strong>' =  <i>n</i> being a numbered day, this expression will represent that numbered day of this month. e.g. 21st Of This Month or 14th Of This Month<br/>" .
                     "'<strong>Bimonthly</strong>' = Put in both Min and Max to dynamically generate a date range based on the current date. e.g. if it is the 3rd of the month, it will return a range of the 1st to the 15th. If it is after the 15th, it will return the 16th to the end of the month.",
-        '#attributes' => array('class' => 'accepted-relative-values'),
-      );
+        '#attributes' => array('class' => array('accepted-relative-values')),
+      );*/
     }
-    parent::value_form($form, $form_state);
+
   }
 
   /**
@@ -69,6 +68,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
       else {
         $format = variable_get('time_interval_date_format', 'h:i A - M d, Y');
       }
+
       if (isset($form[$filter_identifier]['#type'])) {
         $form[$filter_identifier]['#type'] = 'date_popup';
         $form[$filter_identifier]['#date_format'] = $format;
@@ -99,6 +99,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     }
   }
 
+
   function options_validate(&$form, &$form_state) {
     parent::options_validate($form, $form_state);
 
@@ -121,6 +122,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     }
 
     $value = &$form_state['values'][$this->options['expose']['identifier']];
+    $value['type'] = $this->options['value']['type'];
     if (!empty($this->options['expose']['use_operator']) && !empty($this->options['expose']['operator'])) {
       $operator = $form_state['values'][$this->options['expose']['operator']];
     }
@@ -128,7 +130,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
       $operator = $this->operator;
     }
 
-    $this->validate_valid_time($this->options['expose']['identifier'], $operator, $value);
+    $this->validate_valid_time($form, $operator, $value);
 
   }
 
@@ -136,7 +138,9 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
    * Validate that the time values convert to something usable.
    */
   function validate_valid_time(&$form, $operator, $value) {
+
     $operators = $this->operators();
+
     if ($operators[$operator]['values'] == 1 && $value['value']) {
       $convert = strtotime($value['value']);
       if ($convert == -1 || $convert === FALSE) {
@@ -148,13 +152,24 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
         $value['min'] = date('m/d/Y', $this->process_relative_time_frame($this->value['min'], 'min'));
         $value['max'] = date('m/d/Y', $this->process_relative_time_frame($this->value['max'], 'max'));
       }
-      $min = strtotime($value['min']);
-      if ($min == -1 || $min === FALSE) {
-        form_error($form['min'], t('Invalid date format.'));
+      $filter_identifier = $this->options['expose']['identifier'];
+      if(is_array($value['min'])){
+        $min = strtotime($value['min']['date']);
       }
-      $max = strtotime($value['max']);
+      else{
+        $min = strtotime($value['min']);
+      }
+      if ($min == -1 || $min === FALSE) {
+        form_error($form[$filter_identifier]['min'], t('Invalid date format.'));
+      }
+      if(is_array($value['max'])){
+        $max = strtotime($value['max']['date']);
+      }
+      else{
+        $max = strtotime($value['max']);
+      }
       if ($max == -1 || $max === FALSE) {
-        form_error($form['max'], t('Invalid date format.'));
+        form_error($form[$filter_identifier]['max'], t('Invalid date format.'));
       }
     }
   }
@@ -217,8 +232,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     //dpm($a);
     // %s is safe here because strtotime scrubbed the input and we might
     // have a string if using offset.
-    $this->query->add_where($this->options['group'], "$field >= %s", $a);
-    $this->query->add_where($this->options['group'], "$field <= %s", $b);
+    $this->query->add_where($this->options['group'], $field, array($a,$b), $this->operator);
   }
 
   function op_simple($field) {
@@ -226,7 +240,7 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_numeri
     if (!empty($this->value['type']) && $this->value['type'] == 'offset') {
       $value = '***CURRENT_TIME***' . sprintf('%+d', $value); // keep sign
     }
-    $this->query->add_where($this->options['group'], "$field $this->operator %s", $value);
+    $this->query->add_where($this->options['group'], $field, $value, $this->operator);
   }
 
   /**

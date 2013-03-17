@@ -9,9 +9,9 @@ function time_tracker_views_default_views() {
     'time_tracker_reporting',
   );
   $views = array();
-  foreach ($list as $view_name) {
-    $view = call_user_func('_view_' . $view_name);
-    $views[$view->name] = $view;
+  foreach (  $list as   $view_name) {
+    $view = call_user_func('_view_' .   $view_name);
+    $views[  $view->name] =   $view;
   }
   return $views;
 }
@@ -20,742 +20,247 @@ function time_tracker_views_default_views() {
  * The main time tracker reporting view
  */
 function _view_time_tracker_reporting() {
-  $view = new view;
+  $view = new view();
   $view->name = 'time_tracker_reports';
   $view->description = 'A view for reporting on time tracker data.';
   $view->tag = '';
-  $view->view_php = '';
   $view->base_table = 'time_tracker_entry';
-  $view->is_cacheable = FALSE;
-  $view->api_version = 2;
+  $view->human_name = '';
+  $view->core = 0;
+  $view->api_version = '3.0';
   $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
-  $handler = $view->new_display('default', 'Defaults', 'default');
-  $handler->override_option('relationships', array(
-    'uid' => array(
-      'label' => 'User',
-      'required' => 0,
-      'id' => 'uid',
-      'table' => 'time_tracker_entry',
-      'field' => 'uid',
-      'relationship' => 'none',
-    ),
-    'cid' => array(
-      'label' => 'Comment',
-      'required' => 0,
-      'id' => 'cid',
-      'table' => 'time_tracker_entry',
-      'field' => 'cid',
-      'relationship' => 'none',
-    ),
-    'nid' => array(
-      'label' => 'Node',
-      'required' => 0,
-      'id' => 'nid',
-      'table' => 'time_tracker_entry',
-      'field' => 'nid',
-      'relationship' => 'none',
-    ),
-    'activity' => array(
-      'label' => 'Activity',
-      'required' => 0,
-      'id' => 'activity',
-      'table' => 'time_tracker_entry',
-      'field' => 'activity',
-      'override' => array(
-        'button' => 'Override',
-      ),
-      'relationship' => 'none',
-    ),
-    'pid' => array(
-      'label' => 'project',
-      'required' => 0,
-      'id' => 'pid',
-      'table' => 'casetracker_case',
-      'field' => 'pid',
-      'relationship' => 'nid',
-    ),
-  ));
-  $handler->override_option('fields', array(
-    'name' => array(
-      'label' => 'Name',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'link_to_user' => 1,
-      'overwrite_anonymous' => 0,
-      'anonymous_text' => '',
-      'exclude' => 0,
-      'id' => 'name',
-      'table' => 'users',
-      'field' => 'name',
-      'relationship' => 'uid',
-      'override' => array(
-        'button' => 'Override',
-      ),
-    ),
-    'title_1' => array(
-      'label' => 'Project',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'strip_tags' => 0,
-        'html' => 0,
-      ),
-      'link_to_node' => 1,
-      'exclude' => 0,
-      'id' => 'title_1',
-      'table' => 'node',
-      'field' => 'title',
-      'relationship' => 'nid',
-    ),
-    'title' => array(
-      'label' => 'Title',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'strip_tags' => 0,
-        'html' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'link_to_node' => 1,
-      'exclude' => 0,
-      'id' => 'title',
-      'table' => 'node',
-      'field' => 'title',
-      'relationship' => 'nid',
-    ),
-    'comment' => array(
-      'label' => 'Body',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 1,
-        'max_length' => '200',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'exclude' => 0,
-      'id' => 'comment',
-      'table' => 'comments',
-      'field' => 'comment',
-      'relationship' => 'cid',
-    ),
-    'note' => array(
-      'label' => '',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'exclude' => 0,
-      'id' => 'note',
-      'table' => 'time_tracker_entry',
-      'field' => 'note',
-      'override' => array(
-        'button' => 'Override',
-      ),
-      'relationship' => 'none',
-    ),
-    'timestamp' => array(
-      'label' => 'Timestamp',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'date_format' => 'custom',
-      'custom_date_format' => 'M jS, Y',
-      'reldate' => '0',
-      'exclude' => 0,
-      'id' => 'timestamp',
-      'table' => 'time_tracker_entry',
-      'field' => 'timestamp',
-      'relationship' => 'none',
-    ),
-    'duration' => array(
-      'label' => 'Duration',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'strip_tags' => 0,
-        'html' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'set_precision' => FALSE,
-      'precision' => 0,
-      'decimal' => '.',
-      'separator' => ',',
-      'prefix' => '',
-      'suffix' => ' hours',
-      'exclude' => 0,
-      'id' => 'duration',
-      'table' => 'time_tracker_entry',
-      'field' => 'duration',
-      'relationship' => 'none',
-    ),
-  ));
-  $handler->override_option('sorts', array(
-    'timestamp' => array(
-      'id' => 'timestamp',
-      'table' => 'time_tracker_entry',
-      'field' => 'timestamp',
-    ),
-  ));
-  $handler->override_option('filters', array(
-    'uid' => array(
-      'operator' => 'in',
-      'value' => '',
-      'group' => '0',
-      'exposed' => TRUE,
-      'expose' => array(
-        'use_operator' => 0,
-        'operator' => 'uid_op',
-        'identifier' => 'uid',
-        'label' => 'Name',
-        'optional' => 1,
-        'remember' => 0,
-        'reduce' => 0,
-      ),
-      'id' => 'uid',
-      'table' => 'users',
-      'field' => 'uid',
-      'relationship' => 'uid',
-    ),
-    'timestamp' => array(
-      'operator' => 'between',
-      'value' => array(
-        'type' => 'relative',
-        'value' => '',
-        'min' => 'First Of This Month',
-        'max' => 'Last Of This Month',
-      ),
-      'group' => '0',
-      'exposed' => TRUE,
-      'expose' => array(
-        'use_operator' => 0,
-        'operator' => 'timestamp_op',
-        'identifier' => 'timestamp',
-        'label' => 'Entered Between',
-        'optional' => 1,
-        'remember' => 0,
-      ),
-      'id' => 'timestamp',
-      'table' => 'time_tracker_entry',
-      'field' => 'timestamp',
-      'relationship' => 'none',
-      'override' => array(
-        'button' => 'Override',
-      ),
-    ),
-    'pid' => array(
-      'operator' => 'or',
-      'value' => array(),
-      'group' => '0',
-      'exposed' => TRUE,
-      'expose' => array(
-        'use_operator' => 0,
-        'operator' => 'pid_op',
-        'identifier' => 'pid',
-        'label' => 'Project',
-        'optional' => 1,
-        'single' => 1,
-        'remember' => 0,
-        'reduce' => 0,
-      ),
-      'id' => 'pid',
-      'table' => 'casetracker_case',
-      'field' => 'pid',
-      'relationship' => 'nid',
-      'reduce_duplicates' => 0,
-    ),
-  ));
-  $handler->override_option('access', array(
-    'type' => 'role',
-    'role' => array(
-      '4' => 4,
-    ),
-  ));
-  $handler->override_option('cache', array(
-    'type' => 'none',
-  ));
-  $handler->override_option('items_per_page', 0);
-  $handler->override_option('style_plugin', 'views_calc');
-  $handler->override_option('style_options', array(
-    'grouping' => '',
-    'override' => 1,
-    'sticky' => 0,
-    'order' => 'asc',
-    'columns' => array(
-      'name' => 'name',
-      'title' => 'title',
-      'comment' => 'comment',
-      'note' => 'comment',
-      'timestamp' => 'timestamp',
-      'duration' => 'duration',
-    ),
-    'info' => array(
-      'name' => array(
-        'sortable' => 0,
-        'separator' => '<br/>',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 0,
-        'calc' => array(),
-      ),
-      'title' => array(
-        'sortable' => 0,
-        'separator' => '',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 0,
-        'calc' => array(),
-      ),
-      'comment' => array(
-        'separator' => '',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 0,
-        'calc' => array(),
-      ),
-      'note' => array(
-        'separator' => '',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 0,
-        'calc' => array(),
-      ),
-      'timestamp' => array(
-        'separator' => '',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 0,
-        'calc' => array(),
-      ),
-      'duration' => array(
-        'separator' => '',
-        'justification' => 'views_calc_justify_none',
-        'has_calc' => 1,
-        'calc' => array(
-          'SUM' => 'SUM',
-        ),
-      ),
-    ),
-    'default' => '-1',
-    'detailed_values' => '0',
-  ));
-  $handler = $view->new_display('page', 'Page w/Casetracker', 'page_1');
-  $handler->override_option('path', 'time_tracker/casetracker_reports');
-  $handler->override_option('menu', array(
-    'type' => 'none',
-    'title' => '',
-    'description' => '',
-    'weight' => 0,
-    'name' => 'navigation',
-  ));
-  $handler->override_option('tab_options', array(
-    'type' => 'none',
-    'title' => '',
-    'description' => '',
-    'weight' => 0,
-    'name' => 'navigation',
-  ));
-  $handler = $view->new_display('page', 'Page', 'page_2');
-  $handler->override_option('relationships', array(
-    'uid' => array(
-      'label' => 'User',
-      'required' => 0,
-      'id' => 'uid',
-      'table' => 'time_tracker_entry',
-      'field' => 'uid',
-      'relationship' => 'none',
-    ),
-    'cid' => array(
-      'label' => 'Comment',
-      'required' => 0,
-      'id' => 'cid',
-      'table' => 'time_tracker_entry',
-      'field' => 'cid',
-      'relationship' => 'none',
-    ),
-    'nid' => array(
-      'label' => 'Node',
-      'required' => 0,
-      'id' => 'nid',
-      'table' => 'time_tracker_entry',
-      'field' => 'nid',
-      'relationship' => 'none',
-    ),
-    'activity' => array(
-      'label' => 'Activity',
-      'required' => 0,
-      'id' => 'activity',
-      'table' => 'time_tracker_entry',
-      'field' => 'activity',
-      'override' => array(
-        'button' => 'Override',
-      ),
-      'relationship' => 'none',
-    ),
-  ));
-  $handler->override_option('fields', array(
-    'name' => array(
-      'label' => 'Name',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'link_to_user' => 1,
-      'overwrite_anonymous' => 0,
-      'anonymous_text' => '',
-      'exclude' => 0,
-      'id' => 'name',
-      'table' => 'users',
-      'field' => 'name',
-      'relationship' => 'uid',
-      'override' => array(
-        'button' => 'Override',
-      ),
-    ),
-    'title' => array(
-      'label' => 'Title',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'strip_tags' => 0,
-        'html' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'link_to_node' => 1,
-      'exclude' => 0,
-      'id' => 'title',
-      'table' => 'node',
-      'field' => 'title',
-      'relationship' => 'nid',
-    ),
-    'comment' => array(
-      'label' => 'Body',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 1,
-        'max_length' => '200',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'exclude' => 0,
-      'id' => 'comment',
-      'table' => 'comments',
-      'field' => 'comment',
-      'relationship' => 'cid',
-    ),
-    'note' => array(
-      'label' => '',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'exclude' => 0,
-      'id' => 'note',
-      'table' => 'time_tracker_entry',
-      'field' => 'note',
-      'override' => array(
-        'button' => 'Use default',
-      ),
-      'relationship' => 'none',
-    ),
-    'timestamp' => array(
-      'label' => 'Timestamp',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'html' => 0,
-        'strip_tags' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'date_format' => 'custom',
-      'custom_date_format' => 'M jS, Y',
-      'reldate' => '0',
-      'exclude' => 0,
-      'id' => 'timestamp',
-      'table' => 'time_tracker_entry',
-      'field' => 'timestamp',
-      'relationship' => 'none',
-    ),
-    'duration' => array(
-      'label' => 'Duration',
-      'alter' => array(
-        'alter_text' => 0,
-        'text' => '',
-        'make_link' => 0,
-        'path' => '',
-        'link_class' => '',
-        'alt' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'target' => '',
-        'help' => '',
-        'trim' => 0,
-        'max_length' => '',
-        'word_boundary' => 1,
-        'ellipsis' => 1,
-        'strip_tags' => 0,
-        'html' => 0,
-      ),
-      'empty' => '',
-      'hide_empty' => 0,
-      'empty_zero' => 0,
-      'set_precision' => FALSE,
-      'precision' => 0,
-      'decimal' => '.',
-      'separator' => ',',
-      'prefix' => '',
-      'suffix' => ' hours',
-      'exclude' => 0,
-      'id' => 'duration',
-      'table' => 'time_tracker_entry',
-      'field' => 'duration',
-      'relationship' => 'none',
-    ),
-  ));
-  $handler->override_option('filters', array(
-    'uid' => array(
-      'operator' => 'in',
-      'value' => '',
-      'group' => '0',
-      'exposed' => TRUE,
-      'expose' => array(
-        'use_operator' => 0,
-        'operator' => 'uid_op',
-        'identifier' => 'uid',
-        'label' => 'Name',
-        'optional' => 1,
-        'remember' => 0,
-        'reduce' => 0,
-      ),
-      'id' => 'uid',
-      'table' => 'users',
-      'field' => 'uid',
-      'relationship' => 'uid',
-    ),
-    'timestamp' => array(
-      'operator' => 'between',
-      'value' => array(
-        'type' => 'relative',
-        'value' => '',
-        'min' => 'First Of This Month',
-        'max' => 'Last Of This Month',
-      ),
-      'group' => '0',
-      'exposed' => TRUE,
-      'expose' => array(
-        'use_operator' => 0,
-        'operator' => 'timestamp_op',
-        'identifier' => 'timestamp',
-        'label' => 'Entered Between',
-        'optional' => 1,
-        'remember' => 0,
-      ),
-      'id' => 'timestamp',
-      'table' => 'time_tracker_entry',
-      'field' => 'timestamp',
-      'relationship' => 'none',
-      'override' => array(
-        'button' => 'Override',
-      ),
-    ),
-  ));
-  $handler->override_option('path', 'time_tracker/reports');
-  $handler->override_option('menu', array(
-    'type' => 'none',
-    'title' => '',
-    'description' => '',
-    'weight' => 0,
-    'name' => 'navigation',
-  ));
-  $handler->override_option('tab_options', array(
-    'type' => 'none',
-    'title' => '',
-    'description' => '',
-    'weight' => 0,
-    'name' => 'navigation',
-  ));
-  $translatables['time_tracker_reports'] = array(
-    t('Defaults'),
-    t('Page'),
-    t('Page w/Casetracker'),
-  );
 
-  return $view;
+  /* Display: Defaults */
+  $handler =   $view->new_display('default', 'Defaults', 'default');
+  $handler->display->display_options['use_more_always'] = FALSE;
+  $handler->display->display_options['access']['type'] = 'role';
+  $handler->display->display_options['access']['role'] = array(
+    2 => 2,
+  );
+  $handler->display->display_options['cache']['type'] = 'none';
+  $handler->display->display_options['query']['type'] = 'views_query';
+  $handler->display->display_options['exposed_form']['type'] = 'basic';
+  $handler->display->display_options['pager']['type'] = 'none';
+  $handler->display->display_options['style_plugin'] = 'views_calc';
+  $handler->display->display_options['style_options']['columns'] = array(
+    'name' => 'name',
+    'title' => 'title',
+    'comment' => 'comment',
+    'note' => 'comment',
+    'timestamp' => 'timestamp',
+    'duration' => 'duration',
+  );
+  $handler->display->display_options['style_options']['default'] = '-1';
+  $handler->display->display_options['style_options']['info'] = array(
+    'name' => array(
+      'sortable' => 0,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '<br/>',
+      'empty_column' => 0,
+      'has_calc' => 0,
+      'calc' => array(),
+    ),
+    'title' => array(
+      'sortable' => 0,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+      'has_calc' => 0,
+      'calc' => array(),
+    ),
+    'comment' => array(
+      'sortable' => 0,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+      'has_calc' => 0,
+      'calc' => array(),
+    ),
+    'note' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+      'has_calc' => 0,
+      'calc' => array(),
+    ),
+    'timestamp' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+      'has_calc' => 0,
+      'calc' => array(),
+    ),
+    'duration' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+      'has_calc' => 1,
+      'calc' => array(
+        'SUM' => 'SUM',
+      ),
+    ),
+  );
+  $handler->display->display_options['style_options']['detailed_values'] = '0';
+  $handler->display->display_options['style_options']['precision'] = '0';
+  /* Relationship: Time Tracker: Author */
+  $handler->display->display_options['relationships']['uid']['id'] = 'uid';
+  $handler->display->display_options['relationships']['uid']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['uid']['field'] = 'uid';
+  /* Relationship: Time Tracker: Comment */
+  $handler->display->display_options['relationships']['cid']['id'] = 'cid';
+  $handler->display->display_options['relationships']['cid']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['cid']['field'] = 'comment_id';
+  /* Relationship: Time Tracker: Activity */
+  $handler->display->display_options['relationships']['activity']['id'] = 'activity';
+  $handler->display->display_options['relationships']['activity']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['activity']['field'] = 'activity';
+  /* Field: User: Name */
+  $handler->display->display_options['fields']['name']['id'] = 'name';
+  $handler->display->display_options['fields']['name']['table'] = 'users';
+  $handler->display->display_options['fields']['name']['field'] = 'name';
+  $handler->display->display_options['fields']['name']['relationship'] = 'uid';
+  /* Field: Comment: Comment */
+  $handler->display->display_options['fields']['comment']['id'] = 'comment';
+  $handler->display->display_options['fields']['comment']['table'] = 'field_data_comment_body';
+  $handler->display->display_options['fields']['comment']['field'] = 'comment_body';
+  $handler->display->display_options['fields']['comment']['relationship'] = 'cid';
+  $handler->display->display_options['fields']['comment']['label'] = 'Body';
+  $handler->display->display_options['fields']['comment']['alter']['max_length'] = '200';
+  $handler->display->display_options['fields']['comment']['alter']['trim'] = TRUE;
+  /* Field: Time Tracker: Note */
+  $handler->display->display_options['fields']['note']['id'] = 'note';
+  $handler->display->display_options['fields']['note']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['note']['field'] = 'note';
+  $handler->display->display_options['fields']['note']['label'] = '';
+  /* Field: Time Tracker: Timestamp */
+  $handler->display->display_options['fields']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['date_format'] = 'custom';
+  $handler->display->display_options['fields']['timestamp']['custom_date_format'] = 'M jS, Y';
+  /* Field: Time Tracker: Duration */
+  $handler->display->display_options['fields']['duration']['id'] = 'duration';
+  $handler->display->display_options['fields']['duration']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['duration']['field'] = 'duration';
+  $handler->display->display_options['fields']['duration']['suffix'] = ' hours';
+  /* Sort criterion: Time Tracker: Timestamp */
+  $handler->display->display_options['sorts']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['sorts']['timestamp']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['sorts']['timestamp']['field'] = 'timestamp';
+  /* Filter criterion: User: Name */
+  $handler->display->display_options['filters']['uid']['id'] = 'uid';
+  $handler->display->display_options['filters']['uid']['table'] = 'users';
+  $handler->display->display_options['filters']['uid']['field'] = 'uid';
+  $handler->display->display_options['filters']['uid']['relationship'] = 'uid';
+  $handler->display->display_options['filters']['uid']['value'] = '';
+  $handler->display->display_options['filters']['uid']['group'] = '0';
+  $handler->display->display_options['filters']['uid']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['uid']['expose']['operator_id'] = 'uid_op';
+  $handler->display->display_options['filters']['uid']['expose']['label'] = 'Name';
+  $handler->display->display_options['filters']['uid']['expose']['operator'] = 'uid_op';
+  $handler->display->display_options['filters']['uid']['expose']['identifier'] = 'uid';
+  /* Filter criterion: Time Tracker: Timestamp */
+  $handler->display->display_options['filters']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['filters']['timestamp']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['filters']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['filters']['timestamp']['operator'] = 'between';
+  $handler->display->display_options['filters']['timestamp']['value']['min'] = 'First Of This Month';
+  $handler->display->display_options['filters']['timestamp']['value']['max'] = 'Last Of This Month';
+  $handler->display->display_options['filters']['timestamp']['value']['type'] = 'relative';
+  $handler->display->display_options['filters']['timestamp']['group'] = '0';
+  $handler->display->display_options['filters']['timestamp']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['timestamp']['expose']['operator_id'] = 'timestamp_op';
+  $handler->display->display_options['filters']['timestamp']['expose']['label'] = 'Entered Between';
+  $handler->display->display_options['filters']['timestamp']['expose']['operator'] = 'timestamp_op';
+  $handler->display->display_options['filters']['timestamp']['expose']['identifier'] = 'timestamp';
+
+  /* Display: Page */
+  $handler =   $view->new_display('page', 'Page', 'page_2');
+  $handler->display->display_options['defaults']['hide_admin_links'] = FALSE;
+  $handler->display->display_options['defaults']['relationships'] = FALSE;
+  /* Relationship: Time Tracker: Author */
+  $handler->display->display_options['relationships']['uid']['id'] = 'uid';
+  $handler->display->display_options['relationships']['uid']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['uid']['field'] = 'uid';
+  /* Relationship: Time Tracker: Comment */
+  $handler->display->display_options['relationships']['cid']['id'] = 'cid';
+  $handler->display->display_options['relationships']['cid']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['cid']['field'] = 'comment_id';
+  /* Relationship: Time Tracker: Activity */
+  $handler->display->display_options['relationships']['activity']['id'] = 'activity';
+  $handler->display->display_options['relationships']['activity']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['activity']['field'] = 'activity';
+  /* Relationship: Time Tracker: Node */
+  $handler->display->display_options['relationships']['nid']['id'] = 'nid';
+  $handler->display->display_options['relationships']['nid']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['relationships']['nid']['field'] = 'nid';
+  $handler->display->display_options['defaults']['fields'] = FALSE;
+  /* Field: User: Name */
+  $handler->display->display_options['fields']['name']['id'] = 'name';
+  $handler->display->display_options['fields']['name']['table'] = 'users';
+  $handler->display->display_options['fields']['name']['field'] = 'name';
+  $handler->display->display_options['fields']['name']['relationship'] = 'uid';
+  /* Field: Content: Title */
+  $handler->display->display_options['fields']['title']['id'] = 'title';
+  $handler->display->display_options['fields']['title']['table'] = 'node';
+  $handler->display->display_options['fields']['title']['field'] = 'title';
+  $handler->display->display_options['fields']['title']['relationship'] = 'nid';
+  /* Field: Comment: Comment */
+  $handler->display->display_options['fields']['comment']['id'] = 'comment';
+  $handler->display->display_options['fields']['comment']['table'] = 'field_data_comment_body';
+  $handler->display->display_options['fields']['comment']['field'] = 'comment_body';
+  $handler->display->display_options['fields']['comment']['relationship'] = 'cid';
+  $handler->display->display_options['fields']['comment']['label'] = 'Body';
+  $handler->display->display_options['fields']['comment']['alter']['max_length'] = '200';
+  $handler->display->display_options['fields']['comment']['alter']['trim'] = TRUE;
+  /* Field: Time Tracker: Note */
+  $handler->display->display_options['fields']['note']['id'] = 'note';
+  $handler->display->display_options['fields']['note']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['note']['field'] = 'note';
+  $handler->display->display_options['fields']['note']['label'] = '';
+  /* Field: Time Tracker: Timestamp */
+  $handler->display->display_options['fields']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['date_format'] = 'custom';
+  $handler->display->display_options['fields']['timestamp']['custom_date_format'] = 'M jS, Y';
+  /* Field: Time Tracker: Duration */
+  $handler->display->display_options['fields']['duration']['id'] = 'duration';
+  $handler->display->display_options['fields']['duration']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['fields']['duration']['field'] = 'duration';
+  $handler->display->display_options['fields']['duration']['suffix'] = ' hours';
+  $handler->display->display_options['defaults']['filter_groups'] = FALSE;
+  $handler->display->display_options['defaults']['filters'] = FALSE;
+  /* Filter criterion: User: Name */
+  $handler->display->display_options['filters']['uid']['id'] = 'uid';
+  $handler->display->display_options['filters']['uid']['table'] = 'users';
+  $handler->display->display_options['filters']['uid']['field'] = 'uid';
+  $handler->display->display_options['filters']['uid']['relationship'] = 'uid';
+  $handler->display->display_options['filters']['uid']['value'] = '';
+  $handler->display->display_options['filters']['uid']['group'] = '0';
+  $handler->display->display_options['filters']['uid']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['uid']['expose']['operator_id'] = 'uid_op';
+  $handler->display->display_options['filters']['uid']['expose']['label'] = 'Name';
+  $handler->display->display_options['filters']['uid']['expose']['operator'] = 'uid_op';
+  $handler->display->display_options['filters']['uid']['expose']['identifier'] = 'uid';
+  /* Filter criterion: Time Tracker: Timestamp */
+  $handler->display->display_options['filters']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['filters']['timestamp']['table'] = 'time_tracker_entry';
+  $handler->display->display_options['filters']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['filters']['timestamp']['operator'] = 'between';
+  $handler->display->display_options['filters']['timestamp']['value']['min'] = 'First Of This Month';
+  $handler->display->display_options['filters']['timestamp']['value']['max'] = 'Last Of This Month';
+  $handler->display->display_options['filters']['timestamp']['value']['type'] = 'relative';
+  $handler->display->display_options['filters']['timestamp']['group'] = '0';
+  $handler->display->display_options['filters']['timestamp']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['timestamp']['expose']['operator_id'] = 'timestamp_op';
+  $handler->display->display_options['filters']['timestamp']['expose']['label'] = 'Entered Between';
+  $handler->display->display_options['filters']['timestamp']['expose']['operator'] = 'timestamp_op';
+  $handler->display->display_options['filters']['timestamp']['expose']['identifier'] = 'timestamp';
+  $handler->display->display_options['path'] = 'time_tracker/reports';
+
+  return   $view;
 }
