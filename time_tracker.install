@@ -144,3 +144,49 @@ function time_tracker_uninstall() {
   field_attach_delete_bundle('time_tracker_entry' , 'time_entry' );
   field_attach_delete_bundle('time_tracker_activity' , 'activity' );
 }
+
+/**
+ * Add new fields to table.
+ */
+function time_tracker_update_7000() {
+  db_add_field('time_tracker_entry', 'entity_type', array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''));
+
+  db_add_field('time_tracker_entry', 'entity_bundle', array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''));
+
+  // Rename the nid column to entity_id.
+  db_change_field('time_tracker_entry', 'nid', 'entity_id', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  // Rename the nid column to entity_id.
+  db_change_field('time_tracker_entry', 'cid', 'comment_id', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_query('UPDATE {time_tracker_entry} SET entity_type = :node', array(':node' => 'node'));
+
+  db_query('UPDATE {time_tracker_entry} tte SET tte.entity_bundle =(SELECT n.type
+            FROM {node} n
+            WHERE n.nid=tte.entity_id AND n.nid=tte.entity_id)');
+  //old
+  variable_get('time_tracker_comments_' . $form['#node_type']->type, 0),
+  variable_get('time_tracker_nodes_' . $form['#node_type']->type, 0),
+
+  // Update the variables.
+  $entity_types = entity_get_info();
+  foreach($entity_types as $key => $type) {
+    foreach($type['bundles'] as $bkey => $bundle){
+      if(variable_get('time_tracker_nodes_' . $bkey, 0)){
+        variable_set('time_tracker-' . $key . '-' . $bkey, 1),
+      }
+      if(variable_get('time_tracker_comments_' . $bkey, 0)){
+        variable_get('time_tracker_comments-' . $key . '-' . $bkey),
+      }
+    }
+  }
+}
+
