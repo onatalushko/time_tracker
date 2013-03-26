@@ -172,19 +172,16 @@ function time_tracker_update_7000() {
   db_query('UPDATE {time_tracker_entry} tte SET tte.entity_bundle =(SELECT n.type
             FROM {node} n
             WHERE n.nid=tte.entity_id AND n.nid=tte.entity_id)');
-  //old
-  variable_get('time_tracker_comments_' . $form['#node_type']->type, 0),
-  variable_get('time_tracker_nodes_' . $form['#node_type']->type, 0),
 
   // Update the variables.
   $entity_types = entity_get_info();
   foreach($entity_types as $key => $type) {
     foreach($type['bundles'] as $bkey => $bundle){
       if(variable_get('time_tracker_nodes_' . $bkey, 0)){
-        variable_set('time_tracker-' . $key . '-' . $bkey, 1),
+        variable_set('time_tracker-' . $key . '-' . $bkey, 1);
       }
       if(variable_get('time_tracker_comments_' . $bkey, 0)){
-        variable_get('time_tracker_comments-' . $key . '-' . $bkey),
+        variable_get('time_tracker_comments-' . $key . '-' . $bkey);
       }
     }
   }
