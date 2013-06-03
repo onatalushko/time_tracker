@@ -582,6 +582,7 @@ function time_tracker_comment_insert($comment) {
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
   // Round the deductions if necessary
+  $entity = new stdClass();
   $entity->deductions = isset($comment->deductions) ? _time_tracker_round(_time_tracker_parse_duration($comment->deductions), $rounding_interval / 60, $rounding_operation) : 0;
   // Check First if we are tracking by duration or time interval
   if (variable_get('time_entry_method', 'duration') == 'duration') {
@@ -624,6 +625,11 @@ function time_tracker_comment_insert($comment) {
   $entity->billed = isset($values['billed']) ? $values['billed'] : NULL;
   // If billed was in the form use it
   $entity = time_tracker_time_entry_save($entity);
+  if(module_exists('rules')){
+    $tracked_entity = $comment->entity_info['entity'];
+    $event = 'time_tracker_new_node-' . $comment->entity_info['bundle'] . '_entry';
+    rules_invoke_event($event, $user, $tracked_entity);
+  }
 }
 
 
@@ -1050,6 +1056,10 @@ function time_tracker_time_entry_form_submit($form, &$form_state) {
   $entity->deductions = isset($values['deductions']) ? _time_tracker_round(_time_tracker_parse_duration($values['deductions']), $rounding_interval / 60, $rounding_operation) : 0;
 
   $entity = time_tracker_time_entry_save($entity);
+  if(module_exists('rules')){
+    $event = 'time_tracker_new_' . $info['entity_type'] . '-' . $info['bundle'] . '_entry';
+    rules_invoke_event($event, $user, $info['entity']);
+  }
   //$form_state['redirect'] = 'examples/entity_example/basic/' . $entity->basic_id;
   drupal_set_message(t('Time Entry Recorded'));
 }
