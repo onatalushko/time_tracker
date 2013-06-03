@@ -411,6 +411,7 @@ function time_tracker_entry_uri($time_tracker_entry) {
  */
 function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
   global $user;
+
   $info = entity_extract_ids($type, $entity);
   $entity_types = entity_get_info();
   $bundle = $info[2];
@@ -427,13 +428,6 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
   $enabled_entity_comments = variable_get('time_tracker_comment-' . $type . '-' . $bundle);
 
   if ($view_mode == 'full' && ($enabled_entity || $enabled_entity_comments)) {
-
-    $entity->content['time_tracker'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Time Tracker'),
-      '#collapsible' => TRUE,
-      '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
-    );
 
     if (user_access('view own time tracker entries')) {
       //$resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $node->nid));
@@ -473,7 +467,6 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
             '#markup' => theme('time_tracker_summary', $total_time),
             //'#weight' => -5,
           );
-
         }
       }
     }
@@ -485,10 +478,19 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
         '#weight' => 2,
       );
     }
-
-    $time_entity = entity_get_controller('time_tracker_entry')->create();
-    $entity->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', $info, $time_entity);
-    $entity->content['time_tracker']['entry_form']['#weight'] = 5;
+    if(user_access('add time tracker entries')){
+      $time_entity = entity_get_controller('time_tracker_entry')->create();
+      $entity->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', $info, $time_entity);
+      $entity->content['time_tracker']['entry_form']['#weight'] = 5;
+    }
+  }
+  if(isset($entity->content['time_tracker'])){
+    $entity->content['time_tracker'] += array(
+      '#type' => 'fieldset',
+      '#title' => t('Time Tracker'),
+      '#collapsible' => TRUE,
+      '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
+    );
   }
 }
 
@@ -505,30 +507,31 @@ function time_tracker_form_comment_form_alter(&$form, &$form_state, $form_id) {
     'entity' => $node,
     'comment_node' => $node->nid,
   );
+  if(user_access('add time tracker entries')){
+    if (variable_get('time_tracker_comments-node-' . $node->type)) {
+      // If this a comment edit form check for associated time trackings.
+      if (isset($form['cid']['#value'])) {
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'time_tracker_entry')
+          ->propertyCondition('entity_type', 'node')
+          ->propertyCondition('comment_id', $form['cid']['#value']);
+        $result = $query->execute();
 
-  if (variable_get('time_tracker_comments-node-' . $node->type)) {
-    // If this a comment edit form check for associated time trackings.
-    if (isset($form['cid']['#value'])) {
-      $query = new EntityFieldQuery();
-      $query->entityCondition('entity_type', 'time_tracker_entry')
-        ->propertyCondition('entity_type', 'node')
-        ->propertyCondition('comment_id', $form['cid']['#value']);
-      $result = $query->execute();
-
-      if (isset($result['time_tracker_entry'])) {
-        $entry_ids = array_keys($result['time_tracker_entry']);
-        $entries = entity_load('time_tracker_entry', $entry_ids);
+        if (isset($result['time_tracker_entry'])) {
+          $entry_ids = array_keys($result['time_tracker_entry']);
+          $entries = entity_load('time_tracker_entry', $entry_ids);
+        }
       }
+      if (isset($entries)) {
+        $time_entity = $entries[$entry_ids[0]];
+      }
+      // Otherwise create a new time entry entity.
+      else {
+        $time_entity = entity_get_controller('time_tracker_entry')->create();
+      }
+      // Merge in time entry form.
+      $form = array_merge($form, time_tracker_time_entry_form($form, $form_state, $info, $time_entity));
     }
-    if (isset($entries)) {
-      $time_entity = $entries[$entry_ids[0]];
-    }
-    // Otherwise create a new time entry entity.
-    else {
-      $time_entity = entity_get_controller('time_tracker_entry')->create();
-    }
-    // Merge in time entry form.
-    $form = array_merge($form, time_tracker_time_entry_form($form, $form_state, $info, $time_entity));
   }
 }
 
