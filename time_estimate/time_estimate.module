@@ -1,9 +1,8 @@
 <?php
-// $Id: time_estimate.module,v 1.8 2010/07/22 00:33:04 codi Exp $
 
 /**
  * @file
- * Enables time estimates on nodes.
+ * Enables time estimates on entities.
  */
 
 /**
@@ -11,11 +10,7 @@
  */
 function time_estimate_permission() {
   return array(
-    'administer time estimate' => array(
-      'title' => t('Administer Time Testimate'),
-      'description' => t('TODO: Add descriptions'),
-    ),
-    'view time estimate entries' => array(
+    'view time estimates' => array(
       'title' => t('View time estimate entries'),
       'description' => t('TODO: Add descriptions'),
     ),
@@ -28,8 +23,8 @@ function time_estimate_permission() {
 function time_estimate_help($section, $arg) {
   switch ($section) {
     case 'admin/help#time_estimate':
-      return t("<h2>Time Tracker Timer</h2>
-        <p>Adds a time estimate field to content types that are tracking time. This module is very simple and has no settings page.</p>
+      return t("<h2>Time Tracker Estimage</h2>
+        <p>Adds a time estimate field to entities that are tracking time.</p>
         ");
       break;
   }
@@ -37,123 +32,88 @@ function time_estimate_help($section, $arg) {
 
 /**
  * Implements hook_menu().
- *
  */
 function time_estimate_menu() {
   $items = array();
+
   return $items;
 }
 
 /**
- * Form builder function for module settings.
+ * Helper function to create field instances on time tracking entities.
  */
-function time_estimate_settings_form(&$form_state) {
-  return $form;
-}
+function _time_estimate_create_instance($type, $bundle){
 
-function time_estimate_settings_form_submit($form, &$form_state) {
+  $instance = array(
+    'field_name' => 'time_estimate',
+    'entity_type' => $type,
+    'bundle' => $bundle,
+    'label' => t('Time Estimate'),
+    'required' => 0,
+    'settings' => array(),
+  );
+
+  field_create_instance($instance);
+
 }
 
 /**
- * Implements hook_form_alter().
- *
+ * Implements hook_form_FORM_ID_alter().
  */
-function time_estimate_form_alter(&$form, $form_state, $form_id) {
-  //If we're tracking time on the node
+function time_estimate_form_time_tracker_entity_settings_form_alter(&$form, &$form_state, $form_id){
+  $entity_types = entity_get_info();
 
-  $type = isset($form['#entity_type']) ? $form['#entity_type'] : FALSE;
-  $bundle = isset($form['#bundle']) ? $form['#bundle'] :FALSE;
-  //This is a hack for the time being. This limits time estimate to nodes.
-  if($form_id == $bundle . '_node_form'){
-    if ($type && time_tracker_is_tracking_time($type, $bundle)) {
-      $entity = isset($form['#entity']) ? $form['#entity'] : FALSE;
-      $info = entity_extract_ids($type, $entity);
-      $bundle = $info[2];
-      $entity_id = $info[0];
-
-      global $user;
-
-      if ($entity) {
-        $time_estimate_data = db_query("SELECT * FROM {time_estimate_entry} WHERE entity_id = :entity_id AND entity_type = :entity_type",
-          array(':entity_id' => $entity_id, ':entity_type' => $type))->fetchObject();
+  $form['description'] = array(
+    '#markup' => '<p>Foreach entity select the bundles that you want to track time on.</p>',
+  );
+  foreach($entity_types as $key => $type) {
+    if (!in_array($key, array('time_tracker_activity', 'time_tracker_entry', 'comment'))){
+      foreach($type['bundles'] as $bkey => $bundle){
+        $form[$key][$bkey]['time_estimate-' . $key . '-' . $bkey] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Enable Time estimates for this entity.'),
+          '#default_value' => variable_get('time_estimate-' . $key . '-' . $bkey),
+        );
+        if(variable_get('time_estimate-' . $key . '-' . $bkey)){
+          $form[$key][$bkey]['time_estimate-' . $key . '-' . $bkey]['#description'] = t('Disabling this will not result in data loss. It will be up to you to delete the field.');
+        }
       }
+    }
+  }
 
-      $form['time_estimate'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Time Estimate'),
-        '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
-        '#weight' => 0,
-      );
-      $form['time_estimate']['uid'] = array(
-        '#type' => 'value',
-        '#value' => $user->uid,
-      );
-      $form['time_estimate']['eid'] = array(
-        '#type' => 'value',
-        '#value' => isset($time_estimate_data->eid) ? $time_estimate_data->eid : NULL,
-      );
-      $form['time_estimate']['timestamp'] = array(
-        '#type' => 'value',
-        '#default_value' => time()
-      );
-      $form['time_estimate']['estimate'] = array(
-        '#title' => t('Estimated Time'),
-        '#type' => 'textfield',
-        '#size' => '4',
-        '#default_value' => isset($time_estimate_data->estimate) ? $time_estimate_data->estimate : NULL,
-        '#description' => t('eg. 2.5 for two and a half hours'),
-      );
+  $form['#submit'][] = 'time_estimate_entity_form_submit';
+}
 
-      return $form;
+/**
+ * Submit handler for the time_tracker_entity_settings_form.
+ */
+function time_estimate_entity_form_submit($form, $form_state){
+
+  $entity_types = entity_get_info();
+  foreach($entity_types as $key => $type) {
+    if (!in_array($key, array('time_tracker_activity', 'time_tracker_entry', 'comment'))){
+      foreach($type['bundles'] as $bkey => $bundle){
+        if(time_tracker_is_tracking_time($key, $bkey)){
+          $read = field_read_instance($key, 'time_estimate', $bkey);
+          if(!$read){
+            _time_estimate_create_instance($key, $bkey);
+          }
+        }
+      }
     }
   }
 }
 
 /**
- * Implements hook_node_view().
+ * Implements hook_entity_view().
  */
 function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
   $info = entity_extract_ids($type, $entity);
   $bundle = $info[2];
   $entity_id = $info[0];
-  if (module_exists('casetracker') && casetracker_is_project($node->type)) {
-    $total_time_estimate = 0;
-    $total_time = 0;
-
-    $case_results = db_query("SELECT * FROM {casetracker_case} WHERE pid = %d", $node->nid);
-
-    while ($case = db_fetch_object($case_results)) {
-
-      $case_estimate_results = db_query("SELECT * FROM {time_estimate_entry} WHERE nid = %d", $case->nid);
-      $case_time_entry_results = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = %d", $case->nid);
-
-      while ($case_estimate = db_fetch_object($case_estimate_results)) {
-        $total_time_estimate += $case_estimate->estimate;
-      }
-
-      while ($case = db_fetch_object($case_time_entry_results)) {
-        $total_time += $case->duration - $case->deductions;
-      }
-    }
-
-    if ($total_time_estimate > 0 && user_access('view time estimate entries')) {
-      // We are going to override the time_tracker time logged display entirely
-      unset($node->content['time_tracker_summary']);
-      $entity->content['time_estimate'] = array(
-        '#markup' => theme('time_estimate_summary', $total_time, $total_time_estimate),
-        '#weight' => -9,
-      );
-    }
-  }
-  //Begin
-  elseif (time_tracker_is_tracking_time($type, $bundle)) {
-    $time_estimate = db_query("SELECT * FROM {time_estimate_entry} WHERE entity_id = :entity_id AND entity_type = :entity_type",
-      array(':entity_id' => $entity_id, ':entity_type' => $type))->fetchObject();
-
-    //foreach ($results as $result)) {
-    //  $time_estimate = $result;
-   // }
+  if (time_tracker_is_tracking_time($type, $bundle)) {
+    $time_estimate = field_get_items($type, $entity, 'time_estimate', $langcode);
+    $time_estimate = $time_estimate[0]['value'];
     if(!empty($time_estimate)){
       $entries = db_query("SELECT * FROM {time_tracker_entry} WHERE entity_id = :entity_id AND entity_type = :entity_type",
         array(':entity_id' => $entity_id, ':entity_type' => $type));
@@ -162,12 +122,12 @@ function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
         $time_tracker_time += $entry->duration - $entry->deductions;
       }
 
-      if ($time_estimate->estimate > 0 && user_access('view time estimate entries')) {
+      if ($time_estimate > 0 && user_access('view time estimates')) {
         // We are going to override the time_tracker time logged display entirely
         unset($entity->content['time_tracker']['time_tracker_summary']);
         $variables = array(
           'time' => $time_tracker_time,
-          'estimate' => $time_estimate->estimate,
+          'estimate' => $time_estimate,
         );
         $entity->content['time_tracker']['time_estimate_summary'] = array(
           '#markup' => theme('time_estimate_summary', $variables),
@@ -178,74 +138,15 @@ function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
   }
 }
 
-/**
- * Implements hook_entity_insert().
- */
-function time_estimate_entity_insert($entity, $type) {
-  if (isset($entity->estimate) && $entity->estimate > 0) {
-    $info = entity_extract_ids($type, $entity);
-    $bundle = $info[2];
-    $entity_id = $info[0];
-
-    $estimate = new stdClass();
-    $estimate->eid = $entity->eid;
-    $estimate->entity_type = $type;
-    $estimate->entity_bundle = $bundle;
-    $estimate->entity_id = $entity_id;
-    $estimate->uid = $entity->uid;
-    $estimate->estimate = $entity->estimate;
-    $estimate->timestamp = $entity->timestamp;
-
-    return drupal_write_record('time_estimate_entry', $estimate);
-  }
-}
-
-/**
- * Implements hook_entity_update().
- */
-function time_estimate_entity_update($entity, $type) {
-  $info = entity_extract_ids($type, $entity);
-  $bundle = $info[2];
-  $entity_id = $info[0];
-
-  $estimate = new stdClass();
-  $estimate->eid = $entity->eid;
-  $estimate->entity_type = $type;
-  $estimate->entity_bundle = $bundle;
-  $estimate->entity_id = $entity_id;
-  $estimate->uid = $entity->uid;
-  $estimate->estimate = $entity->estimate;
-  $estimate->timestamp = $entity->timestamp;
-
-  if ($entity->eid > 0) {
-    return drupal_write_record('time_estimate_entry', $estimate, 'eid');
-  }
-  else {
-    return drupal_write_record('time_estimate_entry', $estimate);
-  }
-}
-/**
- * Implements hook_entity_delete().
- */
-function time_estimate_entity_delete($entity, $type) {
-  $type_info = entity_get_info($type);
-  $id_label = $type_info['entity keys']['id'];
-  db_delete('time_estimate_entry')
-    ->condition('entity_id', $entity->{$id_label}, '=')
-    ->condition('entity_type', $type, '=')
-    ->execute();
-}
-
 /************************************************************************
   THEME FUNCTIONS
 *************************************************************************/
 
 /**
- * Implementation of hook_theme().
+ * Implements of hook_theme().
  */
 function time_estimate_theme() {
   return array(
-    'time_estimate_project_summary' => array(),
     'time_estimate_summary' => array(
       'arguments' => array('variables' => NULL),
     ),
@@ -306,19 +207,3 @@ function theme_time_estimate_summary($variables) {
   return theme('table', $table);
 }
 
-/**
- * Theme function for the time estimate project summary
- *
- * NOT BEING USED RIGHT NOW
- */
-function theme_time_estimate_project_summary($time_tracker_time, $time_estimate_time) {
-  // if (user_access('view time estimate entries')) {
-  //   $rows = array();
-  //
-  //   if ($time_estimate_time > 0) {
-  //     $rows[] = array(t('Estimated Time: ') . $time_estimate_time . ' hours (' . ($time_estimate_time - $time_tracker_time) . ' remaining)');
-  //   }
-  //
-  //   return theme('table', NULL, $rows, array('class' => 'time_tracker'));
-  // }
-}

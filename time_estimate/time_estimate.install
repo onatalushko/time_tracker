@@ -1,50 +1,16 @@
 <?php
 
 /**
- * @file
- * Implementation of hook_schema().
+ * Implements hook_install().
  */
-function time_estimate_schema() {
-  $schema = array();
+function time_estimate_install() {
 
-  $schema['time_estimate_entry'] = array(
-    'fields' => array(
-      'eid' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
-      'entity_type' => array(
-        'type' => 'varchar',
-        'length' => 100,
-      ),
-      'entity_bundle' => array(
-        'type' => 'varchar',
-        'length' => 100,
-      ),
-      'entity_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-        'default' => 0,
-      ),
-      'uid' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
-      'estimate' => array(
-        'type' => 'float',
-        'not null' => TRUE,
-        'unsigned' => FALSE,
-      ),
-      'timestamp' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array('eid'),
+  $field = array(
+    'field_name' => 'time_estimate',
+    'type' => 'number_float',
+    'cardinality' => 1,
   );
 
-  return $schema;
+  field_create_field($field);
+
 }

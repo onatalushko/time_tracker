@@ -1,5 +1,7 @@
 name = Time Estimate
-description = Provides time estimate functionality on a casetracker project node.
+description = Provides time estimate functionality.
 package = Time Tracker
 core = 7.x
 dependencies[] = time_tracker
+
+files[] = time_estimate.admin.inc
