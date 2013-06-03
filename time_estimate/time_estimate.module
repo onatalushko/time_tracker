@@ -50,7 +50,9 @@ function _time_estimate_create_instance($type, $bundle){
     'bundle' => $bundle,
     'label' => t('Time Estimate'),
     'required' => 0,
-    'settings' => array(),
+    'settings' => array(
+      'suffix' => t('hours'),
+    ),
   );
 
   field_create_instance($instance);
@@ -111,6 +113,7 @@ function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
   $info = entity_extract_ids($type, $entity);
   $bundle = $info[2];
   $entity_id = $info[0];
+
   if (time_tracker_is_tracking_time($type, $bundle)) {
     $time_estimate = field_get_items($type, $entity, 'time_estimate', $langcode);
     $time_estimate = $time_estimate[0]['value'];
