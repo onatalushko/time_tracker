@@ -272,29 +272,6 @@ function time_tracker_views_data() {
     ),
   );
 
-  $data['time_estimate_entry']['table']['join']['time_tracker_entry'] = array(
-    'left_field' => 'nid',
-    'field' => 'nid',
-  );
-  $data['time_estimate_entry']['table']['group'] = t('Time Tracker');
-
-  $data['time_estimate_entry']['estimate'] = array(
-    'title' => t('Time Estimate'),
-    'help' => t('Time Estimate.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_numeric',
-    ),
-  );
-
   return $data;
 }
 
