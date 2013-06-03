@@ -751,7 +751,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
           '#weight' => 6,
         );
       }
-      elseif ($time_tracker_data->locked) {
+      elseif (isset($time_tracker_data->locked)) {
         // We will use $lock throughout the form to determine whether or not
         // we should be hiding the form elements. We want to keep them intact,
         // however for the comments form by making their type 'value' because
