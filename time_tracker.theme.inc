@@ -72,7 +72,6 @@ function theme_time_tracker_activity_table($form) {
  *      $obj->nid: The node id this time entry is attached to
  *      $obj->uid: The user id to whom this time entry belongs
  *      $obj->cid: If applicable, the comment id for this time entry
- *      $obj->pid: If applicable, the casetracker project id for this time entry (removed)
  *      $obj->activity: The time entry Activity
  *      $obj->timestamp: The unix timestamp of when this time entry was dated
  *      $obj->start: If tracking time by interval, the start time of the entry
@@ -235,7 +234,6 @@ function theme_time_tracker_time_entry_table($time_entries) {
  *      $obj->nid: The node id this time entry is attached to
  *      $obj->uid: The user id to whom this time entry belongs
  *      $obj->cid: If applicable, the comment id for this time entry
- *      $obj->pid: If applicable, the casetracker project id for this time entry (deprecated)
  *      $obj->activity: The time entry Activity
  *      $obj->timestamp: The unix timestamp of when this time entry was dated
  *      $obj->start: If tracking time by interval, the start time of the entry
