@@ -338,7 +338,7 @@ function time_tracker_activity_uri($activity) {
  * Implements hook_field_extra_fields().
  */
 function time_tracker_field_extra_fields() {
-  $form_elements['time_entry_form'] = array(
+  $form_elements['time_tracker'] = array(
     'label' => t('Time Entry Form'),
     'description' => t('The base time entry form'),
     'weight' => 1,
@@ -354,10 +354,6 @@ function time_tracker_field_extra_fields() {
       }
     }
   }
-
-  // Since we have only one bundle type, we'll just provide the extra_fields
-  // for it here.
-  $extra_fields['time_tracker_entry']['time_entry']['form'] = $form_elements;
 
   return $extra_fields;
 }
