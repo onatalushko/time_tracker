@@ -1494,7 +1494,7 @@ function _time_tracker_parse_duration($input) {
     list(, $hours, $minutes) = $matches;
     $hours += $minutes / 60;
   }
-  elseif (preg_match('/^\d+(?:\.\d+)?$/', $input, $matches)) {
+  elseif (preg_match('/^\d*(?:\.\d+)?$/', $input, $matches)) {
     $hours = $matches[0];
   }
   else {
