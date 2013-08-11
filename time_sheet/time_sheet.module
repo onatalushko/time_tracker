@@ -202,11 +202,13 @@ function theme_time_sheet_user_page($user = NULL) {
   // If we started the week after sunday, the days that we move to the end
   // should be for next week, not week before.
   foreach($days_of_week as $key => $value){
-    if(!in_array($value, $days_at_end)){
-      $days[$value] = $date_lookup[$value];
-    }
-    else{
-      $days[$value] = strtotime('+ 1 week', $date_lookup[$value]);
+    if($value != '0'){
+      if(!in_array($value, $days_at_end)){
+        $days[$value] = $date_lookup[$value];
+      }
+      else{
+        $days[$value] = strtotime('+ 1 week', $date_lookup[$value]);
+      }
     }
   }
 

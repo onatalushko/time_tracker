@@ -210,9 +210,11 @@ function theme_time_tracker_time_entry_table($time_entries) {
     '#type' => 'fieldset',
     '#title' => t('Time Tracker Time Entries'),
     '#collapsible' => TRUE,
-    '#collapsed' => variable_get('time_entry_table_default_collapsed', 0),
+    //'#collapsed' => variable_get('time_entry_table_default_collapsed', 0),
   );
-
+  if(variable_get('time_entry_table_default_collapsed', 0)){
+     $form['time_tracker_time_entries']['#attributes'] = array('class' => array('collapsible collapsed'));
+  }
   $table = array(
     'header' => $header,
     'rows' => $rows,
