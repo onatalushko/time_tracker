@@ -581,6 +581,17 @@ function time_tracker_comment_update($comment) {
  * Implements hook_comment_insert().
  */
 function time_tracker_comment_insert($comment) {
+
+  $entity_info = $comment->node_type;
+  $info = explode('_', $entity_info);
+  $bundle = $info[2];
+  $tracking = time_tracker_is_tracking_time('node', $bundle);
+  // Check if we are tracking time on this bundles comments. If not return.
+  $trackable = array(TIME_TRACKER_COMMENT, TIME_TRACKER_BOTH);
+  if(!in_array($tracking, $trackable)){
+    return;
+  }
+
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
   // Round the deductions if necessary
