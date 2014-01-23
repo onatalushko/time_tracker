@@ -170,6 +170,25 @@ function time_tracker_timer_entity_view($entity, $type, $view_mode, $langcode) {
   }
 }
 
+
+/**
+ * Implements hook_entity_delete().
+ */
+function time_tracker_timer_entity_delete($entity, $type) {
+  $info = entity_extract_ids($type, $entity);
+  $entity_id = $info[0];
+
+  $ttids = db_query('SELECT ttid FROM {time_tracker_timer}
+                     WHERE entity_type = :type AND entity_id = :id',
+                     array(':type' => $type, ':id' => $entity_id))->fetchCol();
+  if($ttids){
+    $deleted = db_delete('time_tracker_timer')
+      ->condition('ttid', $ttids, 'IN')
+      ->execute();
+  }
+}
+
+
 /***********************************************************************
  * TIME TRACKER TIMER FORM
  ***********************************************************************/
