@@ -31,6 +31,16 @@ function time_estimate_help($section, $arg) {
 }
 
 /**
+ * Implements hook_views_api().
+ */
+function time_estimate_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'time_estimate') . '/views',
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function time_estimate_menu() {
