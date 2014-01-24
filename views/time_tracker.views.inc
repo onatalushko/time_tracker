@@ -64,6 +64,7 @@ function time_tracker_views_data() {
     ),
     'filter' => array(
       'handler' => 'time_tracker_views_handler_filter_date',
+      'is date' => TRUE,
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
@@ -80,6 +81,7 @@ function time_tracker_views_data() {
     ),
     'filter' => array(
       'handler' => 'time_tracker_views_handler_filter_date',
+      'is date' => TRUE,
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
@@ -96,6 +98,7 @@ function time_tracker_views_data() {
     ),
     'filter' => array(
       'handler' => 'time_tracker_views_handler_filter_date',
+      'is date' => TRUE,
     ),
     'argument' => array(
       'handler' => 'views_handler_argument',
@@ -299,20 +302,15 @@ function time_tracker_form_views_exposed_form_alter(&$form, $form_state) {
   }
 }
 
-/**
- * Implements of hook_date_api_tables().
- */
-function time_tracker_date_api_tables() {
-  return array('time_tracker_entry');
-}
+
 
 /**
- * Implements hook_date_api_fields().
+ * Implements hook_date_views_fields().
  *
  * This is required to allow timetracker timestamp
  * as a date argument in views.
  */
-function time_tracker_date_api_fields($field) {
+function time_tracker_date_views_fields($field) {
   $values = array(
     'sql_type' => DATE_UNIX,
     'tz_handling' => 'site',
