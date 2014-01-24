@@ -261,23 +261,21 @@ function time_tracker_entity_info() {
     'entity keys' => array(
       'id' => 'teid' , // The 'id' (basic_id here) is the unique id.
     ),
-    'bundle keys' => array(
-      'bundle' => 'time_entry',
+
+    'bundles' => array(
+      'time_tracker_entry' => array(
+        'label' => t('Time Entry'),
+        'admin' => array(
+          'path' => 'admin/config/time_tracker/entity_settings',
+          'real path' => 'admin/config/time_tracker/entity_settings',
+          'access arguments' => array('administer time tracker'),
+        ),
+      )
     ),
 
     // FALSE disables caching. Caching functionality is handled by Drupal core.
     'static cache' => TRUE,
-    'bundles' => array(
-      'time_entry' => array(
-        'label' => 'Time Entry',
-        // 'admin' key is used by the Field UI to provide field and
-        // display UI pages.
-        'admin' => array(
-          'path' => 'admin/config/time_tracker/settings',
-          'access arguments' => array('administer time tracker'),
-        ),
-      ),
-    ),
+
   );
 
   $info['time_tracker_activity'] = array(
@@ -294,7 +292,7 @@ function time_tracker_entity_info() {
     'uri callback' => 'time_tracker_activity_uri',
 
     // IF fieldable == FALSE, we can't attach fields.
-    'fieldable' => TRUE,
+    'fieldable' => FALSE,
 
     // entity_keys tells the controller what database fields are used for key
     // functions. It is not required if we don't have bundles or revisions.
@@ -349,11 +347,14 @@ function time_tracker_field_extra_fields() {
     foreach($type['bundles'] as $bkey => $bundle){
     $enabled = variable_get('time_tracker-' . $key . '-' . $bkey);
       if ($enabled) {
-        $extra_fields[$key][$bkey]['form'] = $form_elements;
         $extra_fields[$key][$bkey]['display'] = $form_elements;
       }
     }
   }
+
+  // Add the fields to the Time Entry form as well.
+  $extra_fields['time_tracker_entry']['time_tracker_entry']['form'] = $form_elements;
+  $extra_fields['time_tracker_entry']['time_tracker_entry']['display'] = $form_elements;
 
   return $extra_fields;
 }
@@ -724,7 +725,6 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
       '#title' => t('Time Tracker'),
       '#collapsible' => TRUE,
       '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
-      '#weight' => 50,
     );
   }
   // set up the entity
@@ -732,8 +732,6 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
     '#type' => 'value',
     '#value' => $info,
   );
-
-  field_attach_form('time_tracker_entry', $time_entry, $form, $form_state);
 
   // Display a message about the rounding if it's on and messages are set to display
   if (variable_get('time_tracker_rounding_message', 0) && variable_get('time_tracker_rounding_interval', 0)) {
@@ -934,6 +932,8 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
     );
   }
 
+  field_attach_form('time_tracker_entry', $time_entry, $form, $form_state);
+
   if (!$lock) {
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
@@ -949,6 +949,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
       '#submit' => array('time_tracker_entry_edit_delete'),
     );
   }
+
 
     //$form['#validate'][] = array('time_tracker_time_entry_form_validate');
     //$form['#submit'][] = array('time_tracker_time_entry_form_submit');

@@ -41,7 +41,7 @@ class TimeTrackerEntryController
     $entity = new stdClass();
     $entity->type = 'time_tracker_entry';
 
-    $entity->bundle_type = 'time_entry';
+    $entity->bundle = 'time_entry';
     $entity->item_description = '';
     return $entity;
   }
@@ -178,7 +178,7 @@ class TimeTrackerActivityController
     $entity = new stdClass();
     $entity->type = 'time_tracker_activity';
 
-    $entity->bundle_type = 'activity';
+    $entity->bundle = 'activity';
     $entity->item_description = '';
     return $entity;
   }
