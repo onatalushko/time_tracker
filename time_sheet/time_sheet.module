@@ -33,7 +33,7 @@ function time_sheet_help($section, $arg) {
     case 'admin/help#time_sheet':
       return t("<h2>Time Sheet</h2>
         <p>The time sheet provides a simple weekly summary of time entries for a give user. It can be found at (user/%user_id/time_sheet). There will also be a link as a local task (tab) on the user profile page.</p>
-        <p>Settings for the Time Sheet can be found at admin/config/time_tracker/time_sheets/manage</p>
+        <p>Settings for the Time Sheet can be found at admin/config/time_tracker/time_sheets</p>
         ");
       break;
   }
@@ -121,7 +121,7 @@ function time_sheet_page($user = NULL) {
     }
   }
   if (!$tracking_time) {
-    drupal_set_message("No content types have been set up to track time on. This sheet will not be useful until you've set up at least one content type on which to track time. To begin tracking time, you first must enable time tracking on at least one content type. You can do so on any content type's edit page at admin/content/node-type/%content-type-name");
+    drupal_set_message("No entities have been set up to track time on. This sheet will not be useful until you've set up at least one entity type on which to track time. To begin tracking time, you first must enable time tracking on at least one entity. You can do so on the entity settings page at admin/config/time_tracker/entity_settings");
   }
   return theme('time_sheet_user_page', array('user' => $user));
 }
