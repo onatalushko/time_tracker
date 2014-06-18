@@ -500,14 +500,21 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
     }
   }
   if(isset($entity->content['time_tracker'])){
+    drupal_add_library('system', 'drupal.collapse');
+    $collapsed = variable_get('time_tracker_default_collapsed', 0);
     $entity->content['time_tracker'] += array(
       '#type' => 'fieldset',
       '#title' => t('Time Tracker'),
       '#collapsible' => TRUE,
-      //'#collapsed' => variable_get('time_entry_table_default_collapsed', 0),
+      '#collapsed' => $collapsed,
+      '#attributes' => array(
+        'class' => array(
+          'collapsible',
+        ),
+      ),
     );
-    if(variable_get('time_tracker_default_collapsed', 0)){
-       $entity->content['time_tracker']['#attributes'] = array('class' => array('collapsible collapsed'));
+    if($collapsed){
+      $entity->content['time_tracker']['#attributes']['class'][] = 'collapsed';
     }
   }
 }
@@ -742,7 +749,7 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
       '#type' => 'fieldset',
       '#title' => t('Time Tracker'),
       '#collapsible' => TRUE,
-      '#collapsed' => variable_get('time_tracker_default_collapsed', 0),
+      '#collapsed' => TRUE,
     );
   }
   // set up the entity
