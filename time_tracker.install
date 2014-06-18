@@ -90,6 +90,10 @@ function time_tracker_schema() {
       ),
     ),
     'primary key' => array('teid'),
+    'indexes' => array(
+      'time_tracker_entry_entity_id' => array('entity_id'),
+      'time_tracker_entry_uid' => array('uid'),
+    ),
   );
 
   $schema['time_tracker_activity'] = array(
@@ -187,3 +191,10 @@ function time_tracker_update_7000() {
   }
 }
 
+/**
+ * Add indexes to the time_tracker_entry table (to speed up queries on time entries).
+ */
+function time_tracker_update_7100() {
+  db_add_index('time_tracker_entry', 'time_tracker_entry_entity_id', array('entity_id'));
+  db_add_index('time_tracker_entry', 'time_tracker_entry_uid',       array('uid'));
+}
