@@ -64,6 +64,13 @@ function time_tracker_settings_form($form, &$form_state) {
     '#default_value' => variable_get('time_entry_table_default_collapsed', 0),
   );
 
+  $form['time_tracker_fieldset_settings']['time_entry_disable_total_table'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Disable the table of time entries on the time entry form"),
+    '#description' => t("Not displaying this table could improve page load times for systems with a large number of time entries"),
+    '#default_value' => variable_get('time_entry_disable_total_table', 0),
+  );
+
   // Default settings for time tracker time entry and time display fieldsets
   $form['time_tracker_userfield_settings'] = array(
     '#type' => 'fieldset',

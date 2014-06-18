@@ -426,55 +426,59 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
 
   if ($view_mode == 'full' && ($enabled_entity || $enabled_entity_comments)) {
 
-    if (user_access('view own time tracker entries')) {
+    if (variable_get('time_entry_disable_total_table', 0) != true) { /* Hide the Total and Table */
       //$resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $node->nid));
-      $query = new EntityFieldQuery();
+      if (user_access('view own time tracker entries')) {
+        //$resource = db_query("SELECT * FROM {time_tracker_entry} WHERE nid = :nid", array(':nid' => $node->nid));
+        $query = new EntityFieldQuery();
 
-      $query->entityCondition('entity_type', 'time_tracker_entry')
-        ->propertyCondition('entity_type', $type)
-        ->propertyCondition('entity_id', $entity_id)
-        ->propertyCondition('entity_bundle', $bundle)
-        ->propertyCondition('uid', $user->uid);
-      $result = $query->execute();
+        $query->entityCondition('entity_type', 'time_tracker_entry')
+          ->propertyCondition('entity_type', $type)
+          ->propertyCondition('entity_id', $entity_id)
+          ->propertyCondition('entity_bundle', $bundle)
+          ->propertyCondition('uid', $user->uid);
+        $result = $query->execute();
 
-      if (isset($result['time_tracker_entry'])) {
-        $entry_ids = array_keys($result['time_tracker_entry']);
-        $entries = entity_load('time_tracker_entry', $entry_ids);
+        if (isset($result['time_tracker_entry'])) {
+          $entry_ids = array_keys($result['time_tracker_entry']);
+          $entries = entity_load('time_tracker_entry', $entry_ids);
+        }
       }
-    }
-    if (user_access('view all time tracker entries')) {
-      $query = new EntityFieldQuery();
-      $query->entityCondition('entity_type', 'time_tracker_entry')
-        ->propertyCondition('entity_type', $type)
-        ->propertyCondition('entity_id', $entity_id)
-        ->propertyCondition('entity_bundle', $bundle);
-      $result = $query->execute();
+      if (user_access('view all time tracker entries')) {
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'time_tracker_entry')
+          ->propertyCondition('entity_type', $type)
+          ->propertyCondition('entity_id', $entity_id)
+          ->propertyCondition('entity_bundle', $bundle);
+        $result = $query->execute();
 
-      if (isset($result['time_tracker_entry'])) {
-        $entry_ids = array_keys($result['time_tracker_entry']);
-        $entries = entity_load('time_tracker_entry', $entry_ids);
+        if (isset($result['time_tracker_entry'])) {
+          $entry_ids = array_keys($result['time_tracker_entry']);
+          $entries = entity_load('time_tracker_entry', $entry_ids);
 
-        foreach ($entries as $entry) {
-          $totals[] = $entry->duration;
+          foreach ($entries as $entry) {
+            $totals[] = $entry->duration;
+          }
+          $total_time = array_sum($totals);
+
+          if ($total_time > 0) {
+            $entity->content['time_tracker']['time_tracker_summary'] = array(
+              '#markup' => theme('time_tracker_summary', $total_time),
+              //'#weight' => -5,
+            );
+          }
         }
         $total_time = array_sum($totals);
-
-        if ($total_time > 0) {
-          $entity->content['time_tracker']['time_tracker_summary'] = array(
-            '#markup' => theme('time_tracker_summary', $total_time),
-            //'#weight' => -5,
-          );
-        }
+      }
+      // Time tracker entry table
+      if (isset($entries)) {
+        $entity->content['time_tracker']['entries'] = array(
+          '#markup' => theme('time_tracker_time_entry_table', $entries),
+          '#weight' => 2,
+        );
       }
     }
 
-    // display the time tracking form for nodes here.
-    if (isset($entries)) {
-      $entity->content['time_tracker']['entries'] = array(
-        '#markup' => theme('time_tracker_time_entry_table', $entries),
-        '#weight' => 2,
-      );
-    }
     if(user_access('add time tracker entries')){
       $time_entity = entity_get_controller('time_tracker_entry')->create();
       $entity->content['time_tracker']['entry_form'] = drupal_get_form('time_tracker_time_entry_form', $info, $time_entity);
