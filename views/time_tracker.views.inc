@@ -229,6 +229,9 @@ function time_tracker_views_data() {
       'base field' => 'uid',
       'label' => t('User'),
     ),
+    'argument' => array(
+      'handler' => 'views_handler_argument',
+    ),
   );
 
   $data['time_tracker_entry']['comment_id'] = array(
