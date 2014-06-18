@@ -71,6 +71,17 @@ function time_tracker_settings_form($form, &$form_state) {
     '#default_value' => variable_get('time_entry_disable_total_table', 0),
   );
 
+  $form['time_tracker_fieldset_settings']['time_entry_table_sort'] = array(
+    '#type' => 'select',
+    '#options' => array(
+      'asc' => t('Ascending'),
+      'desc' => t('Descending'),
+    ),
+    '#title' => t("Sort the list of time entries on an entity"),
+    '#description' => t("This tell the list of entries on an entity how to sort."),
+    '#default_value' => variable_get('time_entry_table_sort', 'desc'),
+  );
+
   // Default settings for time tracker time entry and time display fieldsets
   $form['time_tracker_userfield_settings'] = array(
     '#type' => 'fieldset',

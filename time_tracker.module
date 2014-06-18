@@ -472,6 +472,13 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
       }
       // Time tracker entry table
       if (isset($entries)) {
+        $sort = variable_get('time_entry_table_sort', 'desc');
+        if ($sort == 'desc') {
+          usort($entries, "_time_tracker_sort_entries_desc");
+        }
+        else {
+          usort($entries, "_time_tracker_sort_entries_asc");
+        }
         $entity->content['time_tracker']['entries'] = array(
           '#markup' => theme('time_tracker_time_entry_table', $entries),
           '#weight' => 2,
@@ -1519,6 +1526,22 @@ function _time_tracker_parse_duration($input) {
 
   return $hours;
 }
+
+
+/**
+ * Sort array of time entries by timestamp descending
+ */
+function _time_tracker_sort_entries_desc($a, $b) {
+  return strcmp($a->timestamp, $b->timestamp);
+}
+
+/**
+ * Sort array of time entries by timestamp ascending
+ */
+function _time_tracker_sort_entries_asc($a, $b) {
+  return strcmp($b->timestamp, $a->timestamp);
+}
+
 
 /**
  * Implements hook_action_info().
