@@ -8,7 +8,7 @@
  * Implements hook_views_data().
  */
 function time_estimate_views_data() {
-
+  $data = array();
   $entity_types = entity_get_info();
   foreach($entity_types as $key => $type){
     $bundles = $type['bundles'];
