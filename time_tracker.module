@@ -607,7 +607,8 @@ function time_tracker_comment_update($comment) {
  * Implements hook_comment_insert().
  */
 function time_tracker_comment_insert($comment) {
-  $bundle = $comment->entity_info['bundle'];
+
+  $bundle = isset($comment->entity_info['bundle']) ? $comment->entity_info['bundle'] : '';
   $tracking = time_tracker_is_tracking_time('node', $bundle);
   // Check if we are tracking time on this bundles comments. If not return.
   $trackable = array(TIME_TRACKER_COMMENT, TIME_TRACKER_BOTH);
