@@ -135,7 +135,7 @@ function time_tracker_install() {
     ->condition('name', 'time_tracker', '=')
     ->execute();
 
-  drupal_set_message(t("Time Tracker has been installed successfully. To begin tracking time, you first must enable time tracking on at least one content type. You can do so on any content type's edit page at admin/content/node-type/%content-type-name"));
+  drupal_set_message(t("Time Tracker has been installed successfully. To begin tracking time, you first must enable time tracking on at least one entity type. You can do so on time tracker's entity settings page at admin/config/time_tracker/entity_settings"));
 }
 
 /*
