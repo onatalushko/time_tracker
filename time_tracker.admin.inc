@@ -82,6 +82,17 @@ function time_tracker_settings_form($form, &$form_state) {
     '#default_value' => variable_get('time_entry_table_sort', 'desc'),
   );
 
+  $form['time_tracker_fieldset_settings']['time_entry_list_position'] = array(
+    '#type' => 'select',
+    '#options' => array(
+      'above' => t('Above'),
+      'below' => t('Below'),
+    ),
+    '#title' => t("Position of the entry list in relation to the entry form."),
+    '#description' => t("Where does the list of entries show in relation to the actual form."),
+    '#default_value' => variable_get('time_entry_list_position', 'above'),
+  );
+
   // Default settings for time tracker time entry and time display fieldsets
   $form['time_tracker_userfield_settings'] = array(
     '#type' => 'fieldset',

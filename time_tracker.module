@@ -479,9 +479,16 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
         else {
           usort($entries, "_time_tracker_sort_entries_asc");
         }
+        $list_position = variable_get('time_entry_list_position', 'above');
+        if ($list_position == 'above') {
+          $weight = 2;
+        }
+        else{
+          $weight = 10;
+        }
         $entity->content['time_tracker']['entries'] = array(
           '#markup' => theme('time_tracker_time_entry_table', $entries),
-          '#weight' => 2,
+          '#weight' => $weight,
         );
       }
     }
