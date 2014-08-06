@@ -616,6 +616,12 @@ function time_tracker_comment_insert($comment) {
     return;
   }
 
+  $values = array(
+    'locked' => isset($comment->locked) ? $comment->locked : 0,
+    'billable' => isset($comment->billable) ? $comment->billable : NULL,
+    'billed' => isset($comment->billed) ? $comment->billed : NULL,
+  );
+
   $rounding_interval = variable_get('time_tracker_rounding_interval', 0);
   $rounding_operation = variable_get('time_tracker_rounding_operation', 'auto');
   // Round the deductions if necessary
