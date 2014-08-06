@@ -32,10 +32,10 @@ class time_tracker_views_handler_field_numeric extends views_handler_field_numer
     $saved_values = unserialize(serialize($values));
     $value = $values->{$this->field_alias};
     if ($this->options['output_format'] == 'clock') {
-      return format_hours_to_hours_and_minutes($value, TRUE);
+      return _time_tracker_format_hours_to_hours_and_minutes($value, TRUE);
     }
     elseif ($this->options['output_format'] == 'time') {
-      return format_hours_to_hours_and_minutes($value);
+      return _time_tracker_format_hours_to_hours_and_minutes($value);
     }
     else {
       // Convert number to proper unit -- Database value is in hours
