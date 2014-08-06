@@ -555,7 +555,7 @@ function time_tracker_form_comment_form_alter(&$form, &$form_state, $form_id) {
         $time_entity = entity_get_controller('time_tracker_entry')->create();
       }
       // Merge in time entry form.
-      $form = array_merge($form, time_tracker_time_entry_form($form, $form_state, $info, $time_entity));
+      $form += time_tracker_time_entry_form($form, $form_state, $info, $time_entity);
     }
   }
 }
