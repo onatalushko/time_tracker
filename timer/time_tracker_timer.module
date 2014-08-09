@@ -410,9 +410,9 @@ function time_tracker_timer_form_alter(&$form, $form_state, $form_id) {
   // if this is a time tracking form...
   // Note: The time entry form and the comment form should have the same
   // form structure even though they have different ids because we merged them
-  if (($form_id == 'comment_form' || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries') && empty($form['teid']['#value'])) {
+  if ((isset($form_state['time_tracker_info']) || $form_id == 'time_tracker_time_entry_form') && user_access('add time tracker entries') && empty($form['teid']['#value'])) {
     global $user;
-    $info = $form_state['build_info']['args'][0];
+    $info = $form_state['time_tracker_info'];
     $type_info = entity_get_info($info['entity_type']);
     $id_label = $type_info['entity keys']['id'];
     if (time_tracker_is_tracking_time($info['entity_type'], $info['bundle'])) {

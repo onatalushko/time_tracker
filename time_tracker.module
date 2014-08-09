@@ -532,6 +532,8 @@ function time_tracker_form_comment_form_alter(&$form, &$form_state, $form_id) {
     'entity' => $node,
     'comment_node' => $node->nid,
   );
+  // Store the info array for other modules i.e. timer.
+  $form_state['time_tracker_info'] = $info;
   if(user_access('add time tracker entries')){
     if (variable_get('time_tracker_comments-node-' . $node->type)) {
       // If this a comment edit form check for associated time trackings.
