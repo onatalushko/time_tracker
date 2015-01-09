@@ -41,7 +41,7 @@ class TimeTrackerEntryController
     $entity = new stdClass();
     $entity->type = 'time_tracker_entry';
 
-    $entity->bundle = 'time_entry';
+    $entity->bundle = 'time_tracker_entry';
     $entity->item_description = '';
     return $entity;
   }
@@ -80,6 +80,7 @@ class TimeTrackerEntryController
       field_attach_update('time_tracker_entry', $entity);
       $invocation = 'entity_update';
     }
+
     // Invoke either hook_entity_update() or hook_entity_insert().
     module_invoke_all($invocation, $entity, 'time_tracker_entry');
     return $entity;

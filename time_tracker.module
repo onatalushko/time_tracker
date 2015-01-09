@@ -1848,3 +1848,30 @@ function time_tracker_theme() {
     ),
   );
 }
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function time_tracker_ctools_plugin_api($owner, $api) {
+  if ($owner == 'feeds' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_feeds_plugins().
+ */
+function time_tracker_feeds_plugins() {
+  $info['TimeTrackerFeedsEntryProcessor'] = array(
+    'name' => 'Time Tracker Entry processor',
+    'description' => 'Create and update Time Tracker entries.',
+    'help' => 'Create and update Time Tracker entries from parsed content.',
+    'handler' => array(
+      'parent' => 'FeedsProcessor',
+      'class' => 'TimeTrackerFeedsEntryProcessor',
+      'file' => 'TimeTrackerFeedsEntryProcessor.inc',
+      'path' => drupal_get_path('module', 'time_tracker'),
+    ),
+  );
+  return $info;
+}

@@ -2,6 +2,7 @@ name = Time Tracker
 description = Provides time tracking functionality nodes and comments.
 package = Time Tracker
 core = 7.x
+
 dependencies[] = views
 dependencies[] = views_calc
 dependencies[] = entity

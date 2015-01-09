@@ -145,17 +145,27 @@ function time_tracker_install() {
  * so that attached fields can be cleaned up.
  */
 function time_tracker_uninstall() {
-  field_attach_delete_bundle('time_tracker_entry' , 'time_entry' );
-  field_attach_delete_bundle('time_tracker_activity' , 'activity' );
+  field_attach_delete_bundle('time_tracker_entry', 'time_entry');
+  field_attach_delete_bundle('time_tracker_activity', 'activity');
 }
 
 /**
  * Add new fields to table.
  */
 function time_tracker_update_7000() {
-  db_add_field('time_tracker_entry', 'entity_type', array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''));
+  db_add_field('time_tracker_entry', 'entity_type', array(
+    'type' => 'varchar',
+    'length' => 100,
+    'not null' => TRUE,
+    'default' => ''
+  ));
 
-  db_add_field('time_tracker_entry', 'entity_bundle', array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''));
+  db_add_field('time_tracker_entry', 'entity_bundle', array(
+    'type' => 'varchar',
+    'length' => 100,
+    'not null' => TRUE,
+    'default' => ''
+  ));
 
   // Rename the nid column to entity_id.
   db_change_field('time_tracker_entry', 'nid', 'entity_id', array(
@@ -179,12 +189,12 @@ function time_tracker_update_7000() {
 
   // Update the variables.
   $entity_types = entity_get_info();
-  foreach($entity_types as $key => $type) {
-    foreach($type['bundles'] as $bkey => $bundle){
-      if(variable_get('time_tracker_nodes_' . $bkey, 0)){
+  foreach ($entity_types as $key => $type) {
+    foreach ($type['bundles'] as $bkey => $bundle) {
+      if (variable_get('time_tracker_nodes_' . $bkey, 0)) {
         variable_set('time_tracker-' . $key . '-' . $bkey, 1);
       }
-      if(variable_get('time_tracker_comments_' . $bkey, 0)){
+      if (variable_get('time_tracker_comments_' . $bkey, 0)) {
         variable_get('time_tracker_comments-' . $key . '-' . $bkey);
       }
     }
@@ -196,5 +206,5 @@ function time_tracker_update_7000() {
  */
 function time_tracker_update_7100() {
   db_add_index('time_tracker_entry', 'time_tracker_entry_entity_id', array('entity_id'));
-  db_add_index('time_tracker_entry', 'time_tracker_entry_uid',       array('uid'));
+  db_add_index('time_tracker_entry', 'time_tracker_entry_uid', array('uid'));
 }
