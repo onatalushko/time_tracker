@@ -229,10 +229,10 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_date {
       $b = $this->process_relative_time_frame($this->value['max'], 'max');
     }
 
-    //dpm($a);
-    // %s is safe here because strtotime scrubbed the input and we might
-    // have a string if using offset.
-    $this->query->add_where($this->options['group'], $field, array($a,$b), $this->operator);
+    // This is safe because we are manually scrubbing the values.
+    // It is necessary to do it this way because $a and $b are formulas when using an offset.
+    $operator = strtoupper($this->operator);
+    $this->query->add_where_expression($this->options['group'], "$field $operator $a AND $b");
   }
 
   function op_simple($field) {
@@ -240,7 +240,9 @@ class time_tracker_views_handler_filter_date extends views_handler_filter_date {
     if (!empty($this->value['type']) && $this->value['type'] == 'offset') {
       $value = '***CURRENT_TIME***' . sprintf('%+d', $value); // keep sign
     }
-    $this->query->add_where($this->options['group'], $field, $value, $this->operator);
+    // This is safe because we are manually scrubbing the value.
+    // It is necessary to do it this way because $value is a formula when using an offset.
+    $this->query->add_where_expression($this->options['group'], "$field $this->operator $value");
   }
 
   /**
