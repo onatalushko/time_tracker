@@ -465,8 +465,8 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
 
           if ($total_time > 0) {
             $entity->content['time_tracker']['time_tracker_summary'] = array(
-              '#markup' => theme('time_tracker_summary', $total_time),
-              //'#weight' => -5,
+              '#theme' => 'time_tracker_summary',
+              '#total_time' => $total_time,
             );
           }
         }
@@ -488,7 +488,8 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
           $weight = 10;
         }
         $entity->content['time_tracker']['entries'] = array(
-          '#markup' => theme('time_tracker_time_entry_table', $entries),
+          '#theme' => 'time_tracker_time_entry_table',
+          '#time_entries' => $entries,
           '#weight' => $weight,
         );
       }
@@ -592,9 +593,11 @@ function time_tracker_comment_view($comment, $view_mode, $langcode) {
       // This will flag the comment so it can be hidden
       // hide flag is triggered in the preprocess function below
       $comment->status = 2;
-      $variables['data'] = $time_tracker_data;
-      $table = theme('time_tracker_comment', $variables);
-      $comment->content['comment_body'][0]['#markup'] =  $table . $comment->content['comment_body'][0]['#markup'];
+      $comment->content['time_tracker'] = array(
+        '#theme' => 'time_tracker_comment',
+        '#data' => $time_tracker_data,
+        '#weight' => $comment->content['comment_body']['#weight'] - 0.01,
+      );
     }
   }
 }
@@ -1601,6 +1604,7 @@ function time_tracker_billed_action($teids, $context) {
 function time_tracker_theme() {
   return array(
     'time_tracker_time_entry_table' => array(
+      'variables' => array('time_entries' => NULL),
       'file' => 'time_tracker.theme.inc',
     ),
     'time_tracker_comment' => array(
@@ -1609,6 +1613,7 @@ function time_tracker_theme() {
     ),
     'time_tracker_project_summary' => array(), // not in use
     'time_tracker_summary' => array(
+      'variables' => array('total_time' => NULL),
       'file' => 'time_tracker.theme.inc',
     ),
     'time_tracker_activity_table' => array(

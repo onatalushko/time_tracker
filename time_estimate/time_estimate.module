@@ -138,12 +138,10 @@ function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
       if ($time_estimate > 0 && user_access('view time estimates')) {
         // We are going to override the time_tracker time logged display entirely
         unset($entity->content['time_tracker']['time_tracker_summary']);
-        $variables = array(
-          'time' => $time_tracker_time,
-          'estimate' => $time_estimate,
-        );
         $entity->content['time_tracker']['time_estimate_summary'] = array(
-          '#markup' => theme('time_estimate_summary', $variables),
+          '#theme' => 'time_estimate_summary',
+          '#time' => $time_tracker_time,
+          '#estimate' => $time_estimate,
           '#weight' => -7,
         );
       }
@@ -161,7 +159,7 @@ function time_estimate_entity_view($entity, $type, $view_mode, $langcode) {
 function time_estimate_theme() {
   return array(
     'time_estimate_summary' => array(
-      'arguments' => array('variables' => NULL),
+      'variables' => array('time' => NULL, 'estimate' => NULL),
     ),
   );
 }

@@ -81,7 +81,8 @@ function theme_time_tracker_activity_table($form) {
  *      $obj->billable: Whether this is billable or not (0 => no, 1 => yes)
  *      $obj->locked: Whether this entry has been locked, requires extra permissions
  */
-function theme_time_tracker_time_entry_table($time_entries) {
+function theme_time_tracker_time_entry_table($variables) {
+  $time_entries = $variables['time_entries'];
   global $user;
   // Add the css for some base theming of the table
   drupal_add_css(drupal_get_path('module', 'time_tracker') . '/css/time_tracker.css');
@@ -245,8 +246,8 @@ function theme_time_tracker_time_entry_table($time_entries) {
  *      $obj->billable: Whether this is billable or not (0 => no, 1 => yes)
  *      $obj->locked: Whether this entry has been locked, requires extra permissions
  */
-function theme_time_tracker_comment($time_entry) {
-  $time_entry = $time_entry['data'];
+function theme_time_tracker_comment($variables) {
+  $time_entry = $variables['data'];
   if ($time_entry) {
     $rows = array();
     $time = '';
@@ -362,7 +363,8 @@ function theme_time_tracker_comment($time_entry) {
  * @return
  *    A themed table of summary data
  */
-function theme_time_tracker_summary($total_time) {
+function theme_time_tracker_summary($variables) {
+  $total_time = $variables['total_time'];
   $rows = array();
 
   if ($total_time > 0) {

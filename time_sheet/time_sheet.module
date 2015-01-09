@@ -123,7 +123,10 @@ function time_sheet_page($user = NULL) {
   if (!$tracking_time) {
     drupal_set_message("No entities have been set up to track time on. This sheet will not be useful until you've set up at least one entity type on which to track time. To begin tracking time, you first must enable time tracking on at least one entity. You can do so on the entity settings page at admin/config/time_tracker/entity_settings");
   }
-  return theme('time_sheet_user_page', array('user' => $user));
+  return array(
+    '#theme' => 'time_sheet_user_page',
+    '#user' => $user
+  );
 }
 
 /************************************************************************
@@ -298,8 +301,8 @@ function theme_time_sheet_user_page($variables) {
 
     $table = array(
       'header' => $header,
-        'rows' => $rows,
-        'attributes' => array('id' => array('time-sheet-' . $day)),
+      'rows' => $rows,
+      'attributes' => array('id' => array('time-sheet-' . $day)),
     );
 
     // Add this day to the table

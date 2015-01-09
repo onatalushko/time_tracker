@@ -160,9 +160,12 @@ function time_tracker_timer_entity_view($entity, $type, $view_mode, $langcode) {
       $timers[] = $timer;
     }
     // Theme the timers and add them to the content of the node
-    $variable = array('timers' => $timers, 'type' => $type, 'bundle' => $bundle, 'entity' => $entity);
     $entity->content['time_tracker']['time_tracker_timer'] = array(
-      '#markup' => theme('time_tracker_timer', $variable),
+      '#theme' => 'time_tracker_timer',
+      '#timers' => $timers,
+      '#type' => $type,
+      '#bundle' => $bundle,
+      '#entity' => $entity,
       '#prefix' => '<div class="time-tracker-timer-form-wrapper">',
       '#suffix' => '</div>',
       '#weight' => 1,
@@ -564,7 +567,10 @@ function time_tracker_timer_active_timers() {
   foreach ($resources as $resource){
     $active_timers[] = $resource;
   }
-  return theme('time_tracker_timer_active_timers_page', $active_timers);
+  return array(
+    '#theme' => 'time_tracker_timer_active_timers_page',
+    '#active_timers' => $active_timers
+  );
 }
 
 /**
@@ -613,11 +619,11 @@ function time_tracker_timer_block_view($delta) {
           $active_timers[] = $resource;
         }
         $show = variable_get('time_tracker_timer_show_active');
-        if($show == 0){
-          $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
-        }
-        elseif(!empty($active_timers)){
-            $block['content'] = theme('time_tracker_timer_active_timers_block', $active_timers);
+        if($show == 0 || !empty($active_timers)){
+          $block['content'] = array(
+            '#theme' => 'time_tracker_timer_active_timers_block',
+            '#active_timers' => $active_timers
+          );
         }
         break;
       }
@@ -636,15 +642,20 @@ function time_tracker_timer_theme() {
   $hooks = array();
 
   $hooks['time_tracker_timer'] = array(
-    'arguments' => array('variables' => NULL),
+    'variables' => array(
+      'timers' => NULL,
+      'type' => NULL,
+      'bundle' => NULL,
+      'entity' => NULL
+    ),
   );
 
   $hooks['time_tracker_timer_active_timers_page'] = array(
-    'arguments' => array('active_timers' => NULL),
+    'variables' => array('active_timers' => NULL),
   );
 
   $hooks['time_tracker_timer_active_timers_block'] = array(
-    'arguments' => array('active_timers' => NULL),
+    'variables' => array('active_timers' => NULL),
   );
 
   return $hooks;
@@ -669,7 +680,6 @@ function theme_time_tracker_timer($variables) {
 
   $rows = array(); // Rows for current user timer messages
   $user_rows = array(); // Rows for timer messages about other user timers
-  $output = '';
   $start_time = 0;
   $timer_state = 'new'; // new
   if (variable_get('time_entry_method', 'duration') == 'interval' && !variable_get('enable_deductions_field', 0)) {
@@ -814,19 +824,13 @@ function theme_time_tracker_timer($variables) {
     $rows[] = $row;
   }
 
-  // Add the output to the end of the casetracker_case_summary
-  $output = '';
-
   $table = array(
     'header' => NULL,
     'rows' => $rows,
     'attributes' => array('class' => 'time_tracker_timer')
   );
 
-
-  $output .= theme('table', $table);
-
-  return $output;
+  return theme('table', $table);
 }
 
 /**
@@ -835,7 +839,8 @@ function theme_time_tracker_timer($variables) {
  * @param $active_timers
  *    The list of current active timers to be listed
  */
-function theme_time_tracker_timer_active_timers_page($active_timers) {
+function theme_time_tracker_timer_active_timers_page($variables) {
+  $active_timers = $variables['active_timers'];
   $rows = array(); // Rows for current user timer messages
   $output = '';
   $start_time =  0;
@@ -938,19 +943,14 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
     }
   }
 
-  if (empty($rows)) {
-    $output = t('You have no active timers at this time');
-  }
-  else {
-    $table = array(
-      'header' => NULL,
-      'rows' => $rows,
-      'attributes' => array('class' => 'active_timers_page')
-    );
-    $output = theme('table', $table);
-  }
+  $table = array(
+    'header' => NULL,
+    'rows' => $rows,
+    'attributes' => array('class' => 'active_timers_page'),
+    'empty' => t('You have no active timers at this time'),
+  );
 
-  return $output;
+  return theme('table', $table);
 }
 
 /**
@@ -959,7 +959,8 @@ function theme_time_tracker_timer_active_timers_page($active_timers) {
  * @param $active_timers
  *    The list of current active timers to be listed
  */
-function theme_time_tracker_timer_active_timers_block($active_timers) {
+function theme_time_tracker_timer_active_timers_block($variables) {
+  $active_timers = $variables['active_timers'];
   global $user;
   $rows = array(); // Rows for current user timer messages
   $output = '';
