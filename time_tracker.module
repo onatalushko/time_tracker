@@ -60,6 +60,45 @@ function time_tracker_permission() {
     ),
   );
 }
+
+/**
+ * Access callback; allow access for time tracker entities.
+ */
+function time_tracker_entity_access($op, $entity, $account, $entity_type) {
+  $access = FALSE;
+  switch ($entity_type) {
+    case 'time_tracker_entry':
+      if (empty($entity)) {
+        switch ($op) {
+          case 'add':
+            $access = user_access('add time tracker entries', $account);
+          case 'view':
+            $access = user_access('view all time tracker entries', $account);
+          case 'edit':
+            $access = user_access('edit all time tracker entries', $account);
+          case 'delete':
+            $access = user_access('delete any time tracker entries', $account);
+          default:
+            break;
+        }
+        return $access || user_access('administer time tracker entries') || user_access('administer time tracker');
+      }
+      else {
+        return time_tracker_access($op, $entity, $account);
+      }
+
+    case 'time_tracker_activity':
+      if ($op != 'view') {
+        return user_access('administer time tracker', $account);
+      }
+      else if ($op == 'view') {
+        return TRUE;
+      }
+  }
+
+  return NULL;
+}
+
 /**
  * Implements hook_help().
  */
@@ -199,8 +238,13 @@ function time_tracker_menu() {
   return $items;
 }
 
-function time_tracker_access($op, $time_entry){
-  global $user;
+function time_tracker_access($op, $time_entry, $account = NULL){
+  if (empty($account)) {
+    global $user;
+  }
+  else {
+    $user = $account;
+  }
   if ($op == 'edit'){
     if (user_access('edit own time tracker entries') && $user->uid == $time_entry->uid){
       return TRUE;
@@ -252,6 +296,16 @@ function time_tracker_entity_info() {
     // Returns the uri elements of an entity
     'uri callback' => 'time_tracker_entry_uri',
 
+    // Additional metadata and callbacks for entity api.
+    'plural label' => t('Time Tracker Entries'),
+    'description' => t('Log entry of time recorded for a given activity'),
+    'access callback' => 'time_tracker_entity_access',
+    'creation callback' => 'time_tracker_time_entry_create',
+    'save callback' => 'time_tracker_time_entry_save',
+    'deletion callback' => 'time_tracker_entry_delete',
+    'view callback' => '', // TODO
+    'form callback' => '', // TODO
+
     // IF fieldable == FALSE, we can't attach fields.
     'fieldable' => TRUE,
 
@@ -291,6 +345,17 @@ function time_tracker_entity_info() {
     // Returns the uri elements of an entity
     'uri callback' => 'time_tracker_activity_uri',
 
+    // Additional metadata and callbacks for entity api.
+    'plural label' => t('Time Tracker Activities'),
+    'description' => t('Activities for use in tracking time with Time Tracker'),
+    'access callback' => 'time_tracker_entity_access',
+    'creation callback' => '', // TODO
+    'save callback' => '', // TODO
+    'deletion callback' => '', // TODO
+    'view callback' => '', // TODO
+    'form callback' => '', // TODO
+
+
     // IF fieldable == FALSE, we can't attach fields.
     'fieldable' => FALSE,
 
@@ -318,6 +383,160 @@ function time_tracker_entity_info() {
         ),
       ),
     ),
+  );
+
+  return $info;
+}
+
+/**
+ *  Implements hook_entity_property_info().
+ */
+function time_tracker_entity_property_info() {
+  $info = array();
+
+  $property = &$info['time_tracker_entry']['properties'];
+
+  $property['teid'] = array(
+    'label' => t('Entry ID'),
+    'description' => t('The primary identifier for an entry.'),
+    'type' => 'integer',
+    'schema field' => 'teid',
+  );
+  $property['entity_type'] = array(
+    'label' => t('Entity Type'),
+    'description' => t('The attached entity\'s type.'),
+    'type' => 'text',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'entity_type',
+  );
+  $property['entity_bundle'] = array(
+    'label' => t('Entity Bundle'),
+    'description' => t('The attached entity\'s bundle.'),
+    'type' => 'text',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'entity_bundle',
+  );
+  $property['entity_id'] = array(
+    'label' => t('Entity ID'),
+    'description' => t('The attached entity\'s id.'),
+    'type' => 'integer',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'entity_id',
+  );
+  $property['comment_id'] = array(
+    'label' => t('Comment ID'),
+    'description' => t('The attached comment\'s id.'),
+    'type' => 'integer',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'comment_id',
+  );
+  $property['uid'] = array(
+    'label' => t('User'),
+    'description' => t('The user that submitted this time entry.'),
+    'type' => 'user',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'uid',
+    'required' => TRUE,
+  );
+  $property['activity'] = array(
+    'label' => t('Activity ID'),
+    'description' => t('The activity ID for this entry.'),
+    'type' => 'time_tracker_activity',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'activity',
+  );
+  $property['timestamp'] = array(
+    'label' => t('Timestamp'),
+    'description' => t('The timestamp recorded for this entry.'),
+    'type' => 'date',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'timestamp',
+  );
+  $property['start'] = array(
+    'label' => t('Start Timestamp'),
+    'description' => t('The start timestamp for this entry.'),
+    'type' => 'date',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'start',
+  );
+  $property['end'] = array(
+    'label' => t('End Timestamp'),
+    'description' => t('The end timestamp for this entry.'),
+    'type' => 'date',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'end',
+  );
+  $property['deductions'] = array(
+    'label' => t('Deductions'),
+    'description' => t('Deductions to add to this entry.'),
+    'type' => 'decimal',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'deductions',
+  );
+  $property['duration'] = array(
+    'label' => t('Duration'),
+    'description' => t('Duration of this entry.'),
+    'type' => 'decimal',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'duration',
+  );
+  $property['note'] = array(
+    'label' => t('Note'),
+    'description' => t('Note attached to the entry.'),
+    'type' => 'text',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'note',
+  );
+  $property['locked'] = array(
+    'label' => t('Locked'),
+    'description' => t('Is this entry locked?'),
+    'type' => 'boolean',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'locked',
+  );
+  $property['billable'] = array(
+    'label' => t('Billable'),
+    'description' => t('Is this entry billable?'),
+    'type' => 'boolean',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'billable',
+  );
+  $property['billed'] = array(
+    'label' => t('Billed'),
+    'description' => t('Has this entry been billed?'),
+    'type' => 'boolean',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'billed',
+  );
+
+  $property = &$info['time_tracker_activity']['properties'];
+
+  $property['taid'] = array(
+    'label' => t('Activity ID'),
+    'description' => t('The primary identifier for an activity.'),
+    'type' => 'integer',
+    'schema field' => 'taid',
+  );
+  $property['name'] = array(
+    'label' => t('Name'),
+    'desciption' => t('Name of the activity.'),
+    'type' => 'text',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'name',
+  );
+  $property['weight'] = array(
+    'label' => t('Weight'),
+    'description' => t('The weight of this activity.'),
+    'type' => 'integer',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'weight',
+  );
+  $property['status'] = array(
+    'label' => t('Status'),
+    'description' => t('Is this activity enabled?'),
+    'type' => 'boolean',
+    'setter callback' => 'entity_property_verbatim_set',
+    'schema field' => 'status',
   );
 
   return $info;
@@ -1166,6 +1385,13 @@ function time_tracker_entry_confirm_delete_submit($form , &$form_state) {
     array('%name' => $user->name, '%title' => $tracked->title))
   );
   $form_state['redirect'] = $uri;
+}
+
+/**
+ * We create the entity by calling the controller.
+ */
+function time_tracker_time_entry_create() {
+  return entity_get_controller('time_tracker_entry')->create();
 }
 
 /**
