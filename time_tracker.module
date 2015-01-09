@@ -726,7 +726,7 @@ function time_tracker_entity_delete($entity, $type) {
  * - Call on the Field API to pull in the form elements
  *   for fields attached to the entity.
  */
-function time_tracker_time_entry_form($form, $form_state, $info = array(), $time_entry) {
+function time_tracker_time_entry_form($form, &$form_state, $info = array(), $time_entry) {
    // Current user
   global $user;
 
@@ -745,6 +745,9 @@ function time_tracker_time_entry_form($form, $form_state, $info = array(), $time
       'comment_id' => $entity->comment_id,
     );
   }
+
+  $form_state['time_tracker_info'] = $info;
+
   // Our base css for the form to put form elements side by side
   drupal_add_css(drupal_get_path('module', 'time_tracker') . '/css/time_tracker.css');
 
