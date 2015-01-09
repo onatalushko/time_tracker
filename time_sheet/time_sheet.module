@@ -236,7 +236,7 @@ function theme_time_sheet_user_page($variables) {
       $time_entrys = db_select('time_tracker_entry', 'tte')
         ->fields('tte')
         ->condition('uid', $account->uid, '=')
-        ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
+        ->condition('timestamp', array($stamp, strtotime("+1 day", $stamp)-1, 'BEWTEEN'))
         ->orderBy('teid')
         ->execute();
     }
@@ -244,7 +244,7 @@ function theme_time_sheet_user_page($variables) {
       if(user_access('view all time tracker entries')){
         $time_entrys = db_select('time_tracker_entry', 'tte')
           ->fields('tte')
-          ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
+          ->condition('timestamp', array($stamp, strtotime("+1 day", $stamp)-1, 'BEWTEEN'))
           ->orderBy('teid')
           ->execute();
       }
@@ -252,7 +252,7 @@ function theme_time_sheet_user_page($variables) {
       $time_entrys = db_select('time_tracker_entry', 'tte')
         ->fields('tte')
         ->condition('uid', $account->uid, '=')
-        ->condition('timestamp', array($stamp, (strtotime("+1 day", $stamp)-1), 'BEWTEEN'))
+        ->condition('timestamp', array($stamp, strtotime("+1 day", $stamp)-1, 'BEWTEEN'))
         ->orderBy('teid')
         ->execute();
       }
