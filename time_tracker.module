@@ -452,6 +452,8 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
           ->propertyCondition('entity_bundle', $bundle);
         $result = $query->execute();
 
+        $totals = array();
+
         if (isset($result['time_tracker_entry'])) {
           $entry_ids = array_keys($result['time_tracker_entry']);
           $entries = entity_load('time_tracker_entry', $entry_ids);
@@ -468,7 +470,6 @@ function time_tracker_entity_view($entity, $type, $view_mode, $langcode) {
             );
           }
         }
-        $total_time = array_sum($totals);
       }
       // Time tracker entry table
       if (isset($entries)) {
