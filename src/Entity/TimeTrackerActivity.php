@@ -24,7 +24,7 @@ use Drupal\comment\CommentTypeInterface;
  *     "form" = {
  *       "add" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
  *       "edit" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
- *       "delete" = "Drupal\time_tracker\Form\TimeTrackerActivityDeleteForm"
+ *       "delete" = "Drupal\Core\Entity\EntityDeleteForm"
  *     },
  *   },
  *   config_prefix = "activity",
@@ -32,17 +32,26 @@ use Drupal\comment\CommentTypeInterface;
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
+ *     "weight" = "weight",
  *   },
  *   links = {
- *     "edit-form" = "entity.time_tracker_activity.edit_form",
- *     "delete-form" = "entity.time_tracker_activity.delete_form"
+ *     "add-form" = "/admin/structure/time_tracker_activity/add",
+ *     "edit-form" = "/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/edit",
+ *     "delete-form" = "/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/delete",
+ *     "collection" = "/admin/structure/time_tracker_activity",
  *   },
+ *   config_export = {
+ *     "id",
+ *     "label",
+ *     "description",
+ *     "weight",
+ *   }
  * )
  */
 class TimeTrackerActivity extends ConfigEntityBase implements TimeTrackerActivityInterface {
 
   /**
-   * The ID.
+   * The machine name of the activity.
    *
    * @var string
    */
@@ -56,16 +65,21 @@ class TimeTrackerActivity extends ConfigEntityBase implements TimeTrackerActivit
   protected $label;
 
   /**
-   * The Description.
+   * The description.
    *
    * @var string
    */
   protected $description;
 
+  /**
+   * The activity weight.
+   *
+   * @var integer
+   */
+  public $weight;
 
   /**
    * {@inheritdoc}
-   * @todo Add to interface.
    */
   public function getDescription() {
     return $this->description;
@@ -73,29 +87,10 @@ class TimeTrackerActivity extends ConfigEntityBase implements TimeTrackerActivit
 
   /**
    * {@inheritdoc}
-   * @todo Add to interface.
    */
   public function setDescription($description) {
     $this->description = $description;
     return $this;
   }
 
-//@todo possible remove
-//  /**
-//   * The activity weight.
-//   *
-//   * @var integer
-//   */
-//  public $weight;
-//
-//  /**
-//   * Is this activity enabled?
-//   *
-//   * @var integer
-//   */
-//  public $status;
-
-  // Your specific configuration property get/set methods go here,
-  // implementing the interface.
-
-} 
+}

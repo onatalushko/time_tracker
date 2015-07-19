@@ -43,10 +43,11 @@ class TimeTrackerActivityListBuilder extends DraggableListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     $row['title'] = array(
-      'data' => $this->getLabel($entity),
-      'class' => array('menu-label'),
+      '#markup' => $this->getLabel($entity),
     );
-    $row['description'] = Xss::filterAdmin($entity->getDescription());
+    $row['description'] = array(
+      '#markup' => Xss::filterAdmin($entity->getDescription()),
+    );
     return $row + parent::buildRow($entity);
   }
 

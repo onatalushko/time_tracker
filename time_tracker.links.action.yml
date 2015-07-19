@@ -2,4 +2,4 @@ time_tracker.activity_type_add:
   route_name: entity.time_tracker_activity.add_form
   title: 'Add activity type'
   appears_on:
-    - entity.time_tracker_activity.type_list
+    - entity.time_tracker_activity.collection

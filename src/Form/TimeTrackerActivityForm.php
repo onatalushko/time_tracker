@@ -77,6 +77,6 @@ class TimeTrackerActivityForm extends EntityForm {
       $this->logger('time_tracker')->notice('Activity type %label has been added.', array('%label' => $activity->label()));
     }
 
-    $form_state->setRedirect('entity.time_tracker_activity.type_list');
+    $form_state->setRedirect('entity.time_tracker_activity.collection');
   }
 }
