@@ -1,0 +1,27 @@
+administer time tracker:
+  title: 'Administer Time Tracker'
+  description: 'TODO: Add descriptions.'
+add time tracker entries:
+  title: 'Add Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+view all time tracker entries:
+  title: 'View All Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+view own time tracker entries:
+  title: 'View Own Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+edit any time tracker entry:
+  title: 'Edit All Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+edit own time tracker entries:
+  title: 'Edit Own Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+delete any time tracker entry:
+  title: 'Delete Any Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+delete own time tracker entries:
+  title: 'Delete Own Time Tracker Entries'
+  description: 'TODO: Add descriptions.'
+administer time entries:
+  title: 'Administer Time Tracker Entries'
+  description: 'TODO: Add descriptions.'

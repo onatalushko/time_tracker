@@ -1,0 +1,130 @@
+entity.time_tracker_activity.type_list:
+  path: '/admin/structure/time_tracker_activity'
+  defaults:
+    _entity_list: 'time_tracker_activity'
+    _title: 'Time tracker activity types'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_activity.add_form:
+  path: '/admin/structure/time_tracker_activity/add'
+  defaults:
+    _entity_form: 'time_tracker_activity.add'
+    _title: 'Add time tracker activity type'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_activity.edit_form:
+  path: '/admin/structure/time_tracker_activity/{time_tracker_activity}'
+  defaults:
+    _entity_form: 'time_tracker_activity.edit'
+    _title: 'Edit time tracker activity type'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_activity.delete_form:
+  path: '/admin/structure/time_tracker_activity/{time_tracker_activity}/delete'
+  defaults:
+    _entity_form: 'time_tracker_activity.delete'
+    _title: 'Delete time tracker activity type'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
+#time_tracker.admin:
+#  path: '/admin/config/time_tracker'
+#  defaults:
+#    _title: 'Time Tracker'
+#    _controller: '\Drupal\time_tracker\Controller\AdminController::adminPage'
+#    type: 'new'
+#  requirements:
+#    _permission: 'access administration pages'
+
+#  $items['admin/config/time_tracker'] = array(
+#    'title' => 'Time Tracker',
+#    'description' => 'Time Tracker Module Settings.',
+#    'position' => 'right',
+#    'weight' => 0,
+#    'page callback' => 'system_admin_menu_block_page',
+#    'access arguments' => array('access administration pages'),
+#    'file path' => drupal_get_path('module', 'system'),
+#    'file' => 'system.admin.inc',
+#  );
+#  $items['admin/config/time_tracker/global_settings'] = array(
+#    'title' => 'Global Settings',
+#    'description' => 'Time Tracker form global settings.',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_settings_form'),
+#    'access arguments' => array('administer time tracker'),
+#    'file' => 'time_tracker.admin.inc',
+#  );
+#  $items['admin/config/time_tracker/global_settings/manage'] = array(
+#    'title' => 'Global Settings',
+#    'type' => MENU_DEFAULT_LOCAL_TASK,
+#    'weight' => -10,
+#  );
+#  $items['admin/config/time_tracker/entity_settings'] = array(
+#    'title' => 'Entity Settings',
+#    'description' => 'Configure time tracking per entity.',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_entity_settings_form'),
+#    'access arguments' => array('administer time tracker'),
+#    'file' => 'time_tracker.admin.inc',
+#  );
+#  $items['admin/config/time_tracker/entity_settings/manage'] = array(
+#    'title' => 'Entity Settings',
+#    'type' => MENU_DEFAULT_LOCAL_TASK,
+#    'weight' => -10,
+#  );
+#  $items['admin/config/time_tracker/activities'] = array(
+#    'title' => 'Activities',
+#    'description' => 'Manage Time Tracker Activity Entities',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_activity_table_form'),
+#    'access arguments' => array('administer time tracker'),
+#    'file' => 'time_tracker.admin.inc',
+#  );
+#  $items['admin/config/time_tracker/activities/list'] = array(
+#    'title' => 'Activities',
+#    'type' => MENU_DEFAULT_LOCAL_TASK,
+#    'weight' => -10,
+#  );
+#  $items['admin/config/time_tracker/activity/delete/%'] = array(
+#    'title' => 'Delete Activity',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_delete_activity_confirm', 5),
+#    'access arguments' => array('administer time tracker'),
+#    'file' => 'time_tracker.admin.inc',
+#  );
+#  $items['time_entry/edit/%time_tracker_time_entry'] = array(
+#    'title' => 'Time Entry',
+#    'description' => 'Edit a Time Entry',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_time_entry_form', 1, 2),
+#    'access callback' => 'time_tracker_access',
+#    'access arguments' => array(1, 2),
+#  );
+#  $items['time_entry/delete/%time_tracker_time_entry'] = array(
+#    'title' => 'Time Entry',
+#    'description' => 'Delete a Time Entry',
+#    'page callback' => 'drupal_get_form',
+#    'page arguments' => array('time_tracker_entry_confirm_delete', 2),
+#    'access callback' => 'time_tracker_access',
+#    'access arguments' => array(1, 2),
+#  );
+#  $items['time_entry/add/%node'] = array(
+#    'title' => 'Time Entry',
+#    'description' => 'Add a Time Entry',
+#    'page callback' => 'time_tracker_add_block',
+#    'page arguments' => array(2),
+#    'access arguments' => array('add time tracker entries'),
+#  );
+#
+#  return $items;

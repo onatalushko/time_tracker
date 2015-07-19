@@ -1,0 +1,17 @@
+hide_comments: 0
+allow_locked_time_entries: 0
+enable_billable_field: 0
+enable_billed_field: 0
+enable_deductions_field: 0
+time_tracker_default_collapsed: 0
+time_entry_table_default_collapsed: 0
+time_entry_disable_total_table: 0
+time_entry_table_sort: 'desc'
+time_entry_list_position: 'above'
+time_tracker_user_field_type: 'textfield'
+time_entry_method: 'duration'
+time_interval_date_format: 'h:i A - M d, Y'
+timestamp_date_format: 'F d, Y'
+time_tracker_rounding_operation: 'auto'
+time_tracker_rounding_interval: 0
+time_tracker_rounding_message: 0

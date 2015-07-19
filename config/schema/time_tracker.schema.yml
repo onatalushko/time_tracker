@@ -1,0 +1,14 @@
+time_tracker.activity.*:
+  type: config_entity
+  label: 'Time tracker activity'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+      
