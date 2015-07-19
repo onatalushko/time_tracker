@@ -14,4 +14,23 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
  * Provides an interface defining a Time tracker activity entity.
  */
 interface TimeTrackerActivityInterface extends ConfigEntityInterface {
+
+  /**
+   * Returns the comment type description.
+   *
+   * @return string
+   *   The comment-type description.
+   */
+  public function getDescription();
+
+  /**
+   * Sets the description of the comment type.
+   *
+   * @param string $description
+   *   The new description.
+   *
+   * @return $this
+   */
+  public function setDescription($description);
+
 }

@@ -1,4 +1,4 @@
-entity.time_tracker_activity.type_list:
+entity.time_tracker_activity.collection:
   path: '/admin/structure/time_tracker_activity'
   defaults:
     _entity_list: 'time_tracker_activity'
@@ -19,7 +19,7 @@ entity.time_tracker_activity.add_form:
     _admin_route: TRUE
 
 entity.time_tracker_activity.edit_form:
-  path: '/admin/structure/time_tracker_activity/{time_tracker_activity}'
+  path: '/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/edit'
   defaults:
     _entity_form: 'time_tracker_activity.edit'
     _title: 'Edit time tracker activity type'
@@ -29,7 +29,7 @@ entity.time_tracker_activity.edit_form:
     _admin_route: TRUE
 
 entity.time_tracker_activity.delete_form:
-  path: '/admin/structure/time_tracker_activity/{time_tracker_activity}/delete'
+  path: '/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/delete'
   defaults:
     _entity_form: 'time_tracker_activity.delete'
     _title: 'Delete time tracker activity type'

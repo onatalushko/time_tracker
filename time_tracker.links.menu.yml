@@ -1,6 +1,6 @@
-time_tracker.activity_type_list:
+time_tracker.activity_colelction:
   title: 'Time tracker activity types'
-  route_name: entity.time_tracker_activity.type_list
+  route_name: entity.time_tracker_activity.collection
   parent: system.admin_structure
   description: 'Manage time tracker activity types.'
 
