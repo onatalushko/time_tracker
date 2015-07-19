@@ -1,24 +1,29 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: oleg
- * Date: 11.01.15
- * Time: 20:22
+ * @file
+ * Contains \Drupal\time_tracker\Form\TimeTrackerSettingsForm.
  */
 
 namespace Drupal\time_tracker\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Component\Utility\UrlHelper;
 
 
 class TimeTrackerSettingsForm extends ConfigFormBase {
+
   /**
    * {@inheritdoc}
    */
   public function getFormId() {
     return 'time_tracker_settings_form';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return ['time_tracker.settings'];
   }
 
   /**
@@ -153,7 +158,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
     );
 
     // Date formats
-    $msg = 'Dates will be output using format_date(). Below, please specify PHP date format strings as required by <a href="http://php.net/manual/en/function.date.php">date()</a>. A backslash should be used before a character to avoid interpreting the character as part of a date format.';
+    $msg = t('Dates will be output using format_date(). Below, please specify PHP date format strings as required by <a href="http://php.net/manual/en/function.date.php">date()</a>. A backslash should be used before a character to avoid interpreting the character as part of a date format.');
     $form['time_tracker_date_formats']['time_entry_message'] = array(
       '#markup' => t($msg),
       '#prefix' => '<div class="description">',
