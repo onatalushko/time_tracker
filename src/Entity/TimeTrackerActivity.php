@@ -65,6 +65,7 @@ class TimeTrackerActivity extends ConfigEntityBase implements TimeTrackerActivit
 
   /**
    * {@inheritdoc}
+   * @todo Add to interface.
    */
   public function getDescription() {
     return $this->description;
@@ -72,6 +73,7 @@ class TimeTrackerActivity extends ConfigEntityBase implements TimeTrackerActivit
 
   /**
    * {@inheritdoc}
+   * @todo Add to interface.
    */
   public function setDescription($description) {
     $this->description = $description;
