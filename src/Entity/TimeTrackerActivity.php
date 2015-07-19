@@ -24,7 +24,7 @@ use Drupal\comment\CommentTypeInterface;
  *     "form" = {
  *       "add" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
  *       "edit" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
- *       "delete" = "\Drupal\Core\Entity\EntityDeleteForm"
+ *       "delete" = "Drupal\Core\Entity\EntityDeleteForm"
  *     },
  *   },
  *   config_prefix = "activity",
