@@ -38,14 +38,14 @@ entity.time_tracker_activity.delete_form:
   options:
     _admin_route: TRUE
 
-#time_tracker.admin:
-#  path: '/admin/config/time_tracker'
-#  defaults:
-#    _title: 'Time Tracker'
-#    _controller: '\Drupal\time_tracker\Controller\AdminController::adminPage'
-#    type: 'new'
-#  requirements:
-#    _permission: 'access administration pages'
+entity.time_tracker_activity.admin_form:
+  path: '/admin/structure/time_tracker_activity/settings'
+  defaults:
+    _title: 'Time Tracker settings'
+    _form: '\Drupal\time_tracker\Form\TimeTrackerSettingsForm'
+    type: 'new'
+  requirements:
+    _permission: 'administer time tracker'
 
 #  $items['admin/config/time_tracker'] = array(
 #    'title' => 'Time Tracker',
