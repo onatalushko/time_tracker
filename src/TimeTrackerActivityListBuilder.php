@@ -5,10 +5,10 @@
  * Contains \Drupal\menu_ui\MenuListBuilder.
  */
 
-namespace Drupal\time_tracker\Controller;
+namespace Drupal\time_tracker;
 
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
+use Drupal\Core\Config\Entity\DraggableListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
@@ -17,7 +17,14 @@ use Drupal\Core\Entity\EntityInterface;
  * @see \Drupal\system\Entity\Menu
  * @see menu_entity_info()
  */
-class TimeTrackerActivityListBuilder extends ConfigEntityListBuilder {
+class TimeTrackerActivityListBuilder extends DraggableListBuilder {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormId() {
+    return 'time_tracker_entity_activity_form';
+  }
 
   /**
    * {@inheritdoc}

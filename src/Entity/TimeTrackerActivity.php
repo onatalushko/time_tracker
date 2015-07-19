@@ -20,7 +20,7 @@ use Drupal\comment\CommentTypeInterface;
  *   id = "time_tracker_activity",
  *   label = @Translation("Time tracker activity"),
  *   handlers = {
- *     "list_builder" = "Drupal\time_tracker\Controller\TimeTrackerActivityListBuilder",
+ *     "list_builder" = "Drupal\time_tracker\TimeTrackerActivityListBuilder",
  *     "form" = {
  *       "add" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
  *       "edit" = "Drupal\time_tracker\Form\TimeTrackerActivityForm",
