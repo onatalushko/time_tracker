@@ -24,6 +24,22 @@ use Drupal\user\UserInterface;
  *   label = @Translation("Time tracker entry"),
  *   bundle_label = @Translation("Time tracker entry bundle"),
  *   base_table = "time_tracker_entry",
+ *   handlers = {
+ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+ *     "list_builder" = "Drupal\time_tracker\TimeTrackerEntryListBuilder",
+ *     "form" = {
+ *       "add" = "Drupal\time_tracker\Form\TimeTrackerEntryForm",
+ *       "edit" = "Drupal\time_tracker\Form\TimeTrackerEntryForm",
+ *       "delete" = "Drupal\Core\Entity\EntityDeleteForm",
+ *     },
+ *     "access" = "Drupal\time_tracker\TimeTrackerEntryAccessControlHandler",
+ *   },
+ *   links = {
+ *     "canonical" = "/time_entry/{time_tracker_entry}/edit",
+ *     "edit-form" = "/time_entry/{time_tracker_entry}/edit",
+ *     "delete-form" = "/time_entry/{time_tracker_entry}/delete",
+ *     "collection" = "/time_entries"
+ *   },
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
@@ -34,6 +50,71 @@ use Drupal\user\UserInterface;
  * )
  */
 class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInterface {
+
+  /**
+   * {@inheritdoc}
+   *
+   * When a new entity instance is added, set the user_id entity reference to
+   * the current user as the creator of the instance.
+   */
+  public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
+    parent::preCreate($storage_controller, $values);
+    $values += array(
+      'uid' => \Drupal::currentUser()->id(),
+      'timestamp' => REQUEST_TIME,
+    );
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCreatedTime() {
+    return $this->get('created')->value;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getChangedTime() {
+    return $this->get('changed')->value;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwner() {
+    return $this->get('user_id')->entity;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwnerId() {
+    return $this->get('user_id')->target_id;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwnerId($uid) {
+    $this->set('user_id', $uid);
+    return $this;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwner(UserInterface $account) {
+    $this->set('user_id', $account->id());
+    return $this;
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -83,7 +164,23 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
       ->setDescription(t('The user ID of the entry author.'))
       ->setTranslatable(TRUE)
       ->setSetting('target_type', 'user')
-      ->setDefaultValue(0);
+      ->setDefaultValueCallback('Drupal\time_tracker\Entity\TimeTrackerEntry::getCurrentUserId')
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'author',
+        'weight' => 0,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 5,
+        'settings' => array(
+          'match_operator' => 'CONTAINS',
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ))
+      ->setDisplayConfigurable('form', TRUE);
+
 
     $fields['label'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Label'))
@@ -106,25 +203,89 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
       ->setLabel(t('Activity ID'))
       ->setDescription(t('The activity ID for this entry.'))
       ->setTranslatable(TRUE)
-      ->setSetting('target_type', 'time_tracker_activity') //@todo check entity type name
-      ->setDefaultValue(0);
+      ->setSetting('target_type', 'time_tracker_activity')
+      ->setRequired(TRUE)
+      ->setDefaultValue(0)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 5,
+        'settings' => array(
+          'match_operator' => 'CONTAINS',
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ));
 
     $fields['timestamp'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Timestamp'))
-      ->setDescription(t('The timestamp recorded for this entry.'));
+      ->setDescription(t('The timestamp recorded for this entry.'))
+      ->setDefaultValue(REQUEST_TIME)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'hidden',
+        'weight' => 5,
+      ));
 
     $fields['start'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Start Timestamp'))
-      ->setDescription(t('The start timestamp for this entry.'));
+      ->setDescription(t('The start timestamp for this entry.'))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'datetime_timestamp',
+        'weight' => 5,
+        'settings' => array(
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ));
 
     $fields['end'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('End Timestamp'))
-      ->setDescription(t('The end timestamp for this entry.'));
+      ->setDescription(t('The end timestamp for this entry.'))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'datetime_timestamp',
+        'weight' => 5,
+        'settings' => array(
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ));
 
     $fields['deductions'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Deductions'))
       ->setDescription(t('Deductions to add to this entry.'))
-      ->setSetting('unsigned', TRUE);
+      ->setSetting('unsigned', TRUE)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'datetime_timestamp',
+        'weight' => 5,
+        'settings' => array(
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ));
 
     $fields['duration'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Duration'))
@@ -133,26 +294,79 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
 
     $fields['note'] = BaseFieldDefinition::create('text')
       ->setLabel(t('Note'))
-      ->setDescription(t('Note attached to the entry.'));
+      ->setDescription(t('Note attached to the entry.'))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'string_textarea',
+        'weight' => 5,
+        'settings' => array(
+          'rows' => 5,
+          'placeholder' => '',
+        ),
+      ));
 
     $fields['locked'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Locked'))
       ->setDescription(t('Is this entry locked?'))
       ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE);
+      ->setDefaultValue(TRUE)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'boolean',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'boolean_checkbox',
+        'weight' => 5,
+        'settings' => array(
+          'display_label' => TRUE,
+        ),
+      ));
 
     $fields['billable'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Billable'))
       ->setDescription(t('Is this entry billable?'))
       ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE);
+      ->setDefaultValue(TRUE)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'boolean',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'boolean_checkbox',
+        'weight' => 5,
+        'settings' => array(
+          'display_label' => TRUE,
+        ),
+      ));
 
     $fields['billed'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Billed'))
       ->setDescription(t('Has this entry been billed?'))
       ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE);
+      ->setDefaultValue(TRUE)      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'boolean',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'boolean_checkbox',
+        'weight' => 5,
+        'settings' => array(
+          'display_label' => TRUE,
+        ),
+      ));
 
     return $fields;
   }
+
+  public static function getCurrentUserId() {
+    return array(\Drupal::currentUser()->id());
+  }
+
 }

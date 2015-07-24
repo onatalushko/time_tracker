@@ -3,3 +3,11 @@ time_tracker.activity_type_add:
   title: 'Add activity type'
   appears_on:
     - entity.time_tracker_activity.collection
+
+time_tracker_entry.time_tracker_entry_add:
+  # Which route will be called by the link
+  route_name: entity.time_tracker_entry.time_tracker_entry_add
+  title: 'Log time'
+  appears_on:
+    - entity.time_tracker_entry.collection
+    - entity.time_tracker_entry.canonical

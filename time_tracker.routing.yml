@@ -47,6 +47,59 @@ entity.time_tracker_activity.admin_form:
   requirements:
     _permission: 'administer time tracker'
 
+entity.time_tracker_entry.canonical:
+  path: '/time_entry/{time_tracker_entry}'
+  defaults:
+  # Calls the view controller, defined in the annotation of the contact entity
+    _entity_view: 'time_tracker_entry'
+    _title: 'Time tracker entry'
+  requirements:
+  # Calls the access controller of the entity, $operation 'view'
+    _entity_access: 'time_tracker_entry.view'
+
+entity.time_tracker_entry.collection:
+  path: '/admin/content/time_tracker'
+  defaults:
+  # Calls the list controller, defined in the annotation of the contact entity.
+    _entity_list: 'time_tracker_entry'
+    _title: 'Time tracker entries'
+  requirements:
+  # Checks for permission directly.
+    _permission: 'view time tracker entry'
+
+entity.time_tracker_entry.time_tracker_entry_add:
+  path: '/time_tracker_entry/add'
+  defaults:
+  # Calls the form.add controller, defined in the contact entity.
+    _entity_form: time_tracker_entry.add
+    _title: 'Log time'
+  requirements:
+    _entity_create_access: 'time_tracker_entry'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_entry.edit_form:
+  path: '/time_entry/{time_tracker_entry}/edit'
+  defaults:
+  # Calls the form.edit controller, defined in the contact entity.
+    _entity_form: time_tracker_entry.edit
+    _title: 'Edit time tracker entry'
+  requirements:
+    _entity_access: 'time_tracker_entry.edit'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_entry.delete_form:
+  path: '/time_entry/{time_tracker_entry}/delete'
+  defaults:
+    # Calls the form.delete controller, defined in the contact entity.
+    _entity_form: time_tracker_entry.delete
+    _title: 'Delete time tracker entry'
+  requirements:
+    _entity_access: 'time_tracker_entry.delete'
+  options:
+    _admin_route: TRUE
+
 #  $items['admin/config/time_tracker'] = array(
 #    'title' => 'Time Tracker',
 #    'description' => 'Time Tracker Module Settings.',
@@ -83,42 +136,7 @@ entity.time_tracker_activity.admin_form:
 #    'type' => MENU_DEFAULT_LOCAL_TASK,
 #    'weight' => -10,
 #  );
-#  $items['admin/config/time_tracker/activities'] = array(
-#    'title' => 'Activities',
-#    'description' => 'Manage Time Tracker Activity Entities',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_activity_table_form'),
-#    'access arguments' => array('administer time tracker'),
-#    'file' => 'time_tracker.admin.inc',
-#  );
-#  $items['admin/config/time_tracker/activities/list'] = array(
-#    'title' => 'Activities',
-#    'type' => MENU_DEFAULT_LOCAL_TASK,
-#    'weight' => -10,
-#  );
-#  $items['admin/config/time_tracker/activity/delete/%'] = array(
-#    'title' => 'Delete Activity',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_delete_activity_confirm', 5),
-#    'access arguments' => array('administer time tracker'),
-#    'file' => 'time_tracker.admin.inc',
-#  );
-#  $items['time_entry/edit/%time_tracker_time_entry'] = array(
-#    'title' => 'Time Entry',
-#    'description' => 'Edit a Time Entry',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_time_entry_form', 1, 2),
-#    'access callback' => 'time_tracker_access',
-#    'access arguments' => array(1, 2),
-#  );
-#  $items['time_entry/delete/%time_tracker_time_entry'] = array(
-#    'title' => 'Time Entry',
-#    'description' => 'Delete a Time Entry',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_entry_confirm_delete', 2),
-#    'access callback' => 'time_tracker_access',
-#    'access arguments' => array(1, 2),
-#  );
+
 #  $items['time_entry/add/%node'] = array(
 #    'title' => 'Time Entry',
 #    'description' => 'Add a Time Entry',
