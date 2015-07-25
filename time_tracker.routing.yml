@@ -1,5 +1,17 @@
+time_tracker.admin_form:
+  path: '/admin/structure/time_tracker'
+  defaults:
+#    _controller: '\Drupal\system\Controller\SystemController::overview'
+#    link_id: 'time_tracker.admin_form'
+    _form: '\Drupal\time_tracker\Form\TimeTrackerSettingsForm'
+    _title: 'Time tracker'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
 entity.time_tracker_activity.collection:
-  path: '/admin/structure/time_tracker_activity'
+  path: '/admin/structure/time_tracker/activity'
   defaults:
     _entity_list: 'time_tracker_activity'
     _title: 'Time tracker activity types'
@@ -9,7 +21,7 @@ entity.time_tracker_activity.collection:
     _admin_route: TRUE
 
 entity.time_tracker_activity.add_form:
-  path: '/admin/structure/time_tracker_activity/add'
+  path: '/admin/structure/time_tracker/activity/add'
   defaults:
     _entity_form: 'time_tracker_activity.add'
     _title: 'Add time tracker activity type'
@@ -19,7 +31,7 @@ entity.time_tracker_activity.add_form:
     _admin_route: TRUE
 
 entity.time_tracker_activity.edit_form:
-  path: '/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/edit'
+  path: '/admin/structure/time_tracker/activity/manage/{time_tracker_activity}/edit'
   defaults:
     _entity_form: 'time_tracker_activity.edit'
     _title: 'Edit time tracker activity type'
@@ -29,7 +41,7 @@ entity.time_tracker_activity.edit_form:
     _admin_route: TRUE
 
 entity.time_tracker_activity.delete_form:
-  path: '/admin/structure/time_tracker_activity/manage/{time_tracker_activity}/delete'
+  path: '/admin/structure/time_tracker/activity/manage/{time_tracker_activity}/delete'
   defaults:
     _entity_form: 'time_tracker_activity.delete'
     _title: 'Delete time tracker activity type'
@@ -39,7 +51,7 @@ entity.time_tracker_activity.delete_form:
     _admin_route: TRUE
 
 entity.time_tracker_activity.admin_form:
-  path: '/admin/structure/time_tracker_activity/settings'
+  path: '/admin/structure/time_tracker/activity/settings'
   defaults:
     _title: 'Time Tracker settings'
     _form: '\Drupal\time_tracker\Form\TimeTrackerSettingsForm'
@@ -97,6 +109,16 @@ entity.time_tracker_entry.delete_form:
     _title: 'Delete time tracker entry'
   requirements:
     _entity_access: 'time_tracker_entry.delete'
+  options:
+    _admin_route: TRUE
+
+entity.time_tracker_entry.admin_form:
+  path: 'admin/structure/time_tracker/entry'
+  defaults:
+    _form: '\Drupal\time_tracker\Form\TimeTrackerEntrySettingsForm'
+    _title: 'Contact Settings'
+  requirements:
+    _permission: 'administer time tracker entry entity'
   options:
     _admin_route: TRUE
 

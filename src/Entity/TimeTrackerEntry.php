@@ -46,7 +46,7 @@ use Drupal\user\UserInterface;
  *     "uuid" = "uuid"
  *   },
  *   bundle_entity_type = "time_tracker_activity",
- *   field_ui_base_route  = "entity.time_tracker_activity.add_form",
+ *   field_ui_base_route  = "entity.time_tracker_entry.admin_form",
  * )
  */
 class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInterface {

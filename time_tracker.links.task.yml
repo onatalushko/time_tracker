@@ -1,12 +1,17 @@
-entity.time_tracker_activity.collection_tab:
-  title: 'List'
-  route_name: entity.time_tracker_activity.collection
-  base_route: entity.time_tracker_activity.collection
+time_tracker.admin_form:
+  title: 'Global settings'
+  route_name: time_tracker.admin_form
+  base_route: time_tracker.admin_form
 
-entity.time_tracker_activity.admin_form_tab:
-  title: 'Settings'
-  route_name: entity.time_tracker_activity.admin_form
-  base_route: entity.time_tracker_activity.collection
+entity.time_tracker_activity.collection_tab:
+  title: 'Activity'
+  route_name: entity.time_tracker_activity.collection
+  base_route: time_tracker.admin_form
+
+#entity.time_tracker_activity.admin_form_tab:
+#  title: 'Settings'
+#  route_name: entity.time_tracker_activity.admin_form
+#  base_route: time_tracker.admin_form
 
 time_tracker_entry.view:
   route_name: entity.time_tracker_entry.canonical
@@ -32,6 +37,10 @@ entity.time_tracker_entry.collection:
   base_route: system.admin_content
   weight: 10
 
+entity.time_tracker_entry.settings_tab:
+  route_name: entity.time_tracker_entry.admin_form
+  title: Entry
+  base_route: time_tracker.admin_form
 
 #time_tracker.admin.global_settings.manage:
 #  title: 'Global Settings'
