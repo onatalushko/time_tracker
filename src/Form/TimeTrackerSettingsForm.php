@@ -31,7 +31,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('time_tracker.settings');
-    // Basic Settings
+    // Basic Settings.
     $form['time_tracker_settings'] = array(
       '#type' => 'fieldset',
       '#title' => t("General Settings"),
@@ -67,7 +67,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('enable_deductions_field'),
     );
 
-    // Default settings for time tracker time entry and time display fieldsets
+    // Default settings for time tracker time entry and time display fieldsets.
     $form['time_tracker_fieldset_settings'] = array(
       '#type' => 'fieldset',
       '#title' => t("Fieldset Settings"),
@@ -114,7 +114,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('time_entry_list_position'),
     );
 
-    // Default settings for time tracker time entry and time display fieldsets
+    // Default settings for time tracker time entry and time display fieldsets.
     $form['time_tracker_userfield_settings'] = array(
       '#type' => 'fieldset',
       '#title' => t("User Selection Field Settings"),
@@ -130,7 +130,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('time_tracker_user_field_type'),
     );
 
-    // Time entry settings (duration or interval)
+    // Time entry settings (duration or interval).
     $form['time_entry_settings'] = array(
       '#type' => 'fieldset',
       '#title' => t("Time Entry Settings"),
@@ -141,14 +141,14 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('time_entry_method'),
       '#options' => array(
         'duration' => t('Duration'),
-        'interval' => t('Time Interval (Start and End Times)')
+        'interval' => t('Time Interval (Start and End Times)'),
       ),
     );
 
-    // Warn the user about switching between time duration and time interval time entries
-    $msg = t('Note that any entries that have been entered using the <em>duration</em> method will not have start and end times saved in the database. Switching from <em>duration</em> to <em>interval</em> will not retroactively create start and end times for past time entires.');
+    // Warn the user about switching between time duration and time interval time entries.
+    $msg = $this->t('Note that any entries that have been entered using the <em>duration</em> method will not have start and end times saved in the database. Switching from <em>duration</em> to <em>interval</em> will not retroactively create start and end times for past time entires.');
     $form['time_entry_settings']['time_entry_message'] = array(
-      '#markup' => t($msg),
+      '#markup' => $msg,
       '#prefix' => '<div class="description">',
       '#suffix' => '</div>',
     );
@@ -157,10 +157,10 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#title' => t('Time Tracker Date Formats'),
     );
 
-    // Date formats
-    $msg = t('Dates will be output using format_date(). Below, please specify PHP date format strings as required by <a href="http://php.net/manual/en/function.date.php">date()</a>. A backslash should be used before a character to avoid interpreting the character as part of a date format.');
+    // Date formats.
+    $msg = $this->t('Dates will be output using format_date(). Below, please specify PHP date format strings as required by <a href="http://php.net/manual/en/function.date.php">date()</a>. A backslash should be used before a character to avoid interpreting the character as part of a date format.');
     $form['time_tracker_date_formats']['time_entry_message'] = array(
-      '#markup' => t($msg),
+      '#markup' => $msg,
       '#prefix' => '<div class="description">',
       '#suffix' => '</div>',
     );
@@ -177,7 +177,7 @@ class TimeTrackerSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('timestamp_date_format'),
     );
 
-    // Settings for time rounding
+    // Settings for time rounding.
     $form['time_rounding_settings'] = array(
       '#type' => 'fieldset',
       '#title' => t('Time Rounding Settings'),

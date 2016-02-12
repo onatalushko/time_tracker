@@ -8,10 +8,15 @@ namespace Drupal\time_tracker;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityAccessControlHandler;
+use Drupal\Core\Entity\EntityAccessControlHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 
-class TimeTrackerEntryAccessControlHandler extends EntityAccessControlHandler {
+/**
+ * Class TimeTrackerEntryAccessControlHandler
+ * @package Drupal\time_tracker
+ */
+class TimeTrackerEntryAccessControlHandler extends EntityAccessControlHandler implements EntityAccessControlHandlerInterface {
 
   /**
    * {@inheritdoc}
@@ -19,7 +24,7 @@ class TimeTrackerEntryAccessControlHandler extends EntityAccessControlHandler {
    * Link the activities to the permissions. checkAccess is called with the
    * $operation as defined in the routing.yml file.
    */
-  protected function checkAccess(EntityInterface $entity, $operation, $langcode, AccountInterface $account) {
+  protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
     switch ($operation) {
       case 'view':
         return AccessResult::allowedIfHasPermission($account, 'view time tracker entry entity');
@@ -30,7 +35,7 @@ class TimeTrackerEntryAccessControlHandler extends EntityAccessControlHandler {
       case 'delete':
         return AccessResult::allowedIfHasPermission($account, 'delete time tracker entry entity');
     }
-    return AccessResult::allowed();
+    return AccessResult::forbidden();
   }
 
   /**

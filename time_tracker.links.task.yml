@@ -42,27 +42,6 @@ entity.time_tracker_entry.settings_tab:
   title: Entry
   base_route: time_tracker.admin_form
 
-#time_tracker.admin.global_settings.manage:
-#  title: 'Global Settings'
-#  route_name: time_tracker.admin.global_settings.manage
-##  class: Drupal\comment\Plugin\Menu\LocalTask\UnapprovedComments
-#  parent_id: time_tracker.admin.global_settings
-#  weight: -10
-#
-#time_tracker.admin.entity_settings.manage:
-#  title: 'Global Settings'
-#  route_name: time_tracker.admin.entity_settings.manage
-#  #  class: Drupal\comment\Plugin\Menu\LocalTask\UnapprovedComments
-#  parent_id: time_tracker.admin.entity_settings
-#  weight: -10
-#
-
-#  $items['time_entry/add/%node'] = array(
-#    'title' => 'Time Entry',
-#    'description' => 'Add a Time Entry',
-#    'page callback' => 'time_tracker_add_block',
-#    'page arguments' => array(2),
-#    'access arguments' => array('add time tracker entries'),
-#  );
-#
-#  return $items;
+time_tracker_entry.local_tasks:
+  deriver: 'Drupal\time_tracker\Plugin\Derivative\TimeTrackerLocalTasks'
+  weight: 100

@@ -24,7 +24,7 @@ class TimeTrackerEntryListBuilder extends EntityListBuilder {
    * {@inheritdoc}
    */
   public function buildHeader() {
-    $header['label'] = t('Label');
+    $header['label'] = t('Logged in');
 //    $header['description'] = array(
 //      'data' => t('Description'),
 //      'class' => array(RESPONSIVE_PRIORITY_MEDIUM),
@@ -36,9 +36,8 @@ class TimeTrackerEntryListBuilder extends EntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
-    $url = Url::fromRoute('entity.time_tracker_entry.canonical', array('time_tracker_entry' => $entity));
     $row['label'] = array(
-      'data' => $entity->link(),
+      'data' => $entity->toLink(),
     );
 
 //    $row['description'] = array(

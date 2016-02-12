@@ -42,7 +42,6 @@ use Drupal\user\UserInterface;
  *   },
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
  *     "uuid" = "uuid"
  *   },
  *   bundle_entity_type = "time_tracker_activity",
@@ -131,33 +130,26 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
       ->setDescription(t('Entry UUID.'))
       ->setReadOnly(TRUE);
 
+//@todo seems deprecated possible remove
     $fields['entity_type'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Entity type'))
       ->setDescription(t('The entity type to which this entry is attached.'))
       ->setSetting('max_length', EntityTypeInterface::ID_MAX_LENGTH);
 
-//@todo possible remove
-//    $property['entity_bundle'] = array(
-//      'label' => t('Entity Bundle'),
-//      'description' => t('The attached entity\'s bundle.'),
-//      'type' => 'text',
-//      'setter callback' => 'entity_property_verbatim_set',
-//      'schema field' => 'entity_bundle',
-//    );
-
     $fields['entity_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Entity ID'))
       ->setDescription(t('The ID of the entity of which this entry is a attached.'))
-      ->setRequired(TRUE);
-
-//@todo possible remove
-//    $property['comment_id'] = array(
-//      'label' => t('Comment ID'),
-//      'description' => t('The attached comment\'s id.'),
-//      'type' => 'integer',
-//      'setter callback' => 'entity_property_verbatim_set',
-//      'schema field' => 'comment_id',
-//    );
+      ->setRequired(TRUE)
+      ->setDisplayOptions('form', array(
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 5,
+        'settings' => array(
+          'match_operator' => 'CONTAINS',
+          'size' => '60',
+          'placeholder' => '',
+        ),
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
@@ -178,24 +170,6 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
           'size' => '60',
           'placeholder' => '',
         ),
-      ))
-      ->setDisplayConfigurable('form', TRUE);
-
-
-    $fields['label'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Label'))
-      ->setDescription(t('The title.'))
-      ->setRequired(TRUE)
-      ->setDefaultValue('')
-      ->setSetting('max_length', 255)
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'string',
-        'weight' => -5,
-      ))
-      ->setDisplayOptions('form', array(
-        'type' => 'string_textfield',
-        'weight' => -5,
       ))
       ->setDisplayConfigurable('form', TRUE);
 
@@ -349,7 +323,8 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
       ->setLabel(t('Billed'))
       ->setDescription(t('Has this entry been billed?'))
       ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE)      ->setDisplayOptions('view', array(
+      ->setDefaultValue(TRUE)
+      ->setDisplayOptions('view', array(
         'label' => 'hidden',
         'type' => 'boolean',
         'weight' => -5,
@@ -367,6 +342,25 @@ class TimeTrackerEntry extends ContentEntityBase implements TimeTrackerEntryInte
 
   public static function getCurrentUserId() {
     return array(\Drupal::currentUser()->id());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function label() {
+    $referenced_entity = $this->get('entity_id')->entity;
+    return $referenced_entity->label();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toUrl($rel = 'canonical', array $options = []) {
+    if ($rel == 'canonical') {
+      $referenced_entity = $this->get('entity_id')->entity;
+      return $referenced_entity->toUrl($rel, $options);
+    }
+    return parent::toUrl($rel, $options);
   }
 
 }

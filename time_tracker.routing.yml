@@ -122,49 +122,5 @@ entity.time_tracker_entry.admin_form:
   options:
     _admin_route: TRUE
 
-#  $items['admin/config/time_tracker'] = array(
-#    'title' => 'Time Tracker',
-#    'description' => 'Time Tracker Module Settings.',
-#    'position' => 'right',
-#    'weight' => 0,
-#    'page callback' => 'system_admin_menu_block_page',
-#    'access arguments' => array('access administration pages'),
-#    'file path' => drupal_get_path('module', 'system'),
-#    'file' => 'system.admin.inc',
-#  );
-#  $items['admin/config/time_tracker/global_settings'] = array(
-#    'title' => 'Global Settings',
-#    'description' => 'Time Tracker form global settings.',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_settings_form'),
-#    'access arguments' => array('administer time tracker'),
-#    'file' => 'time_tracker.admin.inc',
-#  );
-#  $items['admin/config/time_tracker/global_settings/manage'] = array(
-#    'title' => 'Global Settings',
-#    'type' => MENU_DEFAULT_LOCAL_TASK,
-#    'weight' => -10,
-#  );
-#  $items['admin/config/time_tracker/entity_settings'] = array(
-#    'title' => 'Entity Settings',
-#    'description' => 'Configure time tracking per entity.',
-#    'page callback' => 'drupal_get_form',
-#    'page arguments' => array('time_tracker_entity_settings_form'),
-#    'access arguments' => array('administer time tracker'),
-#    'file' => 'time_tracker.admin.inc',
-#  );
-#  $items['admin/config/time_tracker/entity_settings/manage'] = array(
-#    'title' => 'Entity Settings',
-#    'type' => MENU_DEFAULT_LOCAL_TASK,
-#    'weight' => -10,
-#  );
-
-#  $items['time_entry/add/%node'] = array(
-#    'title' => 'Time Entry',
-#    'description' => 'Add a Time Entry',
-#    'page callback' => 'time_tracker_add_block',
-#    'page arguments' => array(2),
-#    'access arguments' => array('add time tracker entries'),
-#  );
-#
-#  return $items;
+route_callbacks:
+  - '\Drupal\time_tracker\Routing\TimeTrackerRoutes::routes'

@@ -1,9 +1,0 @@
-name = Time Estimate
-description = Provides time estimate functionality.
-package = Time Tracker
-core = 7.x
-dependencies[] = time_tracker
-
-files[] = time_estimate.admin.inc
-
-files[] = views/time_estimate_remaining_time.inc
