@@ -11,4 +11,20 @@ time_tracker.activity.*:
     description:
       type: text
       label: 'Description'
-      
+
+time_tracker.time_tracker_settings.*.*:
+  type: config_entity
+  label: 'Time Tracker Settings'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    target_entity_type_id:
+      type: string
+      label: 'Entity Type ID'
+    target_bundle:
+      type:  string
+      label: 'Bundle'
+    active:
+      type:  boolean
+      label: 'Time Traking enabled'

@@ -10,6 +10,17 @@ time_tracker.admin_form:
   options:
     _admin_route: TRUE
 
+
+time_tracker.entity_settings_page:
+  path: '/admin/structure/time_tracker/entities'
+  defaults:
+    _title: 'Entities'
+    _form: 'Drupal\time_tracker\Form\TimeTrackerEntitySettingsForm'
+  requirements:
+    _permission: 'administer time tracker'
+  options:
+    _admin_route: TRUE
+
 entity.time_tracker_activity.collection:
   path: '/admin/structure/time_tracker/activity'
   defaults:

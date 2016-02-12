@@ -1,0 +1,4 @@
+services:
+  time_tracker.manager:
+    class: Drupal\time_tracker\TimeTrackerManager
+    arguments: ['@entity.manager']

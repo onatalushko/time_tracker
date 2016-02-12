@@ -1,18 +1,52 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: oleg
- * Date: 11.01.15
- * Time: 21:23
+ * @file
+ * Contains \Drupal\time_tracker\Form\TimeTrackerEntitySettingsForm.
  */
 
 namespace Drupal\time_tracker\Form;
 
+use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\time_tracker\Entity\TimeTrackerSettings;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class TimeTrackerEntitySettingsForm extends ConfigFormBase {
+/**
+ * Class TimeTrackerEntitySettingsForm.
+ * @package Drupal\time_tracker\Form
+ */
+class TimeTrackerEntitySettingsForm extends FormBase {
+
+  /**
+   * The entity manager.
+   *
+   * @var \Drupal\Core\Entity\EntityManagerInterface
+   */
+  protected $entityManager;
+
+  /**
+   * Constructs a ContentLanguageSettingsForm object.
+   *
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   */
+  public function __construct(EntityTypeManagerInterface $entity_manager) {
+    $this->entityManager = $entity_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity.manager')
+    );
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -24,57 +58,106 @@ class TimeTrackerEntitySettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-  //@todo at least replace variable_get with CMI and require rewrite
-  //    Example
-  //    $exporter = new \SebastianBergmann\Exporter\Exporter();
-  //    foreach(\Drupal::entityManager()->getDefinitions() as $id => $definition) {
-  //      if (is_a($definition ,'Drupal\Core\Entity\ContentEntityType')) {
-  //        $entities_info[$id] = $exporter->toArray($definition);
-  //      }
-  //    }
-    $entity_types = \Drupal::entityManager()->getDefinitions();
+    $entity_types = $this->entityManager->getDefinitions();
+    $labels = array();
+    $default = array();
 
-    $form['description'] = array(
-      '#markup' => '<p>Foreach entity select the bundles that you want to track time on.</p>',
-    );
-    foreach($entity_types as $key => $type) {
-      // We dont want the ability to track time on time tracker activities,
-      // entries, or comments.
-      if (!in_array($key, array('time_tracker_activity', 'time_tracker_entry', 'comment'))){
-        // Basic Settings
-        $form[$key] = array(
-          '#type' => 'fieldset',
-          '#title' => t(":label Settings", array(':label'=> $type['label'])),
-          '#collapsible' => TRUE,
-          '#collapsed' => TRUE,
-        );
-        foreach($type['bundles'] as $bkey => $bundle){
-          $form[$key][$bkey] = array(
-            '#type' => 'fieldset',
-            '#title' => t(":label", array(':label'=> $bundle['label'])),
-            '#collapsible' => TRUE,
-            '#collapsed' => TRUE,
-          );
+    $bundles = $this->entityManager->getAllBundleInfo();
+    $time_tracker_configuration = array();
+    foreach ($entity_types as $entity_type_id => $entity_type) {
+      if (!$entity_type instanceof ContentEntityTypeInterface || !isset($bundles[$entity_type_id])) {
+        continue;
+      }
+      $labels[$entity_type_id] = $entity_type->getLabel() ?: $entity_type_id;
+      $default[$entity_type_id] = FALSE;
 
-          $form[$key][$bkey]['time_tracker-' . $key . '-' . $bkey] = array(
-            '#type' => 'checkbox',
-            '#title' => t('Track time on this bundle.'),
-            '#default_value' => variable_get('time_tracker-' . $key . '-' . $bkey),
-            //'#description' => t("Track time on this bundle."),
-          );
-
-          if ($type['label'] == 'Node') {
-            $form[$key][$bkey]['time_tracker_comments-' . $key . '-' . $bkey] = array(
-              '#type' => 'checkbox',
-              '#title' => t("Track time on this bundle's comments."),
-              '#default_value' => variable_get('time_tracker_comments-' . $key . '-' . $bkey),
-              //'#description' => t("Track time on this bundle's comments."),
-            );
-          }
+      // Check whether we have any custom setting.
+      foreach ($bundles[$entity_type_id] as $bundle => $bundle_info) {
+        $config = TimeTrackerSettings::loadByEntityTypeBundle($entity_type_id, $bundle);
+        $time_tracker_configuration[$entity_type_id][$bundle] = $config;
+        if ($config->getActive()) {
+          $default[$entity_type_id] = $entity_type_id;
         }
       }
     }
 
-    return parent::buildForm($form, $form_state);
+    asort($labels);
+
+    $form = array(
+      '#labels' => $labels,
+      '#attached' => array(
+        'library' => array(
+          'language/drupal.language.admin',
+        ),
+      ),
+      '#attributes' => array(
+        'class' => 'language-content-settings-form',
+      ),
+    );
+
+    $form['entity_types'] = array(
+      '#title' => $this->t('Custom Time Tracker settings'),
+      '#type' => 'checkboxes',
+      '#options' => $labels,
+      '#default_value' => $default,
+    );
+
+    $form['settings'] = array('#tree' => TRUE);
+
+    foreach ($labels as $entity_type_id => $label) {
+      $entity_type = $entity_types[$entity_type_id];
+
+      $form['settings'][$entity_type_id] = array(
+        '#title' => $label,
+        '#type' => 'container',
+        '#entity_type' => $entity_type_id,
+        '#theme' => 'time_tracker_settings_table',
+        '#bundle_label' => $entity_type->getBundleLabel() ?: $label,
+        '#states' => array(
+          'visible' => array(
+            ':input[name="entity_types[' . $entity_type_id . ']"]' => array('checked' => TRUE),
+          ),
+        ),
+      );
+
+      foreach ($bundles[$entity_type_id] as $bundle => $bundle_info) {
+        $form['settings'][$entity_type_id][$bundle]['settings'] = array(
+          '#type' => 'item',
+          '#label' => $bundle_info['label'],
+          'time_tracker' => array(
+            '#type' => 'time_tracker_configuration',
+            '#entity_information' => array(
+              'entity_type' => $entity_type_id,
+              'bundle' => $bundle,
+            ),
+            '#default_value' => $time_tracker_configuration[$entity_type_id][$bundle],
+          ),
+        );
+      }
+    }
+
+    $form['actions']['#type'] = 'actions';
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => $this->t('Save configuration'),
+      '#button_type' => 'primary',
+    );
+
+    return $form;
   }
-} 
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    foreach ($form_state->getValue('settings') as $entity_type => $entity_settings) {
+      foreach ($entity_settings as $bundle => $bundle_settings) {
+        $config = TimeTrackerSettings::loadByEntityTypeBundle($entity_type, $bundle);
+        $config->setActive($bundle_settings['settings']['time_tracker']['active'])
+          ->save();
+      }
+    }
+    drupal_set_message($this->t('Settings successfully updated.'));
+  }
+
+}

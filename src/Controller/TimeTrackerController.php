@@ -11,4 +11,11 @@ namespace Drupal\time_tracker\Controller;
 
 class TimeTrackerController {
 
-} 
+  /**
+   * {@inheritdoc}
+   */
+  public function content() {
+
+  }
+
+}

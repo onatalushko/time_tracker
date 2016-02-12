@@ -25,7 +25,7 @@ class TimeTrackerRoutes {
       '/example',
       // Route defaults:
       array(
-        '_controller' => '\Drupal\time_tracker\Controller\TimeTrackerRoutesController::content',
+        '_controller' => '\Drupal\time_tracker\TimeTrackerEntryListBuilder::render',
         '_title' => 'Time entries',
       ),
       // Route requirements:
