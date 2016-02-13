@@ -2,3 +2,9 @@ services:
   time_tracker.manager:
     class: Drupal\time_tracker\TimeTrackerManager
     arguments: ['@entity.manager']
+
+  time_tracker.subscriber:
+    class: Drupal\time_tracker\Routing\TimeTrackerRouteSubscriber
+    arguments: ['@time_tracker.manager']
+    tags:
+      - { name: event_subscriber }

@@ -133,5 +133,5 @@ entity.time_tracker_entry.admin_form:
   options:
     _admin_route: TRUE
 
-route_callbacks:
-  - '\Drupal\time_tracker\Routing\TimeTrackerRoutes::routes'
+#route_callbacks:
+#  - '\Drupal\time_tracker\Routing\TimeTrackerRouteSubscriber::routes'

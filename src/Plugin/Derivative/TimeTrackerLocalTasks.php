@@ -46,15 +46,15 @@ class TimeTrackerLocalTasks extends DeriverBase  implements ContainerDeriverInte
     // Create tabs for all possible entity types.
     foreach ($this->timeTrackerManager->getSupportedEntityTypes() as $entity_type_id => $entity_type) {
       // Find the route name for the translation overview.
-      $time_tracker_route_name = "entity.$entity_type_id.time_tracker";
+      $time_tracker_route_name = "entity.$entity_type_id.time_entries";
 
       $base_route_name = "entity.$entity_type_id.canonical";
       $this->derivatives[$time_tracker_route_name] = array(
-          'entity_type' => $entity_type_id,
-          'title' => 'Time entries',
-          'route_name' => $time_tracker_route_name,
-          'base_route' => $base_route_name,
-        ) + $base_plugin_definition;
+        'entity_type' => $entity_type_id,
+        'title' => 'Time entries',
+        'route_name' => $time_tracker_route_name,
+        'base_route' => $base_route_name,
+      ) + $base_plugin_definition;
     }
     return parent::getDerivativeDefinitions($base_plugin_definition);
   }

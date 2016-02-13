@@ -5,7 +5,9 @@
  */
 
 namespace Drupal\time_tracker;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\time_tracker\Entity\TimeTrackerSettings;
 
 
 /**
@@ -32,9 +34,17 @@ class TimeTrackerManager implements TimeTrackerManagerInterface {
    */
   public function getSupportedEntityTypes() {
     $supported_types = array();
-    foreach ($this->entityManager->getDefinitions() as $entity_type_id => $entity_type) {
-      if ($this->isSupported($entity_type_id)) {
-        $supported_types[$entity_type_id] = $entity_type;
+    $entity_types = $this->entityManager->getDefinitions();
+    $bundles = $this->entityManager->getAllBundleInfo();
+    foreach ($entity_types as $entity_type_id => $entity_type) {
+      if (!$entity_type instanceof ContentEntityTypeInterface || !isset($bundles[$entity_type_id])) {
+        continue;
+      }
+      foreach ($bundles[$entity_type_id] as $bundle => $bundle_info) {
+        $config = $this->loadTimeTrackerSettings($entity_type_id, $bundle);
+        if ($config->getActive()) {
+          $supported_types[$entity_type_id] = $entity_type;
+        }
       }
     }
     return $supported_types;
@@ -44,6 +54,10 @@ class TimeTrackerManager implements TimeTrackerManagerInterface {
    * {@inheritdoc}
    */
   public function isSupported($entity_type_id) {
+    $entity_type = $this->entityManager->getDefinition($entity_type_id);
+    $this->entityManager->getAllBundleInfo();
+    return $entity_type->isTranslatable() && ($entity_type->hasLinkTemplate('drupal:content-translation-overview') || $entity_type->get('content_translation_ui_skip'));
+
     // TODO: Implement isSupported() method.
   }
 

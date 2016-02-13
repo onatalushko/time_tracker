@@ -68,6 +68,7 @@ class TimeTrackerEntitySettingsForm extends FormBase {
       if (!$entity_type instanceof ContentEntityTypeInterface || !isset($bundles[$entity_type_id])) {
         continue;
       }
+
       $labels[$entity_type_id] = $entity_type->getLabel() ?: $entity_type_id;
       $default[$entity_type_id] = FALSE;
 
